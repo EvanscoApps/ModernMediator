@@ -59,6 +59,7 @@ namespace ModernMediator
             {
                 var mediator = (Mediator)Mediator.Create();
                 mediator.SetServiceProvider(sp);
+                mediator.SetCachingMode(config.CachingModeValue);
 
                 if (config.ErrorPolicy.HasValue)
                 {
@@ -97,6 +98,15 @@ namespace ModernMediator
         /// Gets or sets the default behavior lifetime. Defaults to Transient.
         /// </summary>
         public ServiceLifetime BehaviorLifetime { get; set; } = ServiceLifetime.Transient;
+
+        /// <summary>
+        /// Gets or sets when handler wrappers and lookups are initialized.
+        /// Defaults to Eager (initialize on first mediator access).
+        /// Use Lazy for cold start scenarios (serverless, Native AOT).
+        /// </summary>
+        public CachingMode CachingMode { get; set; } = CachingMode.Eager;
+
+        internal CachingMode CachingModeValue => CachingMode;
 
         internal MediatorConfiguration(IServiceCollection services)
         {
@@ -175,6 +185,12 @@ namespace ModernMediator
                         type,
                         typeof(IRequestPostProcessor<,>),
                         BehaviorLifetime);
+
+                    // Find IRequestExceptionHandler<,,> implementations
+                    RegisterInterfaceImplementations(
+                        type,
+                        typeof(IRequestExceptionHandler<,,>),
+                        BehaviorLifetime);
                 }
             }
 
@@ -183,8 +199,10 @@ namespace ModernMediator
 
         private void RegisterInterfaceImplementations(Type implementationType, Type genericInterfaceType, ServiceLifetime lifetime)
         {
+            // GetInterfaces() returns all interfaces including inherited ones from base classes
             var interfaces = implementationType.GetInterfaces()
-                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == genericInterfaceType);
+                .Where(i => i.IsGenericType && 
+                            i.GetGenericTypeDefinition() == genericInterfaceType);
 
             foreach (var @interface in interfaces)
             {
@@ -359,6 +377,64 @@ namespace ModernMediator
                 var descriptor = new ServiceDescriptor(@interface, type, BehaviorLifetime);
                 _services.TryAddEnumerable(descriptor);
             }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Register an exception handler type.
+        /// </summary>
+        /// <typeparam name="TExceptionHandler">The exception handler type to register.</typeparam>
+        /// <returns>The configuration for chaining.</returns>
+        public MediatorConfiguration AddExceptionHandler<TExceptionHandler>() where TExceptionHandler : class
+        {
+            var type = typeof(TExceptionHandler);
+            var interfaces = type.GetInterfaces()
+                .Where(i => i.IsGenericType &&
+                            i.GetGenericTypeDefinition() == typeof(IRequestExceptionHandler<,,>));
+
+            foreach (var @interface in interfaces)
+            {
+                var descriptor = new ServiceDescriptor(@interface, type, BehaviorLifetime);
+                _services.TryAddEnumerable(descriptor);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Register an open generic exception handler (applies to all requests for a specific exception type).
+        /// </summary>
+        /// <param name="openExceptionHandlerType">The open generic exception handler type.</param>
+        /// <returns>The configuration for chaining.</returns>
+        /// <example>
+        /// <code>
+        /// config.AddOpenExceptionHandler(typeof(LoggingExceptionHandler&lt;,,&gt;));
+        /// </code>
+        /// </example>
+        public MediatorConfiguration AddOpenExceptionHandler(Type openExceptionHandlerType)
+        {
+            if (!openExceptionHandlerType.IsGenericTypeDefinition)
+            {
+                throw new ArgumentException("Type must be an open generic type definition", nameof(openExceptionHandlerType));
+            }
+
+            var interfaces = openExceptionHandlerType.GetInterfaces()
+                .Where(i => i.IsGenericType &&
+                            i.GetGenericTypeDefinition() == typeof(IRequestExceptionHandler<,,>));
+
+            if (!interfaces.Any())
+            {
+                throw new ArgumentException(
+                    $"Type {openExceptionHandlerType.Name} does not implement IRequestExceptionHandler<,,>",
+                    nameof(openExceptionHandlerType));
+            }
+
+            // Register as open generic
+            _services.Add(new ServiceDescriptor(
+                typeof(IRequestExceptionHandler<,,>),
+                openExceptionHandlerType,
+                BehaviorLifetime));
 
             return this;
         }

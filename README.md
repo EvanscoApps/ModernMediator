@@ -14,6 +14,12 @@ A modern, feature-rich mediator library for .NET 8 that combines the best of pub
 - **Pre-Processors** - Run logic before handlers execute
 - **Post-Processors** - Run logic after handlers complete
 
+### Source Generators & AOT
+- **Source Generators** - Compile-time code generation eliminates reflection
+- **Native AOT Compatible** - Full support for ahead-of-time compilation
+- **Compile-Time Diagnostics** - Catch missing handlers during build, not runtime
+- **Zero Reflection** - Generated `AddModernMediatorGenerated()` for maximum performance
+
 ### Advanced Capabilities
 - **Weak References** - Handlers can be garbage collected, preventing memory leaks
 - **Strong References** - Opt-in for handlers that must persist
@@ -53,11 +59,14 @@ dotnet add package ModernMediator
 ### Setup with Dependency Injection (Recommended)
 
 ```csharp
-// Program.cs - with assembly scanning
+// Program.cs - with assembly scanning (uses reflection)
 services.AddModernMediator(config =>
 {
     config.RegisterServicesFromAssemblyContaining<Program>();
 });
+
+// Or use source-generated registration (AOT-compatible, no reflection)
+services.AddModernMediatorGenerated();
 
 // Or with configuration
 services.AddModernMediator(config =>
@@ -77,6 +86,39 @@ IMediator mediator = Mediator.Instance;
 // Or create isolated instance
 IMediator mediator = Mediator.Create();
 ```
+
+## Source Generators
+
+ModernMediator includes a source generator that discovers handlers at compile time and generates registration code. This provides:
+
+- **Zero reflection at runtime** - All handler discovery happens during compilation
+- **Native AOT support** - Works with ahead-of-time compilation
+- **Faster startup** - No assembly scanning at runtime
+- **Compile-time diagnostics** - Missing or duplicate handlers detected during build
+
+### Generated Code
+
+The source generator creates two files:
+
+**`ModernMediator.Generated.g.cs`** - DI registration without reflection:
+```csharp
+// Auto-generated - use instead of assembly scanning
+services.AddModernMediatorGenerated();
+```
+
+**`ModernMediator.SendExtensions.g.cs`** - Strongly-typed Send methods:
+```csharp
+// Generated extension methods bypass reflection entirely
+var user = await mediator.Send(new GetUserQuery(42)); // No reflection!
+```
+
+### Diagnostics
+
+| Code | Description |
+|------|-------------|
+| MM001 | Duplicate handler - multiple handlers for same request type |
+| MM002 | No handler found - request type has no registered handler |
+| MM003 | Abstract handler - handler class cannot be abstract |
 
 ## Usage
 
@@ -345,25 +387,50 @@ mediator.HandlerError += (sender, args) =>
 };
 ```
 
-## Comparison with MediatR
+## Comparisons
 
-| Feature                       |   ModernMediator       |     MediatR     |
-|-------------------------------|------------------------|-----------------|
-| Request/Response              |       ✅ Yes           | ✅ Yes         |
-| Notifications (Pub/Sub)       |       ✅ Yes           | ✅ Yes         |
-| Pipeline Behaviors            |       ✅ Yes           | ✅ Yes         |
-| Streaming                     |       ✅ Yes           | ✅ Yes         |
-| Assembly Scanning             |       ✅ Yes           | ✅ Yes         |
-| Weak References               |       ✅ Yes           | ❌ No          |
-| Runtime Subscribe/Unsubscribe |       ✅ Yes           | ❌ No          |
-| UI Thread Dispatch            |       ✅ Built-in      | ❌ Manual      |
-| Covariance                    |       ✅ Yes           | ❌ No          |
-| Predicate Filters             |       ✅ Yes           | ❌ No          |
-| String Key Routing            |       ✅ Yes           | ❌ No          |
-| Parallel Notifications        |       ✅ Default       | ❌ Sequential  |
-| MIT License                   |       ✅ Yes           | ❌ Commercial* |
+### ModernMediator vs MediatR
+
+| Feature | ModernMediator | MediatR |
+|---------|---------------|---------|
+| Request/Response | ✅ Yes | ✅ Yes |
+| Notifications (Pub/Sub) | ✅ Yes | ✅ Yes |
+| Pipeline Behaviors | ✅ Yes | ✅ Yes |
+| Streaming | ✅ Yes | ✅ Yes |
+| Assembly Scanning | ✅ Yes | ✅ Yes |
+| Source Generators | ✅ Yes | ❌ No |
+| Native AOT | ✅ Yes | ❌ No |
+| Weak References | ✅ Yes | ❌ No |
+| Runtime Subscribe/Unsubscribe | ✅ Yes | ❌ No |
+| UI Thread Dispatch | ✅ Built-in | ❌ Manual |
+| Covariance | ✅ Yes | ❌ No |
+| Predicate Filters | ✅ Yes | ❌ No |
+| String Key Routing | ✅ Yes | ❌ No |
+| Parallel Notifications | ✅ Default | ❌ Sequential |
+| MIT License | ✅ Yes | ❌ Commercial* |
 
 *MediatR moved to commercial licensing in July 2025
+
+### ModernMediator vs Prism EventAggregator
+
+For desktop developers using Prism, ModernMediator can replace EventAggregator while adding MediatR-style request/response:
+
+| Feature | Prism EventAggregator | ModernMediator |
+|---------|----------------------|----------------|
+| Pub/Sub | ✅ `PubSubEvent<T>` | ✅ `Publish<T>` / `Subscribe<T>` |
+| Weak References | ✅ `keepSubscriberReferenceAlive: false` | ✅ `weak: true` (default) |
+| Strong References | ✅ `keepSubscriberReferenceAlive: true` | ✅ `weak: false` |
+| Filter Subscriptions | ✅ `.Subscribe(handler, filter)` | ✅ `filter: predicate` |
+| UI Thread | ✅ `ThreadOption.UIThread` | ✅ `SubscribeOnMainThread` |
+| Background Thread | ✅ `ThreadOption.BackgroundThread` | ✅ `PublishAsync` |
+| Unsubscribe | ✅ `SubscriptionToken` | ✅ `IDisposable` |
+| Request/Response | ❌ No | ✅ `Send<TResponse>` |
+| Pipeline Behaviors | ❌ No | ✅ Yes |
+| Streaming | ❌ No | ✅ `CreateStream` |
+| Source Generators | ❌ No | ✅ Yes |
+| Native AOT | ❌ No | ✅ Yes |
+
+**Bottom line:** If you're using Prism EventAggregator for pub/sub AND MediatR for CQRS, ModernMediator replaces both with one library.
 
 ## Use Cases
 
@@ -377,6 +444,7 @@ ModernMediator excels at plugin architectures where plugins load/unload at runti
 - Built-in UI thread dispatchers
 - Memory-efficient with weak references
 - Easy decoupling of components
+- Replaces both EventAggregator and MediatR
 
 ### ASP.NET Core
 - Full DI integration
@@ -387,6 +455,12 @@ ModernMediator excels at plugin architectures where plugins load/unload at runti
 - Streaming with `IAsyncEnumerable` for memory efficiency
 - Cancellation support for long-running operations
 - Backpressure-friendly enumeration
+
+### Serverless & Native AOT
+- Source generators eliminate reflection overhead
+- Fast cold start times
+- Full Native AOT compatibility
+- Compile-time handler discovery
 
 ## License
 

@@ -40,6 +40,7 @@ namespace ModernMediator
 
         private IDispatcher? _uiDispatcher;
         private ErrorPolicy _errorPolicy = ErrorPolicy.ContinueAndAggregate;
+        private CachingMode _cachingMode = CachingMode.Eager;
         private bool _disposed;
 
         /// <summary>
@@ -94,6 +95,15 @@ namespace ModernMediator
         }
 
         /// <summary>
+        /// Sets the caching mode for handler initialization.
+        /// Called internally by DI registration.
+        /// </summary>
+        internal void SetCachingMode(CachingMode cachingMode)
+        {
+            _cachingMode = cachingMode;
+        }
+
+        /// <summary>
         /// Gets the service provider for resolving handlers.
         /// Used by source generators to bypass reflection.
         /// </summary>
@@ -136,7 +146,7 @@ namespace ModernMediator
             // Execute pre-processors
             await ExecutePreProcessors(requestType, request, cancellationToken);
 
-            // Execute the pipeline (behaviors + handler)
+            // Execute the pipeline (behaviors + handler) with exception handling
             TResponse response;
             try
             {
@@ -144,13 +154,89 @@ namespace ModernMediator
             }
             catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException != null)
             {
+                // Try exception handlers for the inner exception
+                var handledResult = await TryHandleException<TResponse>(requestType, responseType, request, tie.InnerException, cancellationToken);
+                if (handledResult.Handled)
+                {
+                    return handledResult.Response!;
+                }
                 throw tie.InnerException;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Try exception handlers
+                var handledResult = await TryHandleException<TResponse>(requestType, responseType, request, ex, cancellationToken);
+                if (handledResult.Handled)
+                {
+                    return handledResult.Response!;
+                }
+                throw;
             }
 
             // Execute post-processors
             await ExecutePostProcessors(requestType, responseType, request, response, cancellationToken);
 
             return response;
+        }
+
+        private async Task<ExceptionHandlingResult<TResponse>> TryHandleException<TResponse>(
+            Type requestType,
+            Type responseType,
+            object request,
+            Exception exception,
+            CancellationToken cancellationToken)
+        {
+            if (_serviceProvider == null)
+            {
+                return ExceptionHandlingResult<TResponse>.NotHandled();
+            }
+
+            // Try to find exception handlers for this specific exception type
+            var exceptionType = exception.GetType();
+
+            // Walk up the exception type hierarchy
+            var currentExceptionType = exceptionType;
+            while (currentExceptionType != null && currentExceptionType != typeof(object))
+            {
+                var exceptionHandlerInterfaceType = typeof(IRequestExceptionHandler<,,>)
+                    .MakeGenericType(requestType, responseType, currentExceptionType);
+                var handlersEnumerableType = typeof(IEnumerable<>).MakeGenericType(exceptionHandlerInterfaceType);
+                var handlersObj = _serviceProvider.GetService(handlersEnumerableType);
+
+                if (handlersObj != null)
+                {
+                    var handlers = ((System.Collections.IEnumerable)handlersObj).Cast<object>().ToList();
+
+                    foreach (var handler in handlers)
+                    {
+                        // Get the Handle method from the INTERFACE type, not the concrete type
+                        // This handles explicit interface implementations correctly
+                        var handleMethod = exceptionHandlerInterfaceType.GetMethod("Handle");
+                        if (handleMethod == null) continue;
+
+                        try
+                        {
+                            var resultTask = handleMethod.Invoke(handler, new object[] { request, exception, cancellationToken });
+                            if (resultTask is Task<ExceptionHandlingResult<TResponse>> typedTask)
+                            {
+                                var result = await typedTask.ConfigureAwait(false);
+                                if (result.Handled)
+                                {
+                                    return result;
+                                }
+                            }
+                        }
+                        catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException != null)
+                        {
+                            throw tie.InnerException;
+                        }
+                    }
+                }
+
+                currentExceptionType = currentExceptionType.BaseType;
+            }
+
+            return ExceptionHandlingResult<TResponse>.NotHandled();
         }
 
         private RequestHandlerDelegate<TResponse> BuildPipeline<TResponse>(
