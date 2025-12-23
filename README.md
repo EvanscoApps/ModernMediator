@@ -2,6 +2,10 @@
 
 A modern, feature-rich mediator library for .NET 8 that combines the best of pub/sub and request/response patterns with advanced features for real-world applications.
 
+## Status: Alpha
+
+Core features tested. Edge cases may exist. Please report issues on GitHub.
+
 ## Features
 
 ### Core Patterns
@@ -13,12 +17,14 @@ A modern, feature-rich mediator library for .NET 8 that combines the best of pub
 - **Pipeline Behaviors** - Wrap handler execution for cross-cutting concerns
 - **Pre-Processors** - Run logic before handlers execute
 - **Post-Processors** - Run logic after handlers complete
+- **Exception Handlers** - Clean, typed exception handling separate from business logic
 
 ### Source Generators & AOT
 - **Source Generators** - Compile-time code generation eliminates reflection
 - **Native AOT Compatible** - Full support for ahead-of-time compilation
 - **Compile-Time Diagnostics** - Catch missing handlers during build, not runtime
 - **Zero Reflection** - Generated `AddModernMediatorGenerated()` for maximum performance
+- **CachingMode** - Eager (default) or Lazy initialization for cold start optimization
 
 ### Advanced Capabilities
 - **Weak References** - Handlers can be garbage collected, preventing memory leaks
@@ -114,11 +120,28 @@ var user = await mediator.Send(new GetUserQuery(42)); // No reflection!
 
 ### Diagnostics
 
-| Code | Description |
-|------|-------------|
-| MM001 | Duplicate handler - multiple handlers for same request type |
-| MM002 | No handler found - request type has no registered handler |
-| MM003 | Abstract handler - handler class cannot be abstract |
+| Code  | Description                                              |
+|-------|----------------------------------------------------------|
+| MM001 | Duplicate handler - multiple handlers for same request   |
+| MM002 | No handler found - request type has no registered handler|
+| MM003 | Abstract handler - handler class cannot be abstract      |
+
+### CachingMode
+
+Control when handler wrappers and lookups are initialized:
+
+```csharp
+services.AddModernMediator(config =>
+{
+    // Eager (default) - initialize everything on first mediator access
+    // Best for long-running applications where startup cost is amortized
+    config.CachingMode = CachingMode.Eager;
+    
+    // Lazy - initialize handlers on-demand as messages are processed
+    // Best for serverless, Native AOT, or cold start scenarios
+    config.CachingMode = CachingMode.Lazy;
+});
+```
 
 ## Usage
 
@@ -267,6 +290,37 @@ services.AddModernMediator(config =>
 });
 ```
 
+### Exception Handlers
+
+Exception handlers provide clean, typed exception handling separate from your business logic. They can return an alternate response or let the exception bubble up.
+
+```csharp
+// Define an exception handler for a specific exception type
+public class NotFoundExceptionHandler : RequestExceptionHandler<GetUserQuery, UserDto, NotFoundException>
+{
+    protected override Task<ExceptionHandlingResult<UserDto>> Handle(
+        GetUserQuery request,
+        NotFoundException exception,
+        CancellationToken ct)
+    {
+        // Return an alternate response
+        return Handled(new UserDto(0, "Unknown User"));
+        
+        // Or let the exception bubble up
+        // return NotHandled;
+    }
+}
+
+// Register exception handlers
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.AddExceptionHandler<NotFoundExceptionHandler>();
+});
+```
+
+Exception handlers walk the exception type hierarchy, so a handler for `Exception` will catch all exceptions if no more specific handler is registered.
+
 ### Pub/Sub (Notifications)
 
 ```csharp
@@ -391,23 +445,24 @@ mediator.HandlerError += (sender, args) =>
 
 ### ModernMediator vs MediatR
 
-| Feature | ModernMediator | MediatR |
-|---------|---------------|---------|
-| Request/Response | ✅ Yes | ✅ Yes |
-| Notifications (Pub/Sub) | ✅ Yes | ✅ Yes |
-| Pipeline Behaviors | ✅ Yes | ✅ Yes |
-| Streaming | ✅ Yes | ✅ Yes |
-| Assembly Scanning | ✅ Yes | ✅ Yes |
-| Source Generators | ✅ Yes | ❌ No |
-| Native AOT | ✅ Yes | ❌ No |
-| Weak References | ✅ Yes | ❌ No |
-| Runtime Subscribe/Unsubscribe | ✅ Yes | ❌ No |
-| UI Thread Dispatch | ✅ Built-in | ❌ Manual |
-| Covariance | ✅ Yes | ❌ No |
-| Predicate Filters | ✅ Yes | ❌ No |
-| String Key Routing | ✅ Yes | ❌ No |
-| Parallel Notifications | ✅ Default | ❌ Sequential |
-| MIT License | ✅ Yes | ❌ Commercial* |
+| Feature                        | ModernMediator | MediatR        |
+|--------------------------------|----------------|----------------|
+| Request/Response               | ✅ Yes         | ✅ Yes         |
+| Notifications (Pub/Sub)        | ✅ Yes         | ✅ Yes         |
+| Pipeline Behaviors             | ✅ Yes         | ✅ Yes         |
+| Streaming                      | ✅ Yes         | ✅ Yes         |
+| Assembly Scanning              | ✅ Yes         | ✅ Yes         |
+| Exception Handlers             | ✅ Yes         | ❌ No          |
+| Source Generators              | ✅ Yes         | ❌ No          |
+| Native AOT                     | ✅ Yes         | ❌ No          |
+| Weak References                | ✅ Yes         | ❌ No          |
+| Runtime Subscribe/Unsubscribe  | ✅ Yes         | ❌ No          |
+| UI Thread Dispatch             | ✅ Built-in    | ❌ Manual      |
+| Covariance                     | ✅ Yes         | ❌ No          |
+| Predicate Filters              | ✅ Yes         | ❌ No          |
+| String Key Routing             | ✅ Yes         | ❌ No          |
+| Parallel Notifications         | ✅ Default     | ❌ Sequential  |
+| MIT License                    | ✅ Yes         | ❌ Commercial* |
 
 *MediatR moved to commercial licensing in July 2025
 
@@ -415,20 +470,21 @@ mediator.HandlerError += (sender, args) =>
 
 For desktop developers using Prism, ModernMediator can replace EventAggregator while adding MediatR-style request/response:
 
-| Feature | Prism EventAggregator | ModernMediator |
-|---------|----------------------|----------------|
-| Pub/Sub | ✅ `PubSubEvent<T>` | ✅ `Publish<T>` / `Subscribe<T>` |
-| Weak References | ✅ `keepSubscriberReferenceAlive: false` | ✅ `weak: true` (default) |
-| Strong References | ✅ `keepSubscriberReferenceAlive: true` | ✅ `weak: false` |
-| Filter Subscriptions | ✅ `.Subscribe(handler, filter)` | ✅ `filter: predicate` |
-| UI Thread | ✅ `ThreadOption.UIThread` | ✅ `SubscribeOnMainThread` |
-| Background Thread | ✅ `ThreadOption.BackgroundThread` | ✅ `PublishAsync` |
-| Unsubscribe | ✅ `SubscriptionToken` | ✅ `IDisposable` |
-| Request/Response | ❌ No | ✅ `Send<TResponse>` |
-| Pipeline Behaviors | ❌ No | ✅ Yes |
-| Streaming | ❌ No | ✅ `CreateStream` |
-| Source Generators | ❌ No | ✅ Yes |
-| Native AOT | ❌ No | ✅ Yes |
+| Feature              | Prism EventAggregator                    | ModernMediator                     |
+|----------------------|------------------------------------------|------------------------------------|
+| Pub/Sub              | ✅ `PubSubEvent<T>`                      | ✅ `Publish<T>` / `Subscribe<T>`   |
+| Weak References      | ✅ `keepSubscriberReferenceAlive: false` | ✅ `weak: true` (default)          |
+| Strong References    | ✅ `keepSubscriberReferenceAlive: true`  | ✅ `weak: false`                   |
+| Filter Subscriptions | ✅ `.Subscribe(handler, filter)`         | ✅ `filter: predicate`             |
+| UI Thread            | ✅ `ThreadOption.UIThread`               | ✅ `SubscribeOnMainThread`         |
+| Background Thread    | ✅ `ThreadOption.BackgroundThread`       | ✅ `PublishAsync`                  |
+| Unsubscribe          | ✅ `SubscriptionToken`                   | ✅ `IDisposable`                   |
+| Request/Response     | ❌ No                                    | ✅ `Send<TResponse>`               |
+| Pipeline Behaviors   | ❌ No                                    | ✅ Yes                             |
+| Exception Handlers   | ❌ No                                    | ✅ Yes                             |
+| Streaming            | ❌ No                                    | ✅ `CreateStream`                  |
+| Source Generators    | ❌ No                                    | ✅ Yes                             |
+| Native AOT           | ❌ No                                    | ✅ Yes                             |
 
 **Bottom line:** If you're using Prism EventAggregator for pub/sub AND MediatR for CQRS, ModernMediator replaces both with one library.
 
@@ -458,7 +514,7 @@ ModernMediator excels at plugin architectures where plugins load/unload at runti
 
 ### Serverless & Native AOT
 - Source generators eliminate reflection overhead
-- Fast cold start times
+- `CachingMode.Lazy` for fast cold start times
 - Full Native AOT compatibility
 - Compile-time handler discovery
 
