@@ -38,4 +38,20 @@
 		<None Include="..\..\README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
+	<PropertyGroup>
+		<PackageId>ModernMediator</PackageId>
+		<Version>0.1.0-alpha</Version>
+		<Authors>Your Name</Authors>
+		<Description>A modern mediator library for .NET 8 with request/response, pub/sub, streaming, pipeline behaviors, source generators, and Native AOT support.</Description>
+		<PackageTags>mediator;cqrs;messaging;pubsub;events;pipeline;aot</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/EvanscoApps/ModernMediator</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/EvanscoApps/ModernMediator</RepositoryUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="../../README.md" Pack="true" PackagePath="/" />
+	</ItemGroup>
+
 </Project>

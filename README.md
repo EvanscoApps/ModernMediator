@@ -1,5 +1,7 @@
 # ModernMediator
 
+[![NuGet](https://img.shields.io/nuget/v/ModernMediator.svg)](https://www.nuget.org/packages/ModernMediator)
+
 A modern, feature-rich mediator library for .NET 8 that combines the best of pub/sub and request/response patterns with advanced features for real-world applications.
 
 ## Status: Alpha
