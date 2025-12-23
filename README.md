@@ -518,6 +518,17 @@ ModernMediator excels at plugin architectures where plugins load/unload at runti
 - Full Native AOT compatibility
 - Compile-time handler discovery
 
+## Known Limitations
+
+- **In-process only** - No distributed messaging. For microservices, combine with MassTransit or Wolverine for transport.
+- **One handler per request** - Request/Response expects exactly one handler per request type.
+- **No generic request handlers** - Each closed generic type needs its own handler.
+- **Exception handlers for Request/Response only** - Pub/Sub notifications use `ErrorPolicy` instead.
+- **Pipeline behaviors don't wrap streaming** - Behaviors wrap `Send()`, not `CreateStream()`.
+- **Weak references + lambdas** - Closures capture `this`, which may prevent GC. Use method references or `weak: false`.
+- **Behavior order = registration order** - First registered behavior executes first (outermost).
+- **Native AOT requires source generator** - Use `AddModernMediatorGenerated()` instead of assembly scanning.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file.
