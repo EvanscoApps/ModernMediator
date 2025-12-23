@@ -152,6 +152,12 @@ namespace ModernMediator
                         typeof(IRequestHandler<,>),
                         HandlerLifetime);
 
+                    // Find IStreamRequestHandler<,> implementations
+                    RegisterInterfaceImplementations(
+                        type,
+                        typeof(IStreamRequestHandler<,>),
+                        HandlerLifetime);
+
                     // Find IPipelineBehavior<,> implementations
                     RegisterInterfaceImplementations(
                         type,
@@ -219,6 +225,41 @@ namespace ModernMediator
             where TRequest : IRequest<TResponse>
         {
             _services.AddSingleton(typeof(IRequestHandler<TRequest, TResponse>), handler);
+            return this;
+        }
+
+        /// <summary>
+        /// Register a stream handler type.
+        /// </summary>
+        /// <typeparam name="THandler">The stream handler type to register.</typeparam>
+        /// <returns>The configuration for chaining.</returns>
+        public MediatorConfiguration RegisterStreamHandler<THandler>() where THandler : class
+        {
+            var type = typeof(THandler);
+            var interfaces = type.GetInterfaces()
+                .Where(i => i.IsGenericType &&
+                            i.GetGenericTypeDefinition() == typeof(IStreamRequestHandler<,>));
+
+            foreach (var @interface in interfaces)
+            {
+                var descriptor = new ServiceDescriptor(@interface, type, HandlerLifetime);
+                _services.TryAdd(descriptor);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Register a stream handler instance.
+        /// </summary>
+        /// <typeparam name="TRequest">The stream request type.</typeparam>
+        /// <typeparam name="TResponse">The response item type.</typeparam>
+        /// <param name="handler">The stream handler instance.</param>
+        /// <returns>The configuration for chaining.</returns>
+        public MediatorConfiguration RegisterStreamHandler<TRequest, TResponse>(IStreamRequestHandler<TRequest, TResponse> handler)
+            where TRequest : IStreamRequest<TResponse>
+        {
+            _services.AddSingleton(typeof(IStreamRequestHandler<TRequest, TResponse>), handler);
             return this;
         }
 

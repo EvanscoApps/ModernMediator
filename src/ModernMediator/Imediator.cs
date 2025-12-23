@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ModernMediator.Dispatchers;
@@ -27,6 +28,30 @@ namespace ModernMediator
         /// <returns>The response from the handler.</returns>
         /// <exception cref="InvalidOperationException">Thrown when no handler or multiple handlers are registered.</exception>
         Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
+
+        #endregion
+
+        #region Streaming
+
+        /// <summary>
+        /// Creates a stream of responses from a streaming request handler.
+        /// Use this for scenarios requiring multiple results over time, such as
+        /// pagination, real-time feeds, or large dataset processing.
+        /// </summary>
+        /// <typeparam name="TResponse">The type of each item in the response stream.</typeparam>
+        /// <param name="request">The streaming request.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>An async enumerable of response items.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when no handler is registered.</exception>
+        /// <example>
+        /// <code>
+        /// await foreach (var user in mediator.CreateStream(new GetAllUsersRequest(), cancellationToken))
+        /// {
+        ///     Console.WriteLine(user.Name);
+        /// }
+        /// </code>
+        /// </example>
+        IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default);
 
         #endregion
 

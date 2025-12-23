@@ -308,6 +308,65 @@ namespace ModernMediator
 
         #endregion
 
+        #region Streaming
+
+        /// <inheritdoc />
+        public async IAsyncEnumerable<TResponse> CreateStream<TResponse>(
+            IStreamRequest<TResponse> request,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            ThrowIfDisposed();
+
+            var requestType = request.GetType();
+            var responseType = typeof(TResponse);
+
+            // Get the handler
+            var handlerType = typeof(IStreamRequestHandler<,>).MakeGenericType(requestType, responseType);
+            object? handler = _serviceProvider?.GetService(handlerType);
+
+            if (handler == null)
+            {
+                throw new InvalidOperationException(
+                    $"No stream handler registered for request type {requestType.Name}. " +
+                    $"Register a handler implementing IStreamRequestHandler<{requestType.Name}, {responseType.Name}> " +
+                    "using AddModernMediator() with assembly scanning or manual registration.");
+            }
+
+            // Get the Handle method
+            var handleMethod = handlerType.GetMethod("Handle");
+            if (handleMethod == null)
+            {
+                throw new InvalidOperationException($"Handle method not found on handler type {handlerType.Name}");
+            }
+
+            // Invoke the handler to get the IAsyncEnumerable
+            object? streamResult;
+            try
+            {
+                streamResult = handleMethod.Invoke(handler, new object[] { request, cancellationToken });
+            }
+            catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException != null)
+            {
+                throw tie.InnerException;
+            }
+
+            if (streamResult == null)
+            {
+                throw new InvalidOperationException($"Stream handler for {requestType.Name} returned null.");
+            }
+
+            var asyncEnumerable = (IAsyncEnumerable<TResponse>)streamResult;
+
+            // Yield items from the stream
+            await foreach (var item in asyncEnumerable.WithCancellation(cancellationToken).ConfigureAwait(false))
+            {
+                yield return item;
+            }
+        }
+
+        #endregion
+
         #region Subscribe Methods
 
         /// <inheritdoc />
