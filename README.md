@@ -5,9 +5,14 @@ A modern, feature-rich mediator library for .NET 8 that combines the best of pub
 ## Features
 
 ### Core Patterns
+- **Request/Response** - Send requests and receive typed responses
+- **Streaming** - `IAsyncEnumerable` support for large datasets
 - **Pub/Sub (Notifications)** - Fire-and-forget event broadcasting
-- **Request/Response** - Send requests and receive responses *(coming soon)*
-- **Streaming** - IAsyncEnumerable support *(coming soon)*
+
+### Pipeline
+- **Pipeline Behaviors** - Wrap handler execution for cross-cutting concerns
+- **Pre-Processors** - Run logic before handlers execute
+- **Post-Processors** - Run logic after handlers complete
 
 ### Advanced Capabilities
 - **Weak References** - Handlers can be garbage collected, preventing memory leaks
@@ -33,9 +38,9 @@ A modern, feature-rich mediator library for .NET 8 that combines the best of pub
 
 ### Modern .NET Integration
 - **Dependency Injection** - `services.AddModernMediator()`
+- **Assembly Scanning** - Auto-discover handlers, behaviors, and processors
 - **Multi-target** - `net8.0` and `net8.0-windows`
 - **Interface-first** - `IMediator` for testability and mocking
-- **Pipeline Behaviors** - Cross-cutting concerns *(coming soon)*
 
 ## Installation
 
@@ -48,14 +53,18 @@ dotnet add package ModernMediator
 ### Setup with Dependency Injection (Recommended)
 
 ```csharp
-// Program.cs
-services.AddModernMediator();
+// Program.cs - with assembly scanning
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+});
 
 // Or with configuration
-services.AddModernMediator(mediator =>
+services.AddModernMediator(config =>
 {
-    mediator.ErrorPolicy = ErrorPolicy.LogAndContinue;
-    mediator.SetDispatcher(new WpfDispatcher());
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.ErrorPolicy = ErrorPolicy.LogAndContinue;
+    config.Configure(m => m.SetDispatcher(new WpfDispatcher()));
 });
 ```
 
@@ -70,6 +79,151 @@ IMediator mediator = Mediator.Create();
 ```
 
 ## Usage
+
+### Request/Response
+
+```csharp
+// Define request and response
+public record GetUserQuery(int UserId) : IRequest<UserDto>;
+public record UserDto(int Id, string Name, string Email);
+
+// Define handler
+public class GetUserHandler : IRequestHandler<GetUserQuery, UserDto>
+{
+    public async Task<UserDto> Handle(GetUserQuery request, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FindAsync(request.UserId, ct);
+        return new UserDto(user.Id, user.Name, user.Email);
+    }
+}
+
+// Send request
+var user = await mediator.Send(new GetUserQuery(42));
+```
+
+### Commands (No Return Value)
+
+```csharp
+// Define command
+public record CreateUserCommand(string Name, string Email) : IRequest;
+
+// Define handler
+public class CreateUserHandler : IRequestHandler<CreateUserCommand, Unit>
+{
+    public async Task<Unit> Handle(CreateUserCommand request, CancellationToken ct = default)
+    {
+        await _db.Users.AddAsync(new User(request.Name, request.Email), ct);
+        await _db.SaveChangesAsync(ct);
+        return Unit.Value;
+    }
+}
+
+// Send command
+await mediator.Send(new CreateUserCommand("John", "john@example.com"));
+```
+
+### Streaming
+
+```csharp
+// Define stream request
+public record GetAllUsersRequest(int PageSize) : IStreamRequest<UserDto>;
+
+// Define stream handler
+public class GetAllUsersHandler : IStreamRequestHandler<GetAllUsersRequest, UserDto>
+{
+    public async IAsyncEnumerable<UserDto> Handle(
+        GetAllUsersRequest request,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        await foreach (var user in _db.Users.AsAsyncEnumerable().WithCancellation(ct))
+        {
+            yield return new UserDto(user.Id, user.Name, user.Email);
+        }
+    }
+}
+
+// Consume stream
+await foreach (var user in mediator.CreateStream(new GetAllUsersRequest(100), ct))
+{
+    Console.WriteLine(user.Name);
+}
+```
+
+### Pipeline Behaviors
+
+```csharp
+// Logging behavior that wraps all requests
+public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public async Task<TResponse> Handle(
+        TRequest request, 
+        RequestHandlerDelegate<TResponse> next, 
+        CancellationToken ct)
+    {
+        _logger.LogInformation("Handling {Request}", typeof(TRequest).Name);
+        var response = await next();
+        _logger.LogInformation("Handled {Request}", typeof(TRequest).Name);
+        return response;
+    }
+}
+
+// Validation behavior
+public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public async Task<TResponse> Handle(
+        TRequest request, 
+        RequestHandlerDelegate<TResponse> next, 
+        CancellationToken ct)
+    {
+        var errors = await _validator.ValidateAsync(request, ct);
+        if (errors.Any()) throw new ValidationException(errors);
+        return await next();
+    }
+}
+
+// Register behaviors
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.AddBehavior<LoggingBehavior>();
+    config.AddBehavior<ValidationBehavior>();
+});
+```
+
+### Pre/Post Processors
+
+```csharp
+// Pre-processor runs before handler
+public class AuthorizationPreProcessor<TRequest> : IRequestPreProcessor<TRequest>
+{
+    public Task Process(TRequest request, CancellationToken ct)
+    {
+        if (!_auth.IsAuthorized(request))
+            throw new UnauthorizedException();
+        return Task.CompletedTask;
+    }
+}
+
+// Post-processor runs after handler
+public class CachingPostProcessor<TRequest, TResponse> : IRequestPostProcessor<TRequest, TResponse>
+{
+    public Task Process(TRequest request, TResponse response, CancellationToken ct)
+    {
+        _cache.Set(request, response);
+        return Task.CompletedTask;
+    }
+}
+
+// Register processors
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.AddRequestPreProcessor<AuthorizationPreProcessor>();
+    config.AddRequestPostProcessor<CachingPostProcessor>();
+});
+```
 
 ### Pub/Sub (Notifications)
 
@@ -193,20 +347,23 @@ mediator.HandlerError += (sender, args) =>
 
 ## Comparison with MediatR
 
-| Feature | ModernMediator | MediatR |
-|---------|---------------|---------|
-| Request/Response | ✅ Coming soon | ✅ Yes |
-| Notifications (Pub/Sub) | ✅ Yes | ✅ Yes |
-| Pipeline Behaviors | ✅ Coming soon | ✅ Yes |
-| Weak References | ✅ Yes | ❌ No |
-| Runtime Subscribe/Unsubscribe | ✅ Yes | ❌ No |
-| UI Thread Dispatch | ✅ Built-in | ❌ Manual |
-| Covariance | ✅ Yes | ❌ No |
-| Predicate Filters | ✅ Yes | ❌ No |
-| String Key Routing | ✅ Yes | ❌ No |
-| Parallel Notifications | ✅ Default | ❌ Sequential |
-| Assembly Scanning | ✅ Coming soon | ✅ Yes |
-| Streaming | ✅ Coming soon | ✅ Yes |
+| Feature                       |   ModernMediator       |     MediatR     |
+|-------------------------------|------------------------|-----------------|
+| Request/Response              |       ✅ Yes           | ✅ Yes         |
+| Notifications (Pub/Sub)       |       ✅ Yes           | ✅ Yes         |
+| Pipeline Behaviors            |       ✅ Yes           | ✅ Yes         |
+| Streaming                     |       ✅ Yes           | ✅ Yes         |
+| Assembly Scanning             |       ✅ Yes           | ✅ Yes         |
+| Weak References               |       ✅ Yes           | ❌ No          |
+| Runtime Subscribe/Unsubscribe |       ✅ Yes           | ❌ No          |
+| UI Thread Dispatch            |       ✅ Built-in      | ❌ Manual      |
+| Covariance                    |       ✅ Yes           | ❌ No          |
+| Predicate Filters             |       ✅ Yes           | ❌ No          |
+| String Key Routing            |       ✅ Yes           | ❌ No          |
+| Parallel Notifications        |       ✅ Default       | ❌ Sequential  |
+| MIT License                   |       ✅ Yes           | ❌ Commercial* |
+
+*MediatR moved to commercial licensing in July 2025
 
 ## Use Cases
 
@@ -225,6 +382,11 @@ ModernMediator excels at plugin architectures where plugins load/unload at runti
 - Full DI integration
 - Request/response for CQRS patterns
 - Pipeline behaviors for cross-cutting concerns
+
+### Large Dataset Processing
+- Streaming with `IAsyncEnumerable` for memory efficiency
+- Cancellation support for long-running operations
+- Backpressure-friendly enumeration
 
 ## License
 

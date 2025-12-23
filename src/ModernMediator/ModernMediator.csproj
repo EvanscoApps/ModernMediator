@@ -1,46 +1,41 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>net8.0;net8.0-windows</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
+		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
-		<RootNamespace>ModernMediator</RootNamespace>
 
-		<!-- NuGet Package Info -->
+		<!-- Package info -->
 		<PackageId>ModernMediator</PackageId>
 		<Version>1.0.0</Version>
-		<Authors>Your Name</Authors>
-		<Company>Your Company</Company>
-		<Description>Production-ready ModernMediator for .NET with weak references, async handlers, filters, and UI thread dispatching.</Description>
-		<PackageTags>eventbus;mediator;pubsub;messaging;events</PackageTags>
+		<Authors>Rob Evans</Authors>
+		<Description>A modern, feature-rich mediator library for .NET 8. Drop-in MediatR replacement with added features: UI thread dispatching, weak references, runtime subscribe/unsubscribe, and source generator support for AOT.</Description>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<RepositoryUrl>https://github.com/yourname/ModernMediator</RepositoryUrl>
+		<RepositoryUrl>https://github.com/EvanscoApps/ModernMediator</RepositoryUrl>
+		<PackageTags>mediator;cqrs;messaging;pubsub;events;maui;wpf;winforms;aot</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-
-		<!-- Enable XML documentation -->
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<NoWarn>$(NoWarn);CS1591</NoWarn>
 	</PropertyGroup>
 
-	<!-- Windows-specific references for WPF/WinForms dispatchers -->
-	<ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
-		<FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
-		<FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
-	</ItemGroup>
+	<!-- Enable WPF and WinForms for Windows target -->
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+		<UseWindowsForms>true</UseWindowsForms>
+		<UseWPF>true</UseWPF>
+	</PropertyGroup>
 
-	<!-- DI abstractions for AddModernMediator extension -->
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
 	</ItemGroup>
 
-	<!-- Define WINDOWS constant for conditional compilation -->
-	<PropertyGroup Condition="$(TargetFramework.Contains('-windows'))">
-		<DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
-	</PropertyGroup>
+	<!-- Reference the source generator -->
+	<ItemGroup>
+		<ProjectReference Include="..\ModernMediator.Generators\ModernMediator.Generators.csproj"
+		                  OutputItemType="Analyzer"
+		                  ReferenceOutputAssembly="false" />
+	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="README.md" Pack="true" PackagePath="\" Condition="Exists('README.md')" />
+		<None Include="..\..\README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>

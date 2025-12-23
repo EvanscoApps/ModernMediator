@@ -14,7 +14,7 @@ namespace ModernMediator
     /// Production-ready mediator for loosely-coupled messaging with support for
     /// weak references, async handlers, filters, pipeline behaviors, and UI thread dispatching.
     /// </summary>
-    public sealed class Mediator : IMediator
+    public sealed class Mediator : IMediator, IServiceProviderAccessor
     {
         private static readonly Lazy<IMediator> _instance = new Lazy<IMediator>(() => new Mediator());
 
@@ -92,6 +92,12 @@ namespace ModernMediator
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         }
+
+        /// <summary>
+        /// Gets the service provider for resolving handlers.
+        /// Used by source generators to bypass reflection.
+        /// </summary>
+        public IServiceProvider? ServiceProvider => _serviceProvider;
 
         /// <inheritdoc />
         public void SetDispatcher(IDispatcher dispatcher)
