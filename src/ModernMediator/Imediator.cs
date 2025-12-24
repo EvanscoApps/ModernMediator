@@ -118,6 +118,49 @@ namespace ModernMediator
 
         #endregion
 
+        #region Pub/Sub with Callbacks
+
+        /// <summary>
+        /// Subscribe to messages of type TMessage and return a response of type TResponse.
+        /// Use with Publish&lt;TMessage, TResponse&gt; to collect responses from all subscribers.
+        /// </summary>
+        /// <typeparam name="TMessage">The message type.</typeparam>
+        /// <typeparam name="TResponse">The response type.</typeparam>
+        /// <param name="handler">Handler that returns a response.</param>
+        /// <param name="weak">If true (default), uses weak reference.</param>
+        /// <param name="filter">Optional predicate to filter messages.</param>
+        /// <returns>A disposable token to unsubscribe.</returns>
+        IDisposable Subscribe<TMessage, TResponse>(Func<TMessage, TResponse> handler, bool weak = true, Predicate<TMessage>? filter = null);
+
+        /// <summary>
+        /// Subscribe to messages of type TMessage and return a response of type TResponse asynchronously.
+        /// Use with PublishAsync&lt;TMessage, TResponse&gt; to collect responses from all subscribers.
+        /// </summary>
+        IDisposable SubscribeAsync<TMessage, TResponse>(Func<TMessage, Task<TResponse>> handler, bool weak = true, Predicate<TMessage>? filter = null);
+
+        /// <summary>
+        /// Publish a message and collect responses from all subscribers.
+        /// Unlike Send which expects one handler, this collects responses from multiple subscribers.
+        /// </summary>
+        /// <typeparam name="TMessage">The message type.</typeparam>
+        /// <typeparam name="TResponse">The response type.</typeparam>
+        /// <param name="message">The message to publish.</param>
+        /// <returns>All responses from subscribers. Empty if no subscribers or message is null.</returns>
+        IReadOnlyList<TResponse> Publish<TMessage, TResponse>(TMessage? message);
+
+        /// <summary>
+        /// Publish a message and collect responses from all async subscribers.
+        /// Awaits all handlers with Task.WhenAll.
+        /// </summary>
+        /// <typeparam name="TMessage">The message type.</typeparam>
+        /// <typeparam name="TResponse">The response type.</typeparam>
+        /// <param name="message">The message to publish.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>All responses from subscribers. Empty if no subscribers or message is null.</returns>
+        Task<IReadOnlyList<TResponse>> PublishAsync<TMessage, TResponse>(TMessage? message, CancellationToken cancellationToken = default);
+
+        #endregion
+
         #region Configuration
 
         /// <summary>

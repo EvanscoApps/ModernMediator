@@ -30,6 +30,16 @@ namespace ModernMediator
         private ImmutableDictionary<Type, ImmutableArray<IAsyncHandlerEntry>> _asyncHandlers =
             ImmutableDictionary<Type, ImmutableArray<IAsyncHandlerEntry>>.Empty;
 
+        // Callback handlers (sync handlers that return values)
+        private readonly ReaderWriterLockSlim _callbackHandlersLock = new ReaderWriterLockSlim();
+        private ImmutableDictionary<Type, ImmutableArray<ICallbackHandlerEntry>> _callbackHandlers =
+            ImmutableDictionary<Type, ImmutableArray<ICallbackHandlerEntry>>.Empty;
+
+        // Async callback handlers (async handlers that return values)
+        private readonly ReaderWriterLockSlim _asyncCallbackHandlersLock = new ReaderWriterLockSlim();
+        private ImmutableDictionary<Type, ImmutableArray<IAsyncCallbackHandlerEntry>> _asyncCallbackHandlers =
+            ImmutableDictionary<Type, ImmutableArray<IAsyncCallbackHandlerEntry>>.Empty;
+
         private readonly ReaderWriterLockSlim _stringHandlersLock = new ReaderWriterLockSlim();
         private ImmutableDictionary<string, (Type MessageType, ImmutableArray<IHandlerEntry> Handlers)> _stringHandlers =
             ImmutableDictionary<string, (Type, ImmutableArray<IHandlerEntry>)>.Empty;
@@ -850,6 +860,397 @@ namespace ModernMediator
 
         #endregion
 
+        #region Pub/Sub with Callbacks
+
+        /// <inheritdoc />
+        public IDisposable Subscribe<TMessage, TResponse>(Func<TMessage, TResponse> handler, bool weak = true, Predicate<TMessage>? filter = null)
+        {
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+            ThrowIfDisposed();
+
+            var messageType = typeof(TMessage);
+            var entry = CreateCallbackEntry(handler, weak, filter);
+
+            _callbackHandlersLock.EnterWriteLock();
+            try
+            {
+                var currentHandlers = _callbackHandlers.TryGetValue(messageType, out var h)
+                    ? h
+                    : ImmutableArray<ICallbackHandlerEntry>.Empty;
+
+                _callbackHandlers = _callbackHandlers.SetItem(messageType, currentHandlers.Add(entry));
+                Interlocked.Increment(ref _subscriptionVersion);
+            }
+            finally
+            {
+                _callbackHandlersLock.ExitWriteLock();
+            }
+
+            return new SubscriptionToken(() => UnsubscribeCallback(messageType, entry));
+        }
+
+        /// <inheritdoc />
+        public IDisposable SubscribeAsync<TMessage, TResponse>(Func<TMessage, Task<TResponse>> handler, bool weak = true, Predicate<TMessage>? filter = null)
+        {
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+            ThrowIfDisposed();
+
+            var messageType = typeof(TMessage);
+            var entry = CreateAsyncCallbackEntry(handler, weak, filter);
+
+            _asyncCallbackHandlersLock.EnterWriteLock();
+            try
+            {
+                var currentHandlers = _asyncCallbackHandlers.TryGetValue(messageType, out var h)
+                    ? h
+                    : ImmutableArray<IAsyncCallbackHandlerEntry>.Empty;
+
+                _asyncCallbackHandlers = _asyncCallbackHandlers.SetItem(messageType, currentHandlers.Add(entry));
+                Interlocked.Increment(ref _subscriptionVersion);
+            }
+            finally
+            {
+                _asyncCallbackHandlersLock.ExitWriteLock();
+            }
+
+            return new SubscriptionToken(() => UnsubscribeAsyncCallback(messageType, entry));
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<TResponse> Publish<TMessage, TResponse>(TMessage? message)
+        {
+            ThrowIfDisposed();
+
+            if (message == null) return Array.Empty<TResponse>();
+
+            var messageType = typeof(TMessage);
+            var handlers = GetCallbackHandlersForType(messageType);
+
+            if (handlers.IsEmpty)
+                return Array.Empty<TResponse>();
+
+            var responses = new List<TResponse>();
+            var exceptions = new List<Exception>();
+
+            foreach (var h in handlers)
+            {
+                try
+                {
+                    if (!h.IsAlive) continue;
+
+                    if (h.TryInvoke(message, out var response) && response is TResponse typedResponse)
+                    {
+                        responses.Add(typedResponse);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var actualException = ex is System.Reflection.TargetInvocationException tie && tie.InnerException != null
+                        ? tie.InnerException
+                        : ex;
+
+                    var errorArgs = new HandlerErrorEventArgs(actualException, message, messageType);
+                    var handler = HandlerError;
+                    handler?.Invoke(this, errorArgs);
+
+                    if (_errorPolicy == ErrorPolicy.ContinueAndAggregate)
+                    {
+                        exceptions.Add(actualException);
+                    }
+                    else if (_errorPolicy == ErrorPolicy.StopOnFirstError)
+                    {
+                        throw actualException;
+                    }
+                }
+            }
+
+            PruneDeadCallbackHandlers(messageType);
+
+            if (exceptions.Count > 0 && _errorPolicy == ErrorPolicy.ContinueAndAggregate)
+            {
+                throw new AggregateException("One or more callback handlers threw exceptions", exceptions);
+            }
+
+            return responses;
+        }
+
+        /// <inheritdoc />
+        public async Task<IReadOnlyList<TResponse>> PublishAsync<TMessage, TResponse>(TMessage? message, CancellationToken cancellationToken = default)
+        {
+            ThrowIfDisposed();
+
+            if (message == null) return Array.Empty<TResponse>();
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var messageType = typeof(TMessage);
+            var handlers = GetAsyncCallbackHandlersForType(messageType);
+
+            if (handlers.IsEmpty)
+                return Array.Empty<TResponse>();
+
+            var tasks = new List<Task<object?>>();
+            var exceptions = new List<Exception>();
+
+            foreach (var h in handlers)
+            {
+                try
+                {
+                    if (!h.IsAlive) continue;
+
+                    var task = h.TryInvokeAsync(message);
+                    if (task != null)
+                    {
+                        tasks.Add(task);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var actualException = ex is System.Reflection.TargetInvocationException tie && tie.InnerException != null
+                        ? tie.InnerException
+                        : ex;
+
+                    var errorArgs = new HandlerErrorEventArgs(actualException, message, messageType);
+                    var handler = HandlerError;
+                    handler?.Invoke(this, errorArgs);
+
+                    if (_errorPolicy == ErrorPolicy.ContinueAndAggregate)
+                    {
+                        exceptions.Add(actualException);
+                    }
+                    else if (_errorPolicy == ErrorPolicy.StopOnFirstError)
+                    {
+                        throw actualException;
+                    }
+                }
+            }
+
+            var responses = new List<TResponse>();
+
+            if (tasks.Count > 0)
+            {
+                var whenAllTask = Task.WhenAll(tasks);
+
+                try
+                {
+                    var results = await whenAllTask.WaitAsync(cancellationToken);
+                    foreach (var result in results)
+                    {
+                        if (result is TResponse typedResponse)
+                        {
+                            responses.Add(typedResponse);
+                        }
+                    }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch
+                {
+                    var aggregateException = whenAllTask.Exception;
+
+                    if (aggregateException != null)
+                    {
+                        var errorArgs = new HandlerErrorEventArgs(aggregateException, message, messageType);
+                        var handler = HandlerError;
+                        handler?.Invoke(this, errorArgs);
+
+                        if (_errorPolicy == ErrorPolicy.ContinueAndAggregate)
+                        {
+                            var flattened = aggregateException.Flatten();
+                            foreach (var innerEx in flattened.InnerExceptions)
+                            {
+                                var actualException = innerEx is System.Reflection.TargetInvocationException tie && tie.InnerException != null
+                                    ? tie.InnerException
+                                    : innerEx;
+                                exceptions.Add(actualException);
+                            }
+                        }
+                        else if (_errorPolicy == ErrorPolicy.StopOnFirstError)
+                        {
+                            throw;
+                        }
+                    }
+                }
+            }
+
+            PruneDeadAsyncCallbackHandlers(messageType);
+
+            if (exceptions.Count > 0 && _errorPolicy == ErrorPolicy.ContinueAndAggregate)
+            {
+                throw new AggregateException("One or more async callback handlers threw exceptions", exceptions);
+            }
+
+            return responses;
+        }
+
+        private void UnsubscribeCallback(Type messageType, ICallbackHandlerEntry entry)
+        {
+            _callbackHandlersLock.EnterWriteLock();
+            try
+            {
+                if (_callbackHandlers.TryGetValue(messageType, out var handlers))
+                {
+                    var newHandlers = handlers.Remove(entry);
+                    if (newHandlers.IsEmpty)
+                        _callbackHandlers = _callbackHandlers.Remove(messageType);
+                    else
+                        _callbackHandlers = _callbackHandlers.SetItem(messageType, newHandlers);
+
+                    Interlocked.Increment(ref _subscriptionVersion);
+                }
+            }
+            finally
+            {
+                _callbackHandlersLock.ExitWriteLock();
+            }
+        }
+
+        private void UnsubscribeAsyncCallback(Type messageType, IAsyncCallbackHandlerEntry entry)
+        {
+            _asyncCallbackHandlersLock.EnterWriteLock();
+            try
+            {
+                if (_asyncCallbackHandlers.TryGetValue(messageType, out var handlers))
+                {
+                    var newHandlers = handlers.Remove(entry);
+                    if (newHandlers.IsEmpty)
+                        _asyncCallbackHandlers = _asyncCallbackHandlers.Remove(messageType);
+                    else
+                        _asyncCallbackHandlers = _asyncCallbackHandlers.SetItem(messageType, newHandlers);
+
+                    Interlocked.Increment(ref _subscriptionVersion);
+                }
+            }
+            finally
+            {
+                _asyncCallbackHandlersLock.ExitWriteLock();
+            }
+        }
+
+        private ImmutableArray<ICallbackHandlerEntry> GetCallbackHandlersForType(Type messageType)
+        {
+            _callbackHandlersLock.EnterReadLock();
+            try
+            {
+                return _callbackHandlers.TryGetValue(messageType, out var handlers)
+                    ? handlers
+                    : ImmutableArray<ICallbackHandlerEntry>.Empty;
+            }
+            finally
+            {
+                _callbackHandlersLock.ExitReadLock();
+            }
+        }
+
+        private ImmutableArray<IAsyncCallbackHandlerEntry> GetAsyncCallbackHandlersForType(Type messageType)
+        {
+            _asyncCallbackHandlersLock.EnterReadLock();
+            try
+            {
+                return _asyncCallbackHandlers.TryGetValue(messageType, out var handlers)
+                    ? handlers
+                    : ImmutableArray<IAsyncCallbackHandlerEntry>.Empty;
+            }
+            finally
+            {
+                _asyncCallbackHandlersLock.ExitReadLock();
+            }
+        }
+
+        private void PruneDeadCallbackHandlers(Type messageType)
+        {
+            _callbackHandlersLock.EnterUpgradeableReadLock();
+            try
+            {
+                if (!_callbackHandlers.TryGetValue(messageType, out var handlers))
+                    return;
+
+                var aliveBuilder = ImmutableArray.CreateBuilder<ICallbackHandlerEntry>(handlers.Length);
+                var hasDeadHandlers = false;
+
+                foreach (var h in handlers)
+                {
+                    if (h.IsAlive)
+                        aliveBuilder.Add(h);
+                    else
+                        hasDeadHandlers = true;
+                }
+
+                if (hasDeadHandlers)
+                {
+                    _callbackHandlersLock.EnterWriteLock();
+                    try
+                    {
+                        var alive = aliveBuilder.ToImmutable();
+
+                        if (alive.IsEmpty)
+                            _callbackHandlers = _callbackHandlers.Remove(messageType);
+                        else
+                            _callbackHandlers = _callbackHandlers.SetItem(messageType, alive);
+
+                        Interlocked.Increment(ref _subscriptionVersion);
+                    }
+                    finally
+                    {
+                        _callbackHandlersLock.ExitWriteLock();
+                    }
+                }
+            }
+            finally
+            {
+                _callbackHandlersLock.ExitUpgradeableReadLock();
+            }
+        }
+
+        private void PruneDeadAsyncCallbackHandlers(Type messageType)
+        {
+            _asyncCallbackHandlersLock.EnterUpgradeableReadLock();
+            try
+            {
+                if (!_asyncCallbackHandlers.TryGetValue(messageType, out var handlers))
+                    return;
+
+                var aliveBuilder = ImmutableArray.CreateBuilder<IAsyncCallbackHandlerEntry>(handlers.Length);
+                var hasDeadHandlers = false;
+
+                foreach (var h in handlers)
+                {
+                    if (h.IsAlive)
+                        aliveBuilder.Add(h);
+                    else
+                        hasDeadHandlers = true;
+                }
+
+                if (hasDeadHandlers)
+                {
+                    _asyncCallbackHandlersLock.EnterWriteLock();
+                    try
+                    {
+                        var alive = aliveBuilder.ToImmutable();
+
+                        if (alive.IsEmpty)
+                            _asyncCallbackHandlers = _asyncCallbackHandlers.Remove(messageType);
+                        else
+                            _asyncCallbackHandlers = _asyncCallbackHandlers.SetItem(messageType, alive);
+
+                        Interlocked.Increment(ref _subscriptionVersion);
+                    }
+                    finally
+                    {
+                        _asyncCallbackHandlersLock.ExitWriteLock();
+                    }
+                }
+            }
+            finally
+            {
+                _asyncCallbackHandlersLock.ExitUpgradeableReadLock();
+            }
+        }
+
+        #endregion
+
         #region Helper Methods
 
         private static IHandlerEntry CreateEntry<T>(Action<T> handler, bool weak, Predicate<T>? filter)
@@ -864,6 +1265,20 @@ namespace ModernMediator
             return weak
                 ? new WeakAsyncHandlerEntry<T>(handler, filter)
                 : new StrongAsyncHandlerEntry<T>(handler, filter);
+        }
+
+        private static ICallbackHandlerEntry CreateCallbackEntry<TMessage, TResponse>(Func<TMessage, TResponse> handler, bool weak, Predicate<TMessage>? filter)
+        {
+            return weak
+                ? new WeakCallbackHandlerEntry<TMessage, TResponse>(handler, filter)
+                : new StrongCallbackHandlerEntry<TMessage, TResponse>(handler, filter);
+        }
+
+        private static IAsyncCallbackHandlerEntry CreateAsyncCallbackEntry<TMessage, TResponse>(Func<TMessage, Task<TResponse>> handler, bool weak, Predicate<TMessage>? filter)
+        {
+            return weak
+                ? new WeakAsyncCallbackHandlerEntry<TMessage, TResponse>(handler, filter)
+                : new StrongAsyncCallbackHandlerEntry<TMessage, TResponse>(handler, filter);
         }
 
         private (ImmutableArray<IHandlerEntry>, IReadOnlyList<Type>) GetHandlersForTypeWithCache(Type messageType)
@@ -1232,6 +1647,26 @@ namespace ModernMediator
                 _asyncHandlersLock.ExitWriteLock();
             }
 
+            _callbackHandlersLock.EnterWriteLock();
+            try
+            {
+                _callbackHandlers = ImmutableDictionary<Type, ImmutableArray<ICallbackHandlerEntry>>.Empty;
+            }
+            finally
+            {
+                _callbackHandlersLock.ExitWriteLock();
+            }
+
+            _asyncCallbackHandlersLock.EnterWriteLock();
+            try
+            {
+                _asyncCallbackHandlers = ImmutableDictionary<Type, ImmutableArray<IAsyncCallbackHandlerEntry>>.Empty;
+            }
+            finally
+            {
+                _asyncCallbackHandlersLock.ExitWriteLock();
+            }
+
             _stringHandlersLock.EnterWriteLock();
             try
             {
@@ -1246,6 +1681,8 @@ namespace ModernMediator
 
             _typeHandlersLock.Dispose();
             _asyncHandlersLock.Dispose();
+            _callbackHandlersLock.Dispose();
+            _asyncCallbackHandlersLock.Dispose();
             _stringHandlersLock.Dispose();
         }
 

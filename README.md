@@ -14,6 +14,7 @@ Core features tested. Edge cases may exist. Please report issues on GitHub.
 - **Request/Response** - Send requests and receive typed responses
 - **Streaming** - `IAsyncEnumerable` support for large datasets
 - **Pub/Sub (Notifications)** - Fire-and-forget event broadcasting
+- **Pub/Sub with Callbacks** - Collect responses from multiple subscribers
 
 ### Pipeline
 - **Pipeline Behaviors** - Wrap handler execution for cross-cutting concerns
@@ -356,6 +357,56 @@ mediator.SubscribeAsync<OrderCreatedEvent>(async e =>
 await mediator.PublishAsyncTrue(new OrderCreatedEvent(123, 599.99m));
 ```
 
+### Pub/Sub with Callbacks
+
+Collect responses from multiple subscribers - perfect for confirmation dialogs, validation, or aggregating data from multiple sources:
+
+```csharp
+// Define message and response types
+public record ConfirmationRequest(string Message);
+public record ConfirmationResponse(bool Confirmed, string Source);
+
+// Subscribe with a response
+mediator.Subscribe<ConfirmationRequest, ConfirmationResponse>(
+    request => new ConfirmationResponse(
+        Confirmed: ShowDialog(request.Message),
+        Source: "DialogService"),
+    weak: false);
+
+// Publish and collect all responses
+var responses = mediator.Publish<ConfirmationRequest, ConfirmationResponse>(
+    new ConfirmationRequest("Delete this item?"));
+
+if (responses.Any(r => r.Confirmed))
+{
+    DeleteItem();
+}
+```
+
+#### Async Callbacks
+
+```csharp
+// Multiple async validators
+mediator.SubscribeAsync<ValidateRequest, ValidationResult>(
+    async request => await ValidateLengthAsync(request));
+
+mediator.SubscribeAsync<ValidateRequest, ValidationResult>(
+    async request => await ValidateFormatAsync(request));
+
+// Publish and await all responses
+var results = await mediator.PublishAsync<ValidateRequest, ValidationResult>(
+    new ValidateRequest("user input"));
+
+var errors = results.Where(r => !r.IsValid).ToList();
+```
+
+#### Key Differences from Request/Response
+
+| Pattern                | Handlers | Use Case                                    |
+|------------------------|----------|---------------------------------------------|
+| `Send<TResponse>`      | Exactly 1| CQRS commands/queries                       |
+| `Publish<TMsg, TResp>` | 0 to N   | Collect responses from multiple subscribers |
+
 ### Covariance (Polymorphic Dispatch)
 
 ```csharp
@@ -451,6 +502,7 @@ mediator.HandlerError += (sender, args) =>
 |--------------------------------|----------------|----------------|
 | Request/Response               | ✅ Yes         | ✅ Yes         |
 | Notifications (Pub/Sub)        | ✅ Yes         | ✅ Yes         |
+| Pub/Sub with Callbacks         | ✅ Yes         | ❌ No          |
 | Pipeline Behaviors             | ✅ Yes         | ✅ Yes         |
 | Streaming                      | ✅ Yes         | ✅ Yes         |
 | Assembly Scanning              | ✅ Yes         | ✅ Yes         |
@@ -475,6 +527,7 @@ For desktop developers using Prism, ModernMediator can replace EventAggregator w
 | Feature              | Prism EventAggregator                    | ModernMediator                     |
 |----------------------|------------------------------------------|------------------------------------|
 | Pub/Sub              | ✅ `PubSubEvent<T>`                      | ✅ `Publish<T>` / `Subscribe<T>`   |
+| Pub/Sub w/ Callbacks | ❌ Manual (callback in payload)          | ✅ `Publish<TMsg, TResp>`          |
 | Weak References      | ✅ `keepSubscriberReferenceAlive: false` | ✅ `weak: true` (default)          |
 | Strong References    | ✅ `keepSubscriberReferenceAlive: true`  | ✅ `weak: false`                   |
 | Filter Subscriptions | ✅ `.Subscribe(handler, filter)`         | ✅ `filter: predicate`             |
