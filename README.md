@@ -8,6 +8,10 @@ A modern, feature-rich mediator library for .NET 8 that combines the best of pub
 
 Core features tested. Edge cases may exist. Please report issues on GitHub.
 
+## Documentation
+
+📖 [Interactive Tutorial](https://evanscoapps.github.io/ModernMediator/ModernMediator-Tutorial.html)
+
 ## Features
 
 ### Core Patterns
