@@ -250,6 +250,15 @@
             margin-bottom: 0.5rem;
         }
 
+        li a {
+            transition: opacity 0.2s ease;
+        }
+
+        li a:hover {
+            opacity: 0.8;
+            text-decoration: underline !important;
+        }
+
         /* Code Button */
         .code-btn {
             display: inline-flex;
@@ -571,16 +580,16 @@
                 
                 <p>By the end of this tutorial, you will understand:</p>
                 <ul>
-                    <li><strong>Request/Response pattern</strong> for commands and queries</li>
-                    <li><strong>Pipeline Behaviors</strong> and <strong>Pre/Post Processors</strong> for cross-cutting concerns</li>
-                    <li><strong>Streaming</strong> with IAsyncEnumerable for efficient data delivery</li>
-                    <li><strong>Source Generators</strong> for Native AOT compatibility and compile-time safety</li>
-                    <li><strong>Exception handling strategies</strong> and error policies</li>
-                    <li><strong>Pub/Sub with Callbacks</strong> for multi-handler response aggregation</li>
-                    <li><strong>Subscription options</strong> including weak/strong references, filters, and covariance</li>
-                    <li><strong>UI Dispatchers</strong> for thread-safe updates across WPF, WinForms, MAUI, and ASP.NET Core</li>
-                    <li><strong>Registration strategies</strong> including assembly scanning and manual DI registration</li>
-                    <li><strong>Async-first design</strong> with true parallelism and cancellation support</li>
+                    <li><a href="#request-response" style="color: var(--accent-secondary); text-decoration: none;"><strong>Request/Response pattern</strong></a> for commands and queries</li>
+                    <li><a href="#pipeline-behaviors" style="color: var(--accent-secondary); text-decoration: none;"><strong>Pipeline Behaviors</strong></a> and <a href="#processors" style="color: var(--accent-secondary); text-decoration: none;"><strong>Pre/Post Processors</strong></a> for cross-cutting concerns</li>
+                    <li><a href="#streaming" style="color: var(--accent-secondary); text-decoration: none;"><strong>Streaming</strong></a> with IAsyncEnumerable for efficient data delivery</li>
+                    <li><a href="#source-generators" style="color: var(--accent-secondary); text-decoration: none;"><strong>Source Generators</strong></a> for Native AOT compatibility and compile-time safety</li>
+                    <li><a href="#exception-handlers" style="color: var(--accent-secondary); text-decoration: none;"><strong>Exception handling strategies</strong></a> and <a href="#error-handling" style="color: var(--accent-secondary); text-decoration: none;"><strong>error policies</strong></a></li>
+                    <li><a href="#pub-sub" style="color: var(--accent-secondary); text-decoration: none;"><strong>Pub/Sub with Callbacks</strong></a> for multi-handler response aggregation</li>
+                    <li><strong>Subscription options</strong> including <a href="#references" style="color: var(--accent-secondary); text-decoration: none;">weak/strong references</a>, <a href="#filters" style="color: var(--accent-secondary); text-decoration: none;">filters</a>, and <a href="#covariance" style="color: var(--accent-secondary); text-decoration: none;">covariance</a></li>
+                    <li><a href="#dispatchers" style="color: var(--accent-secondary); text-decoration: none;"><strong>UI Dispatchers</strong></a> for thread-safe updates across WPF, WinForms, MAUI, and ASP.NET Core</li>
+                    <li><a href="#registration" style="color: var(--accent-secondary); text-decoration: none;"><strong>Registration strategies</strong></a> including assembly scanning and manual DI registration</li>
+                    <li><a href="#async-design" style="color: var(--accent-secondary); text-decoration: none;"><strong>Async-first design</strong></a> with true parallelism and cancellation support</li>
                 </ul>
 
                 <button class="code-btn" onclick="openModal('setup-code')">
