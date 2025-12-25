@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ModernMediator Tutorial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fraunces:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #1e1e2a;
+            --bg-secondary: #252532;
+            --bg-tertiary: #2d2d3d;
+            --bg-card: #282836;
+            --text-primary: #f0f0f5;
+            --text-secondary: #b0b0c0;
+            --text-muted: #707085;
+            --accent-primary: #6366f1;
+            --accent-secondary: #818cf8;
+            --accent-glow: rgba(99, 102, 241, 0.25);
+            --border-color: #3a3a4d;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --code-bg: #1e1e2e;
+            --sidebar-width: 280px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            z-index: 100;
+            padding: 2rem 0;
+        }
+
+        .sidebar-header {
+            padding: 0 1.5rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+
+        .sidebar-logo {
+            font-family: 'Fraunces', serif;
+            font-size: 1.4rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar-version {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .nav-section {
+            padding: 0.75rem 1.5rem;
+        }
+
+        .nav-section-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            border-left: 2px solid transparent;
+            padding-left: 0.75rem;
+            margin-left: -0.75rem;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            border-left-color: var(--accent-primary);
+        }
+
+        .nav-link.active {
+            color: var(--accent-secondary);
+            border-left-color: var(--accent-primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .hero {
+            padding: 6rem 4rem 4rem;
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-family: 'Fraunces', serif;
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-version {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: var(--accent-glow);
+            border: 1px solid var(--accent-primary);
+            border-radius: 999px;
+            font-size: 0.85rem;
+            color: var(--accent-secondary);
+        }
+
+        .content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 4rem 6rem;
+        }
+
+        /* Sections */
+        section {
+            margin-bottom: 4rem;
+            scroll-margin-top: 2rem;
+        }
+
+        h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 2rem 0 1rem;
+            color: var(--text-primary);
+        }
+
+        h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            padding: 0.875rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: var(--bg-tertiary);
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 1rem 0 1.5rem 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code Button */
+        .code-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--accent-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+        }
+
+        .code-btn:hover {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .code-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 85vh;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: modalSlideIn 0.2s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .modal-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            max-height: calc(85vh - 60px);
+        }
+
+        .modal-body pre {
+            margin: 0;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+
+        .modal-body code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Inline Code */
+        code:not([class*="language-"]) {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            padding: 0.2em 0.4em;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            color: var(--accent-secondary);
+        }
+
+        /* Feature Cards */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+
+        .feature-card h4 {
+            margin: 0 0 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .feature-card p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Callout */
+        .callout {
+            background: var(--bg-tertiary);
+            border-left: 3px solid var(--accent-primary);
+            padding: 1rem 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1.5rem 0;
+        }
+
+        .callout p {
+            margin: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .content {
+                padding: 2rem;
+            }
+
+            .hero {
+                padding: 4rem 2rem 3rem;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .menu-toggle {
+                display: flex;
+            }
+        }
+
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 200;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+
+        /* Back to top */
+        .back-to-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--accent-primary);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Prism overrides */
+        pre[class*="language-"] {
+            background: var(--code-bg) !important;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu Toggle -->
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+    </button>
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">ModernMediator</div>
+            <div class="sidebar-version">v0.2.0-alpha</div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Getting Started</div>
+            <a href="#introduction" class="nav-link">Introduction</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Core Patterns</div>
+            <a href="#request-response" class="nav-link">Request/Response</a>
+            <a href="#streaming" class="nav-link">Streaming</a>
+            <a href="#pub-sub" class="nav-link">Pub/Sub with Callbacks</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Pipeline</div>
+            <a href="#pipeline-behaviors" class="nav-link">Pipeline Behaviors</a>
+            <a href="#processors" class="nav-link">Pre/Post Processors</a>
+            <a href="#exception-handlers" class="nav-link">Exception Handlers</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Advanced</div>
+            <a href="#source-generators" class="nav-link">Source Generators</a>
+            <a href="#caching-mode" class="nav-link">CachingMode</a>
+            <a href="#references" class="nav-link">Weak/Strong References</a>
+            <a href="#filters" class="nav-link">Predicate Filters</a>
+            <a href="#covariance" class="nav-link">Covariance</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Platform</div>
+            <a href="#dispatchers" class="nav-link">UI Dispatchers</a>
+            <a href="#registration" class="nav-link">DI Registration</a>
+            <a href="#async-design" class="nav-link">Async-First Design</a>
+            <a href="#error-handling" class="nav-link">Error Handling</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Reference</div>
+            <a href="#conclusion" class="nav-link">Summary</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="hero">
+            <h1>ModernMediator</h1>
+            <p class="hero-subtitle">A Comprehensive Tutorial</p>
+            <span class="hero-version">Version 0.2.0-alpha</span>
+        </header>
+
+        <div class="content">
+            <!-- Introduction -->
+            <section id="introduction">
+                <h2>Introduction</h2>
+                <p>ModernMediator is a feature-rich mediator pattern library for .NET that facilitates decoupled communication between components in your applications. This tutorial will guide you through every major feature of the library, helping you understand when and how to use each capability.</p>
+                
+                <p>By the end of this tutorial, you will understand:</p>
+                <ul>
+                    <li><strong>Request/Response pattern</strong> for commands and queries</li>
+                    <li><strong>Pipeline Behaviors</strong> and <strong>Pre/Post Processors</strong> for cross-cutting concerns</li>
+                    <li><strong>Streaming</strong> with IAsyncEnumerable for efficient data delivery</li>
+                    <li><strong>Source Generators</strong> for Native AOT compatibility and compile-time safety</li>
+                    <li><strong>Exception handling strategies</strong> and error policies</li>
+                    <li><strong>Pub/Sub with Callbacks</strong> for multi-handler response aggregation</li>
+                    <li><strong>Subscription options</strong> including weak/strong references, filters, and covariance</li>
+                    <li><strong>UI Dispatchers</strong> for thread-safe updates across WPF, WinForms, MAUI, and ASP.NET Core</li>
+                    <li><strong>Registration strategies</strong> including assembly scanning and manual DI registration</li>
+                    <li><strong>Async-first design</strong> with true parallelism and cancellation support</li>
+                </ul>
+
+                <button class="code-btn" onclick="openModal('setup-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Setup Code
+                </button>
+            </section>
+
+            <!-- Request/Response -->
+            <section id="request-response">
+                <h2>Request/Response Pattern</h2>
+                <p>Request/Response is the foundational pattern in ModernMediator. It models a simple interaction: you want something, and you expect an answer.</p>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>Request</h4>
+                        <p>A message object carrying the data needed to perform an operation.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Response</h4>
+                        <p>The result returned after the operation completes.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Mediator</h4>
+                        <p>The intermediary that routes the request to the appropriate handler.</p>
+                    </div>
+                </div>
+
+                <h3>How It Works</h3>
+                <ol>
+                    <li>Define a request class implementing <code>IRequest&lt;TResponse&gt;</code></li>
+                    <li>Define a handler implementing <code>IRequestHandler&lt;TRequest, TResponse&gt;</code></li>
+                    <li>The handler's <code>Handle</code> method receives the request and returns the response</li>
+                    <li>Call <code>mediator.Send&lt;TResponse&gt;(request)</code> to execute</li>
+                </ol>
+
+                <h3>Benefits</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Benefit</th><th>Explanation</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Decoupling</td><td>Caller doesn't know or care which class handles the request</td></tr>
+                            <tr><td>Single Responsibility</td><td>Each handler does exactly one thing</td></tr>
+                            <tr><td>Testability</td><td>Handlers are easy to mock and test in isolation</td></tr>
+                            <tr><td>Cross-cutting concerns</td><td>Pipeline behaviors can wrap all requests</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('request-response-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Request/Response Example
+                </button>
+                <button class="code-btn" onclick="openModal('command-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Command Example
+                </button>
+            </section>
+
+            <!-- Streaming -->
+            <section id="streaming">
+                <h2>Streaming</h2>
+                <p>Streaming allows a handler to return results incrementally rather than all at once. Instead of waiting for an entire collection to be built and returned, the consumer receives items as they become available.</p>
+                
+                <p>In .NET, this is powered by <code>IAsyncEnumerable&lt;T&gt;</code>—a feature that lets you <code>await foreach</code> over items as they're yielded, one at a time.</p>
+
+                <h3>How It Works</h3>
+                <ol>
+                    <li>Define a streaming request implementing <code>IStreamRequest&lt;TItem&gt;</code></li>
+                    <li>Define a handler implementing <code>IStreamRequestHandler&lt;TRequest, TItem&gt;</code></li>
+                    <li>The handler's method uses <code>yield return</code> to emit items</li>
+                    <li>Call <code>mediator.CreateStream&lt;TItem&gt;(request)</code> to get the <code>IAsyncEnumerable&lt;TItem&gt;</code></li>
+                    <li>Consume with <code>await foreach</code></li>
+                </ol>
+
+                <h3>Benefits</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Benefit</th><th>Explanation</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Memory efficiency</td><td>Only one item in memory at a time, not the entire collection</td></tr>
+                            <tr><td>Responsiveness</td><td>Consumer sees first results immediately, doesn't wait for all</td></tr>
+                            <tr><td>Cancellation</td><td>Can stop mid-stream without wasting work on remaining items</td></tr>
+                            <tr><td>Natural fit</td><td>Ideal for database cursors, file processing, real-time feeds</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="callout">
+                    <p><strong>Key characteristic:</strong> Streaming is lazy—the handler doesn't run until the consumer starts iterating, and it pauses between yields while waiting for the consumer to request the next item. This creates natural backpressure.</p>
+                </div>
+
+                <button class="code-btn" onclick="openModal('streaming-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Streaming Example
+                </button>
+            </section>
+
+            <!-- Pub/Sub with Callbacks -->
+            <section id="pub-sub">
+                <h2>Pub/Sub with Callbacks</h2>
+                <p>In traditional Publish/Subscribe, a publisher broadcasts a message and multiple subscribers can receive it. It's fire-and-forget—the publisher doesn't know or care who handles the message, and no response comes back.</p>
+                
+                <p>Pub/Sub with Callbacks extends this pattern by allowing subscribers to respond. The publisher still broadcasts to multiple subscribers, but now it can collect a response from each one.</p>
+                
+                <p>This is a hybrid: the one-to-many broadcast of pub/sub combined with the response capability of request/response.</p>
+
+                <h3>Pattern Comparison</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Pattern</th><th>Handlers</th><th>Response</th><th>Use Case</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Request/Response</td><td>One</td><td>Single</td><td>Commands, queries</td></tr>
+                            <tr><td>Pub/Sub (fire-forget)</td><td>Many</td><td>None</td><td>Events, notifications</td></tr>
+                            <tr><td>Pub/Sub with Callbacks</td><td>Many</td><td>One per handler</td><td>Aggregation, voting, multi-source</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Common Use Cases</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Scenario</th><th>How Callbacks Help</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Validation</td><td>Multiple validators each return pass/fail, aggregate results</td></tr>
+                            <tr><td>Pricing</td><td>Multiple pricing strategies respond, choose best or combine</td></tr>
+                            <tr><td>Search</td><td>Query multiple sources, merge results into unified response</td></tr>
+                            <tr><td>Voting/consensus</td><td>Collect opinions from multiple handlers, tally them</td></tr>
+                            <tr><td>Health checks</td><td>Each subsystem reports status, aggregate into overall health</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('pubsub-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Pub/Sub Example
+                </button>
+                <button class="code-btn" onclick="openModal('pubsub-callback-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Callbacks Example
+                </button>
+            </section>
+
+            <!-- Pipeline Behaviors -->
+            <section id="pipeline-behaviors">
+                <h2>Pipeline Behaviors</h2>
+                <p>Pipeline Behaviors are middleware for your mediator. They wrap around the entire request/response flow, allowing you to execute logic both before and after the handler runs—all within a single class.</p>
+                
+                <p>Think of them like layers of an onion: the request passes through each behavior on the way in, hits the handler at the center, then passes back through each behavior on the way out.</p>
+
+                <h3>How It Works</h3>
+                <ol>
+                    <li>Implement <code>IPipelineBehavior&lt;TRequest, TResponse&gt;</code></li>
+                    <li>The <code>Handle</code> method receives the request and a <code>next</code> delegate</li>
+                    <li>Call <code>await next()</code> to continue the pipeline and get the response</li>
+                    <li>Add logic before and/or after the <code>next()</code> call</li>
+                </ol>
+
+                <h3>Common Use Cases</h3>
+                <ul>
+                    <li><strong>Logging</strong> — log before, log result after</li>
+                    <li><strong>Validation</strong> — reject bad requests before they reach the handler</li>
+                    <li><strong>Performance timing</strong> — start stopwatch before, stop after</li>
+                    <li><strong>Transaction management</strong> — begin before, commit/rollback after</li>
+                    <li><strong>Exception handling</strong> — wrap <code>next()</code> in try/catch</li>
+                </ul>
+
+                <div class="callout">
+                    <p><strong>Key characteristic:</strong> Because you control when <code>next()</code> is called, you can short-circuit the pipeline entirely—returning early without ever reaching the handler.</p>
+                </div>
+
+                <button class="code-btn" onclick="openModal('behavior-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Pipeline Behavior Example
+                </button>
+            </section>
+
+            <!-- Pre/Post Processors -->
+            <section id="processors">
+                <h2>Pre/Post Processors</h2>
+                <p>Pre/Post Processors are a simpler, more focused alternative to full pipeline behaviors. Instead of wrapping the handler, they run strictly before or strictly after it.</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Processor Type</th><th>When It Runs</th><th>What It Sees</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Pre-Processor</td><td>Before the handler</td><td>Request only</td></tr>
+                            <tr><td>Post-Processor</td><td>After the handler</td><td>Request and Response</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>When to Use Processors vs Behaviors</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Scenario</th><th>Use</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Need logic both before AND after</td><td>Pipeline Behavior</td></tr>
+                            <tr><td>Need to short-circuit or modify the response</td><td>Pipeline Behavior</td></tr>
+                            <tr><td>Only need to run something before</td><td>Pre-Processor</td></tr>
+                            <tr><td>Only need to run something after</td><td>Post-Processor</td></tr>
+                            <tr><td>Want simpler, single-purpose classes</td><td>Processors</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('processor-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Processor Example
+                </button>
+            </section>
+
+            <!-- Exception Handlers -->
+            <section id="exception-handlers">
+                <h2>Exception Handlers</h2>
+                <p>Exception Handlers provide a centralized way to deal with exceptions that occur during request processing. Instead of wrapping every <code>Send</code> call in try/catch blocks throughout your application, you define exception handling logic once and it applies across your mediator pipeline.</p>
+
+                <h3>How It Works</h3>
+                <ol>
+                    <li>Implement <code>IExceptionHandler&lt;TRequest, TResponse, TException&gt;</code></li>
+                    <li>The handler receives the request, the exception, and can determine the outcome</li>
+                    <li>You can suppress the exception, rethrow it, return a fallback response, or transform it</li>
+                </ol>
+
+                <h3>Common Use Cases</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Use Case</th><th>What the Handler Does</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Logging</td><td>Log exception details, then rethrow</td></tr>
+                            <tr><td>Fallback responses</td><td>Return a default or cached value instead of failing</td></tr>
+                            <tr><td>Exception translation</td><td>Convert internal exceptions to user-friendly ones</td></tr>
+                            <tr><td>Retry logic</td><td>Attempt the operation again before giving up</td></tr>
+                            <tr><td>Metrics</td><td>Record exception counts for monitoring, then rethrow</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('exception-handler-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Exception Handler Example
+                </button>
+            </section>
+
+            <!-- Source Generators -->
+            <section id="source-generators">
+                <h2>Source Generators</h2>
+                <p>Source Generators are a C# compiler feature that generates additional code at compile time. Instead of discovering handlers and wiring things up at runtime using reflection, the generator inspects your code during compilation and writes the registration code for you.</p>
+                
+                <p>The result: your application starts with all mediator wiring already baked in.</p>
+
+                <h3>Benefits</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Benefit</th><th>Explanation</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Zero reflection</td><td>No runtime type scanning, no <code>Assembly.GetTypes()</code> calls</td></tr>
+                            <tr><td>Faster startup</td><td>Registration is pre-computed, not discovered at runtime</td></tr>
+                            <tr><td>Native AOT compatible</td><td>AOT compilation requires knowing all types ahead of time</td></tr>
+                            <tr><td>Compile-time safety</td><td>Errors caught during build, not at runtime</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Compile-Time Diagnostics</h3>
+                <p>ModernMediator's source generator doesn't just wire things up—it validates your code and reports problems as compiler warnings or errors.</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Diagnostic</th><th>Meaning</th><th>Severity</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>MM001</td><td>Request has no handler registered</td><td>Warning</td></tr>
+                            <tr><td>MM002</td><td>Request has multiple handlers (ambiguous)</td><td>Error</td></tr>
+                            <tr><td>MM003</td><td>Handler implementation is invalid (signature issues)</td><td>Error</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="callout">
+                    <p><strong>Key characteristic:</strong> Traditional mediator libraries fail at runtime when a handler is missing. With compile-time diagnostics, you discover these problems before you even run the application—the build itself tells you something is wrong.</p>
+                </div>
+
+                <button class="code-btn" onclick="openModal('sourcegen-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Source Generator Usage
+                </button>
+            </section>
+
+            <!-- CachingMode -->
+            <section id="caching-mode">
+                <h2>CachingMode (Eager vs Lazy)</h2>
+                <p>CachingMode controls when ModernMediator resolves and caches handler instances. This affects both startup performance and first-request latency.</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Mode</th><th>When Handlers Are Resolved</th><th>Trade-off</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Eager</td><td>At application startup</td><td>Slower startup, faster first request</td></tr>
+                            <tr><td>Lazy</td><td>On first use of each handler</td><td>Faster startup, slower first request</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>When to Use Each</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Scenario</th><th>Recommended Mode</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Web API with predictable handler usage</td><td>Eager</td></tr>
+                            <tr><td>Application with many rarely-used handlers</td><td>Lazy</td></tr>
+                            <tr><td>Want startup validation of all dependencies</td><td>Eager</td></tr>
+                            <tr><td>Serverless/fast cold-start requirements</td><td>Lazy</td></tr>
+                            <tr><td>Desktop app where startup time is noticeable</td><td>Lazy</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('caching-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View CachingMode Configuration
+                </button>
+            </section>
+
+            <!-- Weak/Strong References -->
+            <section id="references">
+                <h2>Weak/Strong References</h2>
+                <p>When you subscribe a handler to the mediator, the mediator must hold a reference to that handler so it can invoke it later. The type of reference determines whether the handler can be garbage collected.</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Reference Type</th><th>Behavior</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Strong</td><td>Mediator keeps handler alive indefinitely</td></tr>
+                            <tr><td>Weak</td><td>Handler can be garbage collected if nothing else references it</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p>In long-lived applications—especially UI applications—handlers are often tied to objects with shorter lifespans (views, view models, components). If the mediator holds strong references, those objects can never be garbage collected, causing memory leaks.</p>
+
+                <h3>When to Use Each</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Scenario</th><th>Recommended</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Handler is a long-lived singleton service</td><td>Strong</td></tr>
+                            <tr><td>Handler is tied to a UI component's lifetime</td><td>Weak</td></tr>
+                            <tr><td>Handler should live as long as the app</td><td>Strong</td></tr>
+                            <tr><td>Handler is on a view that opens and closes</td><td>Weak</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('reference-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Reference Examples
+                </button>
+            </section>
+
+            <!-- Predicate Filters -->
+            <section id="filters">
+                <h2>Predicate Filters</h2>
+                <p>Predicate filters allow a subscriber to conditionally receive messages based on the message content. Instead of receiving every published message of a given type, the handler only receives messages that pass its filter.</p>
+                
+                <p>When subscribing, you provide a predicate function—a condition that evaluates the message and returns true or false. The handler is only invoked when the predicate returns true.</p>
+
+                <h3>Example Scenarios</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Message Type</th><th>Predicate</th><th>Result</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>OrderPlaced</td><td><code>order => order.Total > 1000</code></td><td>Only handles high-value orders</td></tr>
+                            <tr><td>UserLoggedIn</td><td><code>user => user.IsAdmin</code></td><td>Only handles admin logins</td></tr>
+                            <tr><td>SensorReading</td><td><code>reading => reading.Value > 100</code></td><td>Only handles threshold breaches</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="callout">
+                    <p><strong>Key characteristic:</strong> Predicates are evaluated before invocation. A handler with a predicate that returns false is skipped entirely—it incurs no invocation overhead.</p>
+                </div>
+
+                <button class="code-btn" onclick="openModal('filter-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Filter Example
+                </button>
+            </section>
+
+            <!-- Covariance -->
+            <section id="covariance">
+                <h2>Covariance</h2>
+                <p>Covariance allows a handler subscribed to a base type to receive messages of derived types. It's inheritance-aware message routing.</p>
+                
+                <p>If you have a class hierarchy (Animal with Dog and Cat as subclasses), a handler subscribed to Animal will receive Dog messages, Cat messages, and Animal messages. The subscription covers the entire hierarchy below it.</p>
+
+                <h3>Practical Examples</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Handler Subscribes To</th><th>Receives</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Animal</td><td>Animal, Dog, Cat, any future subclasses</td></tr>
+                            <tr><td>Dog</td><td>Dog only</td></tr>
+                            <tr><td>Exception</td><td>Any exception type</td></tr>
+                            <tr><td>EntityChanged</td><td>CustomerChanged, OrderChanged, etc.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p>Covariance enables powerful patterns: a logging handler subscribed to a base event type logs all events; an audit handler for EntityChanged captures all entity modifications; a base exception handler catches anything more specific handlers miss.</p>
+
+                <button class="code-btn" onclick="openModal('covariance-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Covariance Example
+                </button>
+            </section>
+
+            <!-- UI Dispatchers -->
+            <section id="dispatchers">
+                <h2>UI Dispatchers</h2>
+                <p>UI frameworks have a fundamental rule: only the main thread (the UI thread) can update the user interface. When work happens on a background thread—as it often does with async handlers—the results must be marshaled back to the UI thread before updating any controls.</p>
+                
+                <p>Dispatchers automatically route handler responses back to the appropriate thread. Your handlers can run on any thread, but when they complete, the dispatcher ensures the result arrives on the UI thread, ready to bind to your views.</p>
+
+                <h3>Platform-Specific Threading Models</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Platform</th><th>Threading Mechanism</th><th>UI Thread Concept</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>WPF</td><td><code>Dispatcher.Invoke</code></td><td>Single UI thread</td></tr>
+                            <tr><td>WinForms</td><td><code>Control.Invoke</code> / <code>SynchronizationContext</code></td><td>Single UI thread</td></tr>
+                            <tr><td>MAUI</td><td><code>MainThread.BeginInvokeOnMainThread</code></td><td>Single main thread</td></tr>
+                            <tr><td>ASP.NET Core</td><td>No UI thread</td><td>Request context</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Benefits</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Without Dispatchers</th><th>With Dispatchers</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Manual Dispatcher.Invoke calls everywhere</td><td>Automatic thread marshaling</td></tr>
+                            <tr><td>Easy to forget and cause crashes</td><td>Consistent, safe by default</td></tr>
+                            <tr><td>Handler code cluttered with UI concerns</td><td>Handlers stay pure and focused</td></tr>
+                            <tr><td>Platform-specific code in handlers</td><td>Platform abstracted away</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('dispatcher-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Dispatcher Example
+                </button>
+            </section>
+
+            <!-- DI Registration -->
+            <section id="registration">
+                <h2>Assembly Scanning and Manual DI Registration</h2>
+                
+                <h3>Assembly Scanning</h3>
+                <p>Assembly scanning is automatic discovery. At startup, ModernMediator scans your compiled assemblies, finds all classes implementing handler interfaces, and registers them with the dependency injection container automatically.</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Benefit</th><th>Explanation</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Convenience</td><td>Add a handler class, it's automatically registered</td></tr>
+                            <tr><td>No forgotten handlers</td><td>New handlers can't be accidentally left out of registration</td></tr>
+                            <tr><td>Less boilerplate</td><td>No growing list of <code>services.AddTransient&lt;...&gt;()</code> calls</td></tr>
+                            <tr><td>Refactoring safe</td><td>Rename or move handlers without updating registration code</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Manual DI Registration</h3>
+                <p>Manual registration is explicit wiring. You write code that specifically registers each handler with the dependency injection container. Nothing is automatic—every handler appears in your configuration.</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Benefit</th><th>Explanation</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Explicit</td><td>Configuration shows exactly what's registered</td></tr>
+                            <tr><td>Full control</td><td>Different lifetimes, conditional registration, ordering</td></tr>
+                            <tr><td>No surprises</td><td>Only intentionally registered handlers participate</td></tr>
+                            <tr><td>Faster startup</td><td>No reflection-based scanning overhead</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Choosing Between Them</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Scenario</th><th>Recommended Approach</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Rapid development, handlers change frequently</td><td>Assembly scanning</td></tr>
+                            <tr><td>Small project with few handlers</td><td>Manual registration</td></tr>
+                            <tr><td>Need different lifetimes per handler</td><td>Manual registration</td></tr>
+                            <tr><td>Large team, handlers spread across projects</td><td>Assembly scanning</td></tr>
+                            <tr><td>Native AOT deployment</td><td>Source generators (hybrid)</td></tr>
+                            <tr><td>Want compile-time validation</td><td>Source generators (hybrid)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('registration-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Registration Examples
+                </button>
+            </section>
+
+            <!-- Async-First Design -->
+            <section id="async-design">
+                <h2>Async-First Design</h2>
+                <p>ModernMediator is built from the ground up for async operations. Async isn't an afterthought or an adapter over synchronous code—it's the primary execution model.</p>
+
+                <h3>True Async Handlers</h3>
+                <p>When you use <code>SubscribeAsync</code>, handlers are genuinely asynchronous. When multiple handlers exist for a notification, they execute concurrently using <code>Task.WhenAll</code>. The mediator awaits all handlers together, not one after another.</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Approach</th><th>3 Handlers Taking 1 Second Each</th><th>Total Time</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Sequential await</td><td>Await handler 1, then 2, then 3</td><td>~3 seconds</td></tr>
+                            <tr><td>Task.WhenAll</td><td>Await all simultaneously</td><td>~1 second</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Cancellation Support</h3>
+                <p>All async operations in ModernMediator accept and respect <code>CancellationToken</code>. When a cancellation is requested, handlers can exit early and the mediator propagates the cancellation appropriately.</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Scenario</th><th>Without Cancellation</th><th>With Cancellation</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>User navigates away mid-request</td><td>Handler keeps running, wastes resources</td><td>Handler exits cleanly</td></tr>
+                            <tr><td>HTTP request times out</td><td>Background work continues</td><td>Work stops promptly</td></tr>
+                            <tr><td>Application shutdown</td><td>Handlers may hang shutdown</td><td>Handlers cooperate with shutdown</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Parallel Execution</h3>
+                <p>When a notification is published to multiple subscribers, handlers execute concurrently rather than sequentially. This maximizes throughput for independent operations.</p>
+
+                <button class="code-btn" onclick="openModal('async-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Async Examples
+                </button>
+            </section>
+
+            <!-- Error Handling -->
+            <section id="error-handling">
+                <h2>Error Handling</h2>
+                <p>Beyond <code>IExceptionHandler</code> for custom exception handling logic, ModernMediator also provides policies and events for broader error management.</p>
+
+                <h3>Three Error Policies</h3>
+                <p>Error policies define how the mediator behaves when a handler throws an exception, especially in multi-handler scenarios like pub/sub.</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Policy</th><th>Behavior</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>ContinueAndAggregate</td><td>Execute all handlers, collect all exceptions, throw as aggregate</td></tr>
+                            <tr><td>StopOnFirstError</td><td>Stop immediately when any handler throws, skip remaining</td></tr>
+                            <tr><td>LogAndContinue</td><td>Log exceptions, continue executing remaining handlers, don't throw</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>HandlerError Event</h3>
+                <p>A hook that fires whenever a handler throws an exception, regardless of the error policy. This provides a centralized point for logging and monitoring without requiring custom exception handlers.</p>
+
+                <h3>Exception Unwrapping</h3>
+                <p>When handlers are invoked through reflection or dynamic dispatch, exceptions get wrapped in <code>TargetInvocationException</code> or <code>AggregateException</code>. Stack traces become cluttered with framework noise, making debugging harder.</p>
+                
+                <p>Exceptions are automatically unwrapped before being thrown or passed to exception handlers. You see the original exception with a clean stack trace pointing directly to your code.</p>
+
+                <button class="code-btn" onclick="openModal('error-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Error Handling Example
+                </button>
+            </section>
+
+            <!-- Conclusion -->
+            <section id="conclusion">
+                <h2>Summary</h2>
+                <p>ModernMediator provides a comprehensive set of features for building decoupled, maintainable applications in .NET. This tutorial has covered the core capabilities that make the library powerful and flexible.</p>
+
+                <h3>Features Covered</h3>
+                <ul>
+                    <li><strong>Request/Response Pattern</strong> — The foundational one-to-one message handling pattern for commands and queries</li>
+                    <li><strong>Pipeline Behaviors</strong> — Middleware that wraps handler execution for cross-cutting concerns</li>
+                    <li><strong>Pre/Post Processors</strong> — Simpler alternatives to behaviors when you only need before or after logic</li>
+                    <li><strong>Streaming</strong> — Memory-efficient, responsive data delivery using IAsyncEnumerable</li>
+                    <li><strong>Source Generators</strong> — Compile-time handler discovery for Native AOT compatibility</li>
+                    <li><strong>Exception Handlers</strong> — Centralized exception handling without scattered try/catch blocks</li>
+                    <li><strong>CachingMode</strong> — Control over handler resolution timing with Eager and Lazy options</li>
+                    <li><strong>Pub/Sub with Callbacks</strong> — Multi-handler broadcasting with response aggregation</li>
+                    <li><strong>Weak/Strong References</strong> — Memory management control for subscription lifecycles</li>
+                    <li><strong>Predicate Filters</strong> — Conditional message reception based on content</li>
+                    <li><strong>Covariance</strong> — Inheritance-aware message routing for flexible subscriptions</li>
+                    <li><strong>UI Dispatchers</strong> — Thread-safe response delivery across WPF, WinForms, MAUI, and ASP.NET Core</li>
+                    <li><strong>Assembly Scanning and Manual DI Registration</strong> — Flexible handler registration strategies</li>
+                    <li><strong>Async-First Design</strong> — True parallelism with Task.WhenAll and full cancellation support</li>
+                    <li><strong>Error Handling</strong> — Configurable policies, centralized events, and clean exception unwrapping</li>
+                </ul>
+
+                <p>ModernMediator combines these features into a cohesive library that supports applications from simple desktop tools to complex distributed systems, with first-class support for modern .NET capabilities including Native AOT compilation.</p>
+
+                <div class="callout" style="text-align: center; margin-top: 2rem;">
+                    <p>For more information, visit: <a href="https://github.com/EvanscoApps/ModernMediator" style="color: var(--accent-secondary);">https://github.com/EvanscoApps/ModernMediator</a></p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Back to Top Button -->
+    <button class="back-to-top" id="backToTop" onclick="scrollToTop()">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M18 15l-6-6-6 6"/>
+        </svg>
+    </button>
+
+    <!-- Modal Overlay -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModalOnOverlay(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title" id="modalTitle">Code Example</span>
+                <button class="modal-close" onclick="closeModal()">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"></script>
+    <script>
+        // Code examples from README
+        const codeExamples = {
+            'setup-code': {
+                title: 'Setup with Dependency Injection',
+                code: `// Program.cs - with assembly scanning (uses reflection)
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+});
+
+// Or use source-generated registration (AOT-compatible, no reflection)
+services.AddModernMediatorGenerated();
+
+// Or with configuration
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.ErrorPolicy = ErrorPolicy.LogAndContinue;
+    config.Configure(m => m.SetDispatcher(new WpfDispatcher()));
+});
+
+// Setup without DI
+// Singleton (shared instance)
+IMediator mediator = Mediator.Instance;
+
+// Or create isolated instance
+IMediator mediator = Mediator.Create();`
+            },
+            'request-response-code': {
+                title: 'Request/Response Pattern',
+                code: `// Define request and response
+public record GetUserQuery(int UserId) : IRequest<UserDto>;
+public record UserDto(int Id, string Name, string Email);
+
+// Define handler
+public class GetUserHandler : IRequestHandler<GetUserQuery, UserDto>
+{
+    public async Task<UserDto> Handle(GetUserQuery request, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FindAsync(request.UserId, ct);
+        return new UserDto(user.Id, user.Name, user.Email);
+    }
+}
+
+// Send request
+var user = await mediator.Send(new GetUserQuery(42));`
+            },
+            'command-code': {
+                title: 'Commands (No Return Value)',
+                code: `// Define command
+public record CreateUserCommand(string Name, string Email) : IRequest;
+
+// Define handler
+public class CreateUserHandler : IRequestHandler<CreateUserCommand, Unit>
+{
+    public async Task<Unit> Handle(CreateUserCommand request, CancellationToken ct = default)
+    {
+        await _db.Users.AddAsync(new User(request.Name, request.Email), ct);
+        await _db.SaveChangesAsync(ct);
+        return Unit.Value;
+    }
+}
+
+// Send command
+await mediator.Send(new CreateUserCommand("John", "john@example.com"));`
+            },
+            'streaming-code': {
+                title: 'Streaming with IAsyncEnumerable',
+                code: `// Define stream request
+public record GetAllUsersRequest(int PageSize) : IStreamRequest<UserDto>;
+
+// Define stream handler
+public class GetAllUsersHandler : IStreamRequestHandler<GetAllUsersRequest, UserDto>
+{
+    public async IAsyncEnumerable<UserDto> Handle(
+        GetAllUsersRequest request,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        await foreach (var user in _db.Users.AsAsyncEnumerable().WithCancellation(ct))
+        {
+            yield return new UserDto(user.Id, user.Name, user.Email);
+        }
+    }
+}
+
+// Consume stream
+await foreach (var user in mediator.CreateStream(new GetAllUsersRequest(100), ct))
+{
+    Console.WriteLine(user.Name);
+}`
+            },
+            'behavior-code': {
+                title: 'Pipeline Behaviors',
+                code: `// Logging behavior that wraps all requests
+public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public async Task<TResponse> Handle(
+        TRequest request, 
+        RequestHandlerDelegate<TResponse> next, 
+        CancellationToken ct)
+    {
+        _logger.LogInformation("Handling {Request}", typeof(TRequest).Name);
+        var response = await next();
+        _logger.LogInformation("Handled {Request}", typeof(TRequest).Name);
+        return response;
+    }
+}
+
+// Validation behavior
+public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public async Task<TResponse> Handle(
+        TRequest request, 
+        RequestHandlerDelegate<TResponse> next, 
+        CancellationToken ct)
+    {
+        var errors = await _validator.ValidateAsync(request, ct);
+        if (errors.Any()) throw new ValidationException(errors);
+        return await next();
+    }
+}
+
+// Register behaviors
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.AddBehavior<LoggingBehavior>();
+    config.AddBehavior<ValidationBehavior>();
+});`
+            },
+            'processor-code': {
+                title: 'Pre/Post Processors',
+                code: `// Pre-processor runs before handler
+public class AuthorizationPreProcessor<TRequest> : IRequestPreProcessor<TRequest>
+{
+    public Task Process(TRequest request, CancellationToken ct)
+    {
+        if (!_auth.IsAuthorized(request))
+            throw new UnauthorizedException();
+        return Task.CompletedTask;
+    }
+}
+
+// Post-processor runs after handler
+public class CachingPostProcessor<TRequest, TResponse> : IRequestPostProcessor<TRequest, TResponse>
+{
+    public Task Process(TRequest request, TResponse response, CancellationToken ct)
+    {
+        _cache.Set(request, response);
+        return Task.CompletedTask;
+    }
+}
+
+// Register processors
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.AddRequestPreProcessor<AuthorizationPreProcessor>();
+    config.AddRequestPostProcessor<CachingPostProcessor>();
+});`
+            },
+            'exception-handler-code': {
+                title: 'Exception Handlers',
+                code: `// Define an exception handler for a specific exception type
+public class NotFoundExceptionHandler : RequestExceptionHandler<GetUserQuery, UserDto, NotFoundException>
+{
+    protected override Task<ExceptionHandlingResult<UserDto>> Handle(
+        GetUserQuery request,
+        NotFoundException exception,
+        CancellationToken ct)
+    {
+        // Return an alternate response
+        return Handled(new UserDto(0, "Unknown User"));
+        
+        // Or let the exception bubble up
+        // return NotHandled;
+    }
+}
+
+// Register exception handlers
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.AddExceptionHandler<NotFoundExceptionHandler>();
+});
+
+// Exception handlers walk the exception type hierarchy, so a handler 
+// for Exception will catch all exceptions if no more specific handler is registered.`
+            },
+            'sourcegen-code': {
+                title: 'Source Generator Usage',
+                code: `// The source generator creates two files:
+
+// ModernMediator.Generated.g.cs - DI registration without reflection:
+services.AddModernMediatorGenerated();
+
+// ModernMediator.SendExtensions.g.cs - Strongly-typed Send methods:
+var user = await mediator.Send(new GetUserQuery(42)); // No reflection!
+
+// Diagnostics:
+// MM001 - Duplicate handler: multiple handlers for same request
+// MM002 - No handler found: request type has no registered handler  
+// MM003 - Abstract handler: handler class cannot be abstract`
+            },
+            'caching-code': {
+                title: 'CachingMode Configuration',
+                code: `services.AddModernMediator(config =>
+{
+    // Eager (default) - initialize everything on first mediator access
+    // Best for long-running applications where startup cost is amortized
+    config.CachingMode = CachingMode.Eager;
+    
+    // Lazy - initialize handlers on-demand as messages are processed
+    // Best for serverless, Native AOT, or cold start scenarios
+    config.CachingMode = CachingMode.Lazy;
+});`
+            },
+            'pubsub-code': {
+                title: 'Pub/Sub (Notifications)',
+                code: `// Define a message
+public record OrderCreatedEvent(int OrderId, decimal Total);
+
+// Subscribe
+mediator.Subscribe<OrderCreatedEvent>(e => 
+    Console.WriteLine($"Order {e.OrderId} created: \${e.Total}"));
+
+// Subscribe with filter
+mediator.Subscribe<OrderCreatedEvent>(
+    e => NotifyVipTeam(e),
+    filter: e => e.Total > 10000);
+
+// Publish
+mediator.Publish(new OrderCreatedEvent(123, 599.99m));`
+            },
+            'pubsub-callback-code': {
+                title: 'Pub/Sub with Callbacks',
+                code: `// Define message and response types
+public record ConfirmationRequest(string Message);
+public record ConfirmationResponse(bool Confirmed, string Source);
+
+// Subscribe with a response
+mediator.Subscribe<ConfirmationRequest, ConfirmationResponse>(
+    request => new ConfirmationResponse(
+        Confirmed: ShowDialog(request.Message),
+        Source: "DialogService"),
+    weak: false);
+
+// Publish and collect all responses
+var responses = mediator.Publish<ConfirmationRequest, ConfirmationResponse>(
+    new ConfirmationRequest("Delete this item?"));
+
+if (responses.Any(r => r.Confirmed))
+{
+    DeleteItem();
+}
+
+// Async Callbacks
+mediator.SubscribeAsync<ValidateRequest, ValidationResult>(
+    async request => await ValidateLengthAsync(request));
+
+mediator.SubscribeAsync<ValidateRequest, ValidationResult>(
+    async request => await ValidateFormatAsync(request));
+
+// Publish and await all responses
+var results = await mediator.PublishAsync<ValidateRequest, ValidationResult>(
+    new ValidateRequest("user input"));
+
+var errors = results.Where(r => !r.IsValid).ToList();`
+            },
+            'reference-code': {
+                title: 'Weak vs Strong References',
+                code: `// Weak reference (default) - handler can be GC'd
+mediator.Subscribe<Event>(handler.OnEvent, weak: true);
+
+// Strong reference - handler persists until unsubscribed
+mediator.Subscribe<Event>(handler.OnEvent, weak: false);
+
+// Unsubscribing
+// Subscribe returns a disposable token
+var subscription = mediator.Subscribe<Event>(OnEvent);
+
+// Unsubscribe when done
+subscription.Dispose();
+
+// Or use with 'using' for scoped subscriptions
+using (mediator.Subscribe<Event>(OnEvent))
+{
+    // Handler is active here
+}
+// Handler is automatically unsubscribed`
+            },
+            'filter-code': {
+                title: 'Predicate Filters',
+                code: `// Subscribe with filter - handler only receives messages that pass the predicate
+mediator.Subscribe<OrderCreatedEvent>(
+    e => NotifyVipTeam(e),
+    filter: e => e.Total > 10000);  // Only high-value orders
+
+// More examples:
+mediator.Subscribe<UserLoggedInEvent>(
+    e => AlertSecurityTeam(e),
+    filter: e => e.IsAdmin);  // Only admin logins
+
+mediator.Subscribe<SensorReadingEvent>(
+    e => TriggerAlarm(e),
+    filter: e => e.Value > 100);  // Only threshold breaches`
+            },
+            'covariance-code': {
+                title: 'Covariance (Polymorphic Dispatch)',
+                code: `public record AnimalEvent(string Name);
+public record DogEvent(string Name, string Breed) : AnimalEvent(Name);
+public record CatEvent(string Name, int LivesRemaining) : AnimalEvent(Name);
+
+// This handler receives ALL animal events
+mediator.Subscribe<AnimalEvent>(e => Console.WriteLine($"Animal: {e.Name}"));
+
+// These are also delivered to the AnimalEvent handler
+mediator.Publish(new DogEvent("Rex", "German Shepherd"));
+mediator.Publish(new CatEvent("Whiskers", 9));`
+            },
+            'dispatcher-code': {
+                title: 'UI Thread Dispatching',
+                code: `// Set dispatcher once at startup
+mediator.SetDispatcher(new WpfDispatcher());
+
+// Subscribe to receive on UI thread
+mediator.SubscribeOnMainThread<DataChangedEvent>(e => 
+    UpdateUI(e)); // Safe to update UI here
+
+// Async version
+mediator.SubscribeAsyncOnMainThread<DataChangedEvent>(async e =>
+{
+    await ProcessData(e);
+    UpdateUI(e); // Safe to update UI
+});`
+            },
+            'registration-code': {
+                title: 'DI Registration Options',
+                code: `// Assembly scanning (uses reflection)
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+});
+
+// Source-generated registration (AOT-compatible, no reflection)
+services.AddModernMediatorGenerated();
+
+// With full configuration
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.ErrorPolicy = ErrorPolicy.LogAndContinue;
+    config.CachingMode = CachingMode.Lazy;
+    config.Configure(m => m.SetDispatcher(new WpfDispatcher()));
+    
+    // Register behaviors and processors
+    config.AddBehavior<LoggingBehavior>();
+    config.AddBehavior<ValidationBehavior>();
+    config.AddRequestPreProcessor<AuthorizationPreProcessor>();
+    config.AddRequestPostProcessor<CachingPostProcessor>();
+    config.AddExceptionHandler<NotFoundExceptionHandler>();
+});`
+            },
+            'async-code': {
+                title: 'Async Handlers',
+                code: `// Subscribe async
+mediator.SubscribeAsync<OrderCreatedEvent>(async e =>
+{
+    await SaveToDatabase(e);
+    await SendEmailNotification(e);
+});
+
+// Publish and await all handlers (parallel execution with Task.WhenAll)
+await mediator.PublishAsync(new OrderCreatedEvent(123, 599.99m));
+
+// All async operations support CancellationToken
+await mediator.Send(new GetUserQuery(42), cancellationToken);
+
+await foreach (var user in mediator.CreateStream(new GetAllUsersRequest(100), cancellationToken))
+{
+    Console.WriteLine(user.Name);
+}`
+            },
+            'error-code': {
+                title: 'Error Handling',
+                code: `// Set error policy
+mediator.ErrorPolicy = ErrorPolicy.LogAndContinue;
+
+// Available policies:
+// - ContinueAndAggregate: Execute all handlers, collect exceptions, throw as aggregate
+// - StopOnFirstError: Stop immediately when any handler throws
+// - LogAndContinue: Log exceptions, continue executing, don't throw
+
+// Subscribe to errors for logging/monitoring
+mediator.HandlerError += (sender, args) =>
+{
+    logger.LogError(args.Exception, 
+        "Handler error for {MessageType}", 
+        args.MessageType.Name);
+};`
+            }
+        };
+
+        function openModal(exampleId) {
+            const example = codeExamples[exampleId];
+            if (!example) return;
+
+            document.getElementById('modalTitle').textContent = example.title;
+            document.getElementById('modalBody').innerHTML = `<pre><code class="language-csharp">${escapeHtml(example.code)}</code></pre>`;
+            document.getElementById('modalOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            // Re-run Prism highlighting
+            Prism.highlightAll();
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function closeModalOnOverlay(event) {
+            if (event.target === event.currentTarget) {
+                closeModal();
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Back to top visibility
+        window.addEventListener('scroll', () => {
+            const backToTop = document.getElementById('backToTop');
+            if (window.scrollY > 500) {
+                backToTop.classList.add('visible');
+            } else {
+                backToTop.classList.remove('visible');
+            }
+        });
+
+        // Active nav link
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Close modal on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Close sidebar when clicking a link on mobile
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) {
+                    document.getElementById('sidebar').classList.remove('open');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
