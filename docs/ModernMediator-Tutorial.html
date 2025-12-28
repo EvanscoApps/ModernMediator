@@ -519,7 +519,7 @@
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">ModernMediator</div>
-            <div class="sidebar-version">v0.2.0-alpha</div>
+            <div class="sidebar-version">v0.2.1-alpha</div>
         </div>
 
         <div class="nav-section">
@@ -569,7 +569,7 @@
         <header class="hero">
             <h1>ModernMediator</h1>
             <p class="hero-subtitle">A Comprehensive Tutorial</p>
-            <span class="hero-version">Version 0.2.0-alpha</span>
+            <span class="hero-version">Version 0.2.1-alpha</span>
         </header>
 
         <div class="content">
@@ -731,6 +731,10 @@
                     </table>
                 </div>
 
+                <div class="callout">
+                    <p><strong>DI and Scoping:</strong> When using dependency injection, <code>IMediator</code> is scoped—Pub/Sub subscriptions are per-scope. For application-wide shared subscriptions, use <code>Mediator.Instance</code> (the static singleton).</p>
+                </div>
+
                 <button class="code-btn" onclick="openModal('pubsub-code')">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
                     View Pub/Sub Example
@@ -767,6 +771,10 @@
 
                 <div class="callout">
                     <p><strong>Key characteristic:</strong> Because you control when <code>next()</code> is called, you can short-circuit the pipeline entirely—returning early without ever reaching the handler.</p>
+                </div>
+
+                <div class="callout">
+                    <p><strong>Open vs Closed Generics:</strong> Open generic behaviors like <code>LoggingBehavior&lt;,&gt;</code> that apply to all requests must be registered explicitly with <code>AddOpenBehavior()</code>. Assembly scanning only discovers closed generic (request-specific) behaviors.</p>
                 </div>
 
                 <button class="code-btn" onclick="openModal('behavior-code')">
@@ -1082,6 +1090,10 @@
             <!-- DI Registration -->
             <section id="registration">
                 <h2>Assembly Scanning and Manual DI Registration</h2>
+
+                <div class="callout">
+                    <p><strong>Scoped by Default:</strong> <code>IMediator</code> is registered as <strong>Scoped</strong>, allowing handlers to resolve scoped dependencies like <code>DbContext</code>. For shared Pub/Sub subscriptions across the application, use <code>Mediator.Instance</code> (the static singleton).</p>
+                </div>
                 
                 <h3>Assembly Scanning</h3>
                 <p>Assembly scanning is automatic discovery. At startup, ModernMediator scans your compiled assemblies, finds all classes implementing handler interfaces, and registers them with the dependency injection container automatically.</p>
@@ -1371,7 +1383,7 @@ await foreach (var user in mediator.CreateStream(new GetAllUsersRequest(100), ct
             },
             'behavior-code': {
                 title: 'Pipeline Behaviors',
-                code: `// Logging behavior that wraps all requests
+                code: `// Logging behavior that wraps all requests (open generic)
 public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
@@ -1387,7 +1399,7 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
     }
 }
 
-// Validation behavior
+// Validation behavior (open generic)
 public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
@@ -1402,12 +1414,13 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
     }
 }
 
-// Register behaviors
+// Register open generic behaviors explicitly with AddOpenBehavior()
+// Assembly scanning skips open generics - they require special registration
 services.AddModernMediator(config =>
 {
     config.RegisterServicesFromAssemblyContaining<Program>();
-    config.AddBehavior<LoggingBehavior>();
-    config.AddBehavior<ValidationBehavior>();
+    config.AddOpenBehavior(typeof(LoggingBehavior<,>));
+    config.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });`
             },
             'processor-code': {
@@ -1619,6 +1632,7 @@ mediator.SubscribeAsyncOnMainThread<DataChangedEvent>(async e =>
             'registration-code': {
                 title: 'DI Registration Options',
                 code: `// Assembly scanning (uses reflection)
+// IMediator is registered as Scoped - handlers can resolve scoped services like DbContext
 services.AddModernMediator(config =>
 {
     config.RegisterServicesFromAssemblyContaining<Program>();
@@ -1635,13 +1649,20 @@ services.AddModernMediator(config =>
     config.CachingMode = CachingMode.Lazy;
     config.Configure(m => m.SetDispatcher(new WpfDispatcher()));
     
-    // Register behaviors and processors
-    config.AddBehavior<LoggingBehavior>();
-    config.AddBehavior<ValidationBehavior>();
+    // Open generic behaviors must be registered explicitly
+    config.AddOpenBehavior(typeof(LoggingBehavior<,>));
+    config.AddOpenBehavior(typeof(ValidationBehavior<,>));
+    
+    // Closed generic (request-specific) behaviors are auto-discovered
+    // config.AddBehavior<SpecificRequestBehavior>();
+    
     config.AddRequestPreProcessor<AuthorizationPreProcessor>();
     config.AddRequestPostProcessor<CachingPostProcessor>();
     config.AddExceptionHandler<NotFoundExceptionHandler>();
-});`
+});
+
+// For shared Pub/Sub subscriptions across the application, use the static singleton:
+Mediator.Instance.Subscribe<AppWideEvent>(e => HandleGlobally(e));`
             },
             'async-code': {
                 title: 'Async Handlers',
