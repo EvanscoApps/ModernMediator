@@ -71,6 +71,8 @@ dotnet add package ModernMediator
 
 ### Setup with Dependency Injection (Recommended)
 
+`IMediator` is registered as **Scoped** by default, allowing handlers to resolve scoped dependencies like `DbContext`.
+
 ```csharp
 // Program.cs - with assembly scanning (uses reflection)
 services.AddModernMediator(config =>
@@ -93,7 +95,7 @@ services.AddModernMediator(config =>
 ### Setup without DI
 
 ```csharp
-// Singleton (shared instance)
+// Singleton (shared instance) - ideal for Pub/Sub across the application
 IMediator mediator = Mediator.Instance;
 
 // Or create isolated instance
@@ -223,6 +225,12 @@ await foreach (var user in mediator.CreateStream(new GetAllUsersRequest(100), ct
 
 ### Pipeline Behaviors
 
+Pipeline behaviors wrap handler execution for cross-cutting concerns like logging, validation, and transactions.
+
+#### Open Generic Behaviors (Apply to All Requests)
+
+Open generic behaviors must be registered explicitly with `AddOpenBehavior()`:
+
 ```csharp
 // Logging behavior that wraps all requests
 public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
@@ -255,12 +263,43 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
     }
 }
 
-// Register behaviors
+// Register open generic behaviors explicitly
 services.AddModernMediator(config =>
 {
     config.RegisterServicesFromAssemblyContaining<Program>();
-    config.AddBehavior<LoggingBehavior>();
-    config.AddBehavior<ValidationBehavior>();
+    config.AddOpenBehavior(typeof(LoggingBehavior<,>));
+    config.AddOpenBehavior(typeof(ValidationBehavior<,>));
+});
+```
+
+> **Note:** Assembly scanning skips open generic types. Always use `AddOpenBehavior()` for behaviors that apply to all request types.
+
+#### Closed Generic Behaviors (Apply to Specific Requests)
+
+Behaviors for specific request types are discovered by assembly scanning:
+
+```csharp
+// Behavior for a specific request type
+public class GetUserCachingBehavior : IPipelineBehavior<GetUserQuery, UserDto>
+{
+    public async Task<UserDto> Handle(
+        GetUserQuery request, 
+        RequestHandlerDelegate<UserDto> next, 
+        CancellationToken ct)
+    {
+        if (_cache.TryGet(request.UserId, out var cached))
+            return cached;
+        
+        var result = await next();
+        _cache.Set(request.UserId, result);
+        return result;
+    }
+}
+
+// Auto-discovered by assembly scanning
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
 });
 ```
 
@@ -345,6 +384,25 @@ mediator.Subscribe<OrderCreatedEvent>(
 
 // Publish
 mediator.Publish(new OrderCreatedEvent(123, 599.99m));
+```
+
+#### Pub/Sub and DI Scoping
+
+When using dependency injection, `IMediator` is registered as Scoped. This means Pub/Sub subscriptions are per-scope:
+
+```csharp
+// Subscriptions on DI-injected IMediator are scoped to that request/scope
+public class MyService
+{
+    public MyService(IMediator mediator)
+    {
+        // This subscription lives only as long as this scope
+        mediator.Subscribe<SomeEvent>(HandleEvent);
+    }
+}
+
+// For application-wide shared subscriptions, use the static singleton:
+Mediator.Instance.Subscribe<OrderCreatedEvent>(e => GlobalHandler(e));
 ```
 
 ### Async Handlers
@@ -562,9 +620,10 @@ ModernMediator excels at plugin architectures where plugins load/unload at runti
 - Replaces both EventAggregator and MediatR
 
 ### ASP.NET Core
-- Full DI integration
+- Full DI integration with proper scoped service support
 - Request/response for CQRS patterns
 - Pipeline behaviors for cross-cutting concerns
+- Handlers can inject scoped services like `DbContext`
 
 ### Large Dataset Processing
 - Streaming with `IAsyncEnumerable` for memory efficiency
@@ -587,6 +646,8 @@ ModernMediator excels at plugin architectures where plugins load/unload at runti
 - **Weak references + lambdas** - Closures capture `this`, which may prevent GC. Use method references or `weak: false`.
 - **Behavior order = registration order** - First registered behavior executes first (outermost).
 - **Native AOT requires source generator** - Use `AddModernMediatorGenerated()` instead of assembly scanning.
+- **Open generics require explicit registration** - Assembly scanning skips open generic behaviors; use `AddOpenBehavior()`.
+- **Scoped IMediator for DI** - Pub/Sub subscriptions via DI are per-scope; use `Mediator.Instance` for shared subscriptions.
 
 ## License
 

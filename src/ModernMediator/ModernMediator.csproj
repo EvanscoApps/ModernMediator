@@ -6,7 +6,7 @@
 		<LangVersion>latest</LangVersion>
 		<!-- Package info -->
 		<PackageId>ModernMediator</PackageId>
-		<Version>0.2.0-alpha</Version>
+		<Version>0.2.1-alpha</Version>
 		<Authors>Rob Evans</Authors>
 		<Description>A modern mediator library for .NET 8 with request/response, pub/sub, streaming, pipeline behaviors, source generators, and Native AOT support.</Description>
 		<PackageTags>mediator;cqrs;messaging;pubsub;events;pipeline;maui;wpf;winforms;aspnetcore;aot</PackageTags>
@@ -14,22 +14,27 @@
 		<PackageProjectUrl>https://github.com/EvanscoApps/ModernMediator</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/EvanscoApps/ModernMediator</RepositoryUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-	</PropertyGroup>
+		<PackageReleaseNotes>
+			v0.2.1-alpha:
+			- Fix: Handlers can now resolve scoped dependencies (e.g., DbContext)
+			- Fix: Assembly scanning skips open generic types (use AddOpenBehavior instead)
+			- Breaking: IMediator registered as Scoped (was Singleton). For shared Pub/Sub, use Mediator.Instance.
+			- Added: AddOpenBehavior() and AddOpenExceptionHandler() for open generic registration
 
+			See CHANGELOG.md for full details.
+		</PackageReleaseNotes>
+	</PropertyGroup>
 	<ItemGroup>
 		<None Include="..\..\README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
-
 	<!-- Enable WPF and WinForms for Windows target -->
 	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
 		<UseWindowsForms>true</UseWindowsForms>
 		<UseWPF>true</UseWPF>
 	</PropertyGroup>
-
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
 	</ItemGroup>
-
 	<!-- Reference the source generator -->
 	<ItemGroup>
 		<ProjectReference Include="..\ModernMediator.Generators\ModernMediator.Generators.csproj"
