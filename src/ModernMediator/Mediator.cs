@@ -56,6 +56,7 @@ namespace ModernMediator
         /// <summary>
         /// Gets the singleton instance of the Mediator.
         /// For new applications, prefer dependency injection via AddModernMediator().
+        /// For Pub/Sub with shared subscriptions across scopes, use this singleton.
         /// </summary>
         public static IMediator Instance => _instance.Value;
 
@@ -90,10 +91,20 @@ namespace ModernMediator
         }
 
         /// <summary>
-        /// Creates a new Mediator instance.
+        /// Creates a new Mediator instance without a service provider.
         /// Use Mediator.Create(), Mediator.Instance, or AddModernMediator() for DI instead.
         /// </summary>
         internal Mediator() { }
+
+        /// <summary>
+        /// Creates a new Mediator instance with the specified service provider.
+        /// This constructor is used by dependency injection to provide the scoped service provider.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider for resolving request handlers and behaviors.</param>
+        public Mediator(IServiceProvider serviceProvider)
+        {
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        }
 
         /// <summary>
         /// Sets the service provider for resolving request handlers.

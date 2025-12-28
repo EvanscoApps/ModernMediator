@@ -13,19 +13,18 @@ namespace ModernMediator
     public static class MediatorServiceCollectionExtensions
     {
         /// <summary>
-        /// Adds ModernMediator as a singleton service to the dependency injection container.
+        /// Adds ModernMediator as a scoped service to the dependency injection container.
         /// This is the recommended way to use ModernMediator in modern .NET applications.
+        /// Scoped registration ensures handlers can resolve scoped dependencies (e.g., DbContext).
         /// </summary>
         /// <param name="services">The service collection.</param>
         /// <returns>The service collection for chaining.</returns>
+        /// <remarks>
+        /// For Pub/Sub with shared subscriptions across scopes, use <see cref="Mediator.Instance"/> instead.
+        /// </remarks>
         public static IServiceCollection AddModernMediator(this IServiceCollection services)
         {
-            services.TryAddSingleton<IMediator>(sp =>
-            {
-                var mediator = (Mediator)Mediator.Create();
-                mediator.SetServiceProvider(sp);
-                return mediator;
-            });
+            services.TryAddScoped<IMediator>(sp => new Mediator(sp));
             return services;
         }
 
@@ -45,20 +44,23 @@ namespace ModernMediator
 
         /// <summary>
         /// Adds ModernMediator with configuration options including assembly scanning.
+        /// Scoped registration ensures handlers can resolve scoped dependencies (e.g., DbContext).
         /// </summary>
         /// <param name="services">The service collection.</param>
         /// <param name="configure">Action to configure the mediator options.</param>
         /// <returns>The service collection for chaining.</returns>
+        /// <remarks>
+        /// For Pub/Sub with shared subscriptions across scopes, use <see cref="Mediator.Instance"/> instead.
+        /// </remarks>
         public static IServiceCollection AddModernMediator(this IServiceCollection services, Action<MediatorConfiguration> configure)
         {
             var config = new MediatorConfiguration(services);
             configure(config);
 
-            // Register the mediator
-            services.TryAddSingleton<IMediator>(sp =>
+            // Register the mediator as scoped to receive the correct scoped IServiceProvider
+            services.TryAddScoped<IMediator>(sp =>
             {
-                var mediator = (Mediator)Mediator.Create();
-                mediator.SetServiceProvider(sp);
+                var mediator = new Mediator(sp);
                 mediator.SetCachingMode(config.CachingModeValue);
 
                 if (config.ErrorPolicy.HasValue)
@@ -144,6 +146,8 @@ namespace ModernMediator
 
         /// <summary>
         /// Register handlers, behaviors, and processors from the specified assemblies.
+        /// Note: Open generic types (e.g., ValidationBehavior&lt;,&gt;) are skipped during scanning
+        /// and must be registered explicitly via AddOpenBehavior or AddOpenExceptionHandler.
         /// </summary>
         /// <param name="assemblies">The assemblies to scan.</param>
         /// <returns>The configuration for chaining.</returns>
@@ -156,6 +160,14 @@ namespace ModernMediator
 
                 foreach (var type in types)
                 {
+                    // Skip open generic types - they cannot be registered via assembly scanning
+                    // because the DI container cannot instantiate unbound type parameters.
+                    // These must be registered explicitly via AddOpenBehavior, AddOpenExceptionHandler, etc.
+                    if (type.IsGenericTypeDefinition)
+                    {
+                        continue;
+                    }
+
                     // Find IRequestHandler<,> implementations
                     RegisterInterfaceImplementations(
                         type,
