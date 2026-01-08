@@ -52,7 +52,7 @@ Core features tested. Edge cases may exist. Please report issues on GitHub.
 - **Exception Unwrapping** - Clean stack traces without reflection noise
 
 ### UI Thread Support
-- **Built-in Dispatchers** - WPF, WinForms, MAUI, ASP.NET Core
+- **Built-in Dispatchers** - WPF, WinForms, MAUI, ASP.NET Core, Avalonia
 - **SubscribeOnMainThread** - Automatic UI thread marshalling
 
 ### Modern .NET Integration
@@ -119,6 +119,14 @@ The source generator creates two files:
 ```csharp
 // Auto-generated - use instead of assembly scanning
 services.AddModernMediatorGenerated();
+
+// With configuration (ErrorPolicy, CachingMode, Dispatcher)
+services.AddModernMediatorGenerated(config =>
+{
+    config.ErrorPolicy = ErrorPolicy.LogAndContinue;
+    config.CachingMode = CachingMode.Lazy;
+    config.Configure(m => m.SetDispatcher(new WpfDispatcher()));
+});
 ```
 
 **`ModernMediator.SendExtensions.g.cs`** - Strongly-typed Send methods:
@@ -527,7 +535,10 @@ using (mediator.Subscribe<Event>(OnEvent))
 
 ```csharp
 // Set dispatcher once at startup
-mediator.SetDispatcher(new WpfDispatcher());
+mediator.SetDispatcher(new WpfDispatcher());      // WPF
+mediator.SetDispatcher(new WinFormsDispatcher()); // WinForms
+mediator.SetDispatcher(new MauiDispatcher());     // MAUI
+mediator.SetDispatcher(new AvaloniaDispatcher()); // Avalonia (see below)
 
 // Subscribe to receive on UI thread
 mediator.SubscribeOnMainThread<DataChangedEvent>(e => 
@@ -540,6 +551,17 @@ mediator.SubscribeAsyncOnMainThread<DataChangedEvent>(async e =>
     UpdateUI(e); // Safe to update UI
 });
 ```
+
+#### Avalonia Support
+
+For Avalonia, copy the [`AvaloniaDispatcher.cs`](https://github.com/EvanscoApps/ModernMediator/blob/main/docs/AvaloniaDispatcher.cs) file into your project:
+
+```csharp
+// In your Avalonia App.axaml.cs or startup
+mediator.SetDispatcher(new AvaloniaDispatcher());
+```
+
+> **Note:** The Avalonia dispatcher is community-tested. Please report any issues on GitHub.
 
 ### Error Handling
 

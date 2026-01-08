@@ -5,6 +5,18 @@ All notable changes to ModernMediator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2-alpha] - 2026-01-06
+
+### Added
+
+- **Avalonia dispatcher support**: Added `AvaloniaDispatcher` for UI thread marshalling in Avalonia applications. Available as a drop-in file in the `docs/` folder since Avalonia requires a separate package reference. Community-tested.
+
+- **Source generator configuration overload**: `AddModernMediatorGenerated()` now accepts an optional configuration action for `ErrorPolicy`, `CachingMode`, and `IDispatcher`.
+
+### Fixed
+
+- **Source generator scoped registration**: `AddModernMediatorGenerated()` now registers `IMediator` as Scoped (was Singleton), matching the assembly scanning behavior from 0.2.1.
+
 ## [0.2.1-alpha] - 2024-12-28
 
 ### Fixed
@@ -46,5 +58,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Predicate filters for subscriptions
 - Covariant message dispatch
 
+[0.2.2-alpha]: https://github.com/EvanscoApps/ModernMediator/compare/v0.2.1-alpha...v0.2.2-alpha
 [0.2.1-alpha]: https://github.com/EvanscoApps/ModernMediator/compare/v0.2.0-alpha...v0.2.1-alpha
 [0.2.0-alpha]: https://github.com/EvanscoApps/ModernMediator/releases/tag/v0.2.0-alpha

@@ -519,7 +519,7 @@
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">ModernMediator</div>
-            <div class="sidebar-version">v0.2.1-alpha</div>
+            <div class="sidebar-version">v0.2.2-alpha</div>
         </div>
 
         <div class="nav-section">
@@ -569,7 +569,7 @@
         <header class="hero">
             <h1>ModernMediator</h1>
             <p class="hero-subtitle">A Comprehensive Tutorial</p>
-            <span class="hero-version">Version 0.2.1-alpha</span>
+            <span class="hero-version">Version 0.2.2-alpha</span>
         </header>
 
         <div class="content">
@@ -587,7 +587,7 @@
                     <li><a href="#exception-handlers" style="color: var(--accent-secondary); text-decoration: none;"><strong>Exception handling strategies</strong></a> and <a href="#error-handling" style="color: var(--accent-secondary); text-decoration: none;"><strong>error policies</strong></a></li>
                     <li><a href="#pub-sub" style="color: var(--accent-secondary); text-decoration: none;"><strong>Pub/Sub with Callbacks</strong></a> for multi-handler response aggregation</li>
                     <li><strong>Subscription options</strong> including <a href="#references" style="color: var(--accent-secondary); text-decoration: none;">weak/strong references</a>, <a href="#filters" style="color: var(--accent-secondary); text-decoration: none;">filters</a>, and <a href="#covariance" style="color: var(--accent-secondary); text-decoration: none;">covariance</a></li>
-                    <li><a href="#dispatchers" style="color: var(--accent-secondary); text-decoration: none;"><strong>UI Dispatchers</strong></a> for thread-safe updates across WPF, WinForms, MAUI, and ASP.NET Core</li>
+                    <li><a href="#dispatchers" style="color: var(--accent-secondary); text-decoration: none;"><strong>UI Dispatchers</strong></a> for thread-safe updates across WPF, WinForms, MAUI, Avalonia, and ASP.NET Core</li>
                     <li><a href="#registration" style="color: var(--accent-secondary); text-decoration: none;"><strong>Registration strategies</strong></a> including assembly scanning and manual DI registration</li>
                     <li><a href="#async-design" style="color: var(--accent-secondary); text-decoration: none;"><strong>Async-first design</strong></a> with true parallelism and cancellation support</li>
                 </ul>
@@ -1061,6 +1061,7 @@
                             <tr><td>WPF</td><td><code>Dispatcher.Invoke</code></td><td>Single UI thread</td></tr>
                             <tr><td>WinForms</td><td><code>Control.Invoke</code> / <code>SynchronizationContext</code></td><td>Single UI thread</td></tr>
                             <tr><td>MAUI</td><td><code>MainThread.BeginInvokeOnMainThread</code></td><td>Single main thread</td></tr>
+                            <tr><td>Avalonia</td><td><code>Dispatcher.UIThread.Invoke</code></td><td>Single UI thread</td></tr>
                             <tr><td>ASP.NET Core</td><td>No UI thread</td><td>Request context</td></tr>
                         </tbody>
                     </table>
@@ -1250,7 +1251,7 @@
                     <li><strong>Weak/Strong References</strong> — Memory management control for subscription lifecycles</li>
                     <li><strong>Predicate Filters</strong> — Conditional message reception based on content</li>
                     <li><strong>Covariance</strong> — Inheritance-aware message routing for flexible subscriptions</li>
-                    <li><strong>UI Dispatchers</strong> — Thread-safe response delivery across WPF, WinForms, MAUI, and ASP.NET Core</li>
+                    <li><strong>UI Dispatchers</strong> — Thread-safe response delivery across WPF, WinForms, MAUI, Avalonia, and ASP.NET Core</li>
                     <li><strong>Assembly Scanning and Manual DI Registration</strong> — Flexible handler registration strategies</li>
                     <li><strong>Async-First Design</strong> — True parallelism with Task.WhenAll and full cancellation support</li>
                     <li><strong>Error Handling</strong> — Configurable policies, centralized events, and clean exception unwrapping</li>
@@ -1489,6 +1490,14 @@ services.AddModernMediator(config =>
 // ModernMediator.Generated.g.cs - DI registration without reflection:
 services.AddModernMediatorGenerated();
 
+// With configuration (ErrorPolicy, CachingMode, Dispatcher):
+services.AddModernMediatorGenerated(config =>
+{
+    config.ErrorPolicy = ErrorPolicy.LogAndContinue;
+    config.CachingMode = CachingMode.Lazy;
+    config.Configure(m => m.SetDispatcher(new WpfDispatcher()));
+});
+
 // ModernMediator.SendExtensions.g.cs - Strongly-typed Send methods:
 var user = await mediator.Send(new GetUserQuery(42)); // No reflection!
 
@@ -1615,8 +1624,11 @@ mediator.Publish(new CatEvent("Whiskers", 9));`
             },
             'dispatcher-code': {
                 title: 'UI Thread Dispatching',
-                code: `// Set dispatcher once at startup
-mediator.SetDispatcher(new WpfDispatcher());
+                code: `// Set dispatcher once at startup (choose one for your platform)
+mediator.SetDispatcher(new WpfDispatcher());      // WPF
+mediator.SetDispatcher(new WinFormsDispatcher()); // WinForms
+mediator.SetDispatcher(new MauiDispatcher());     // MAUI
+mediator.SetDispatcher(new AvaloniaDispatcher()); // Avalonia (drop-in file)
 
 // Subscribe to receive on UI thread
 mediator.SubscribeOnMainThread<DataChangedEvent>(e => 
@@ -1627,7 +1639,11 @@ mediator.SubscribeAsyncOnMainThread<DataChangedEvent>(async e =>
 {
     await ProcessData(e);
     UpdateUI(e); // Safe to update UI
-});`
+});
+
+// Note: AvaloniaDispatcher is provided as a drop-in file.
+// Copy it from the GitHub repo docs folder into your Avalonia project.
+// The Avalonia dispatcher is community-tested - please report issues on GitHub.`
             },
             'registration-code': {
                 title: 'DI Registration Options',

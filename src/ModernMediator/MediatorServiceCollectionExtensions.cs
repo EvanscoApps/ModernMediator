@@ -82,7 +82,7 @@ namespace ModernMediator
     /// </summary>
     public class MediatorConfiguration
     {
-        private readonly IServiceCollection _services;
+        private readonly IServiceCollection? _services;
 
         internal Action<IMediator>? ConfigureAction { get; private set; }
 
@@ -110,6 +110,14 @@ namespace ModernMediator
 
         internal CachingMode CachingModeValue => CachingMode;
 
+        /// <summary>
+        /// Creates a new configuration for use with source-generated registration.
+        /// </summary>
+        public MediatorConfiguration()
+        {
+            _services = null;
+        }
+
         internal MediatorConfiguration(IServiceCollection services)
         {
             _services = services;
@@ -123,6 +131,21 @@ namespace ModernMediator
             ConfigureAction = configure;
             return this;
         }
+
+        /// <summary>
+        /// Applies the configuration to a mediator instance.
+        /// Used by source-generated registration.
+        /// </summary>
+        /// <param name="mediator">The mediator instance to configure.</param>
+        public void ApplyConfiguration(IMediator mediator)
+        {
+            ConfigureAction?.Invoke(mediator);
+        }
+
+        private IServiceCollection Services =>
+            _services ?? throw new InvalidOperationException(
+                "Assembly scanning and handler registration require IServiceCollection. " +
+                "Use AddModernMediator() extension method, not the parameterless constructor.");
 
         /// <summary>
         /// Register handlers from the assembly containing the specified type.
@@ -219,7 +242,7 @@ namespace ModernMediator
             foreach (var @interface in interfaces)
             {
                 var descriptor = new ServiceDescriptor(@interface, implementationType, lifetime);
-                _services.TryAddEnumerable(descriptor);
+                Services.TryAddEnumerable(descriptor);
             }
         }
 
@@ -238,7 +261,7 @@ namespace ModernMediator
             foreach (var @interface in interfaces)
             {
                 var descriptor = new ServiceDescriptor(@interface, type, HandlerLifetime);
-                _services.TryAdd(descriptor);
+                Services.TryAdd(descriptor);
             }
 
             return this;
@@ -254,7 +277,7 @@ namespace ModernMediator
         public MediatorConfiguration RegisterHandler<TRequest, TResponse>(IRequestHandler<TRequest, TResponse> handler)
             where TRequest : IRequest<TResponse>
         {
-            _services.AddSingleton(typeof(IRequestHandler<TRequest, TResponse>), handler);
+            Services.AddSingleton(typeof(IRequestHandler<TRequest, TResponse>), handler);
             return this;
         }
 
@@ -273,7 +296,7 @@ namespace ModernMediator
             foreach (var @interface in interfaces)
             {
                 var descriptor = new ServiceDescriptor(@interface, type, HandlerLifetime);
-                _services.TryAdd(descriptor);
+                Services.TryAdd(descriptor);
             }
 
             return this;
@@ -289,7 +312,7 @@ namespace ModernMediator
         public MediatorConfiguration RegisterStreamHandler<TRequest, TResponse>(IStreamRequestHandler<TRequest, TResponse> handler)
             where TRequest : IStreamRequest<TResponse>
         {
-            _services.AddSingleton(typeof(IStreamRequestHandler<TRequest, TResponse>), handler);
+            Services.AddSingleton(typeof(IStreamRequestHandler<TRequest, TResponse>), handler);
             return this;
         }
 
@@ -308,7 +331,7 @@ namespace ModernMediator
             foreach (var @interface in interfaces)
             {
                 var descriptor = new ServiceDescriptor(@interface, type, BehaviorLifetime);
-                _services.TryAddEnumerable(descriptor);
+                Services.TryAddEnumerable(descriptor);
             }
 
             return this;
@@ -343,7 +366,7 @@ namespace ModernMediator
             }
 
             // Register as open generic
-            _services.Add(new ServiceDescriptor(
+            Services.Add(new ServiceDescriptor(
                 typeof(IPipelineBehavior<,>),
                 openBehaviorType,
                 BehaviorLifetime));
@@ -366,7 +389,7 @@ namespace ModernMediator
             foreach (var @interface in interfaces)
             {
                 var descriptor = new ServiceDescriptor(@interface, type, BehaviorLifetime);
-                _services.TryAddEnumerable(descriptor);
+                Services.TryAddEnumerable(descriptor);
             }
 
             return this;
@@ -387,7 +410,7 @@ namespace ModernMediator
             foreach (var @interface in interfaces)
             {
                 var descriptor = new ServiceDescriptor(@interface, type, BehaviorLifetime);
-                _services.TryAddEnumerable(descriptor);
+                Services.TryAddEnumerable(descriptor);
             }
 
             return this;
@@ -408,7 +431,7 @@ namespace ModernMediator
             foreach (var @interface in interfaces)
             {
                 var descriptor = new ServiceDescriptor(@interface, type, BehaviorLifetime);
-                _services.TryAddEnumerable(descriptor);
+                Services.TryAddEnumerable(descriptor);
             }
 
             return this;
@@ -443,7 +466,7 @@ namespace ModernMediator
             }
 
             // Register as open generic
-            _services.Add(new ServiceDescriptor(
+            Services.Add(new ServiceDescriptor(
                 typeof(IRequestExceptionHandler<,,>),
                 openExceptionHandlerType,
                 BehaviorLifetime));

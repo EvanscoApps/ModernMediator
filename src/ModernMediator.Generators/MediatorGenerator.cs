@@ -183,14 +183,45 @@ namespace ModernMediator.Generators
             sb.AppendLine("    /// </summary>");
             sb.AppendLine("    public static class ModernMediatorRegistration");
             sb.AppendLine("    {");
+
+            // Original method without configuration
             sb.AppendLine("        /// <summary>");
             sb.AppendLine("        /// Registers all discovered handlers, behaviors, and processors.");
             sb.AppendLine("        /// Generated at compile time - no reflection used.");
             sb.AppendLine("        /// </summary>");
             sb.AppendLine("        public static IServiceCollection AddModernMediatorGenerated(this IServiceCollection services, ServiceLifetime handlerLifetime = ServiceLifetime.Transient, ServiceLifetime behaviorLifetime = ServiceLifetime.Transient)");
             sb.AppendLine("        {");
-            sb.AppendLine("            // Register the mediator");
-            sb.AppendLine("            services.TryAddSingleton<IMediator>(sp => Mediator.Create(sp));");
+            sb.AppendLine("            return AddModernMediatorGenerated(services, null, handlerLifetime, behaviorLifetime);");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+
+            // New overload with configuration
+            sb.AppendLine("        /// <summary>");
+            sb.AppendLine("        /// Registers all discovered handlers, behaviors, and processors with configuration.");
+            sb.AppendLine("        /// Generated at compile time - no reflection used.");
+            sb.AppendLine("        /// </summary>");
+            sb.AppendLine("        /// <param name=\"services\">The service collection.</param>");
+            sb.AppendLine("        /// <param name=\"configure\">Optional configuration action for ErrorPolicy, CachingMode, and Dispatcher.</param>");
+            sb.AppendLine("        /// <param name=\"handlerLifetime\">Lifetime for handlers (default: Transient).</param>");
+            sb.AppendLine("        /// <param name=\"behaviorLifetime\">Lifetime for behaviors and processors (default: Transient).</param>");
+            sb.AppendLine("        public static IServiceCollection AddModernMediatorGenerated(this IServiceCollection services, Action<MediatorConfiguration>? configure, ServiceLifetime handlerLifetime = ServiceLifetime.Transient, ServiceLifetime behaviorLifetime = ServiceLifetime.Transient)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            // Create and apply configuration");
+            sb.AppendLine("            var config = new MediatorConfiguration();");
+            sb.AppendLine("            configure?.Invoke(config);");
+            sb.AppendLine();
+            sb.AppendLine("            // Register the mediator as scoped to support scoped dependencies");
+            sb.AppendLine("            services.TryAddScoped<IMediator>(sp =>");
+            sb.AppendLine("            {");
+            sb.AppendLine("                var mediator = new Mediator(sp);");
+            sb.AppendLine("                if (config.ErrorPolicy.HasValue)");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    mediator.ErrorPolicy = config.ErrorPolicy.Value;");
+            sb.AppendLine("                }");
+            sb.AppendLine("                mediator.SetCachingMode(config.CachingMode);");
+            sb.AppendLine("                config.ApplyConfiguration(mediator);");
+            sb.AppendLine("                return mediator;");
+            sb.AppendLine("            });");
             sb.AppendLine();
 
             // Request handlers
