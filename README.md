@@ -4,9 +4,9 @@
 
 A modern, feature-rich mediator library for .NET 8 that combines the best of pub/sub and request/response patterns with advanced features for real-world applications.
 
-## Status: Alpha
+## Status: Stable
 
-Core features tested. Edge cases may exist. Please report issues on GitHub.
+Production-ready. Please report issues on GitHub.
 
 ## Documentation
 
