@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<!-- Package info -->
+		<PackageId>ModernMediator.FluentValidation</PackageId>
+		<Version>1.0.0</Version>
+		<Authors>Rob Evans</Authors>
+		<Description>FluentValidation integration for ModernMediator with compile-time validator discovery</Description>
+		<PackageTags>mediator;cqrs;validation;fluentvalidation;pipeline</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/EvanscoApps/ModernMediator</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/EvanscoApps/ModernMediator</RepositoryUrl>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="FluentValidation" Version="11.11.0" />
+		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\ModernMediator\ModernMediator.csproj" />
+	</ItemGroup>
+</Project>
