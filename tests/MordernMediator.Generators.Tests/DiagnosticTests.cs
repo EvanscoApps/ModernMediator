@@ -508,6 +508,151 @@ namespace TestApp
 
         #endregion
 
+        #region MM005 — NotificationHandlerReturnsValue: Positive Tests
+
+        [Fact]
+        public void MM005_NotificationHandlerReturningTaskOfString_ReportsWarning()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using ModernMediator;
+
+namespace TestApp
+{
+    public record UserCreated : INotification;
+
+    public class BadNotificationHandler : INotificationHandler<UserCreated>
+    {
+        public Task<string> Handle(UserCreated notification, CancellationToken cancellationToken = default)
+            => Task.FromResult(""oops"");
+    }
+}";
+
+            var diagnostics = GetDiagnostics(source);
+
+            AssertDiagnosticPresent(diagnostics, "MM005", DiagnosticSeverity.Warning);
+
+            var mm005 = diagnostics.Single(d => d.Id == "MM005");
+            Assert.Contains("BadNotificationHandler", mm005.GetMessage());
+        }
+
+        #endregion
+
+        #region MM005 — NotificationHandlerReturnsValue: Negative Tests
+
+        [Fact]
+        public void MM005_NotificationHandlerReturningTask_NoDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using ModernMediator;
+
+namespace TestApp
+{
+    public record UserCreated : INotification;
+
+    public class GoodNotificationHandler : INotificationHandler<UserCreated>
+    {
+        public Task Handle(UserCreated notification, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+    }
+}";
+
+            var diagnostics = GetDiagnostics(source);
+
+            AssertNoDiagnostic(diagnostics, "MM005");
+        }
+
+        #endregion
+
+        #region MM006 — OpenGenericBehavior: Positive Tests
+
+        [Fact]
+        public void MM006_OpenGenericBehavior_ReportsWarning()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using ModernMediator;
+
+namespace TestApp
+{
+    public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+        where TRequest : IRequest<TResponse>
+    {
+        public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        {
+            return await next();
+        }
+    }
+}";
+
+            var diagnostics = GetDiagnostics(source);
+
+            AssertDiagnosticPresent(diagnostics, "MM006", DiagnosticSeverity.Warning);
+
+            var mm006 = diagnostics.Single(d => d.Id == "MM006");
+            Assert.Contains("LoggingBehavior", mm006.GetMessage());
+        }
+
+        #endregion
+
+        #region MM006 — OpenGenericBehavior: Negative Tests
+
+        [Fact]
+        public void MM006_ClosedGenericBehavior_NoDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using ModernMediator;
+
+namespace TestApp
+{
+    public record TestRequest : IRequest<string>;
+
+    public class TestBehavior : IPipelineBehavior<TestRequest, string>
+    {
+        public async Task<string> Handle(TestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        {
+            return await next();
+        }
+    }
+}";
+
+            var diagnostics = GetDiagnostics(source);
+
+            AssertNoDiagnostic(diagnostics, "MM006");
+        }
+
+        [Fact]
+        public void MM006_AbstractOpenGenericBehavior_NoDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using ModernMediator;
+
+namespace TestApp
+{
+    public abstract class AbstractLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+        where TRequest : IRequest<TResponse>
+    {
+        public abstract Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken);
+    }
+}";
+
+            var diagnostics = GetDiagnostics(source);
+
+            // Abstract open generic gets MM003, not MM006
+            AssertDiagnosticPresent(diagnostics, "MM003", DiagnosticSeverity.Error);
+            AssertNoDiagnostic(diagnostics, "MM006");
+        }
+
+        #endregion
+
         #region Structural Tests
 
         [Fact]
@@ -567,7 +712,7 @@ namespace TestApp
                 .ToList();
 
             // IDs that have dedicated positive tests in this class — no exceptions allowed
-            var testedIds = new HashSet<string> { "MM001", "MM002", "MM003", "MM004", "MM100" };
+            var testedIds = new HashSet<string> { "MM001", "MM002", "MM003", "MM004", "MM005", "MM006", "MM100" };
 
             foreach (var field in descriptorFields)
             {
@@ -652,6 +797,13 @@ namespace ModernMediator
     public interface IServiceProviderAccessor
     {
         IServiceProvider? ServiceProvider { get; }
+    }
+
+    public interface INotification { }
+
+    public interface INotificationHandler<in TNotification> where TNotification : INotification
+    {
+        Task Handle(TNotification notification, CancellationToken cancellationToken = default);
     }
 }";
 

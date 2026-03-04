@@ -23,6 +23,7 @@ namespace ModernMediator.Generators
         private const string IPipelineBehavior = "ModernMediator.IPipelineBehavior`2";
         private const string IRequestPreProcessor = "ModernMediator.IRequestPreProcessor`1";
         private const string IRequestPostProcessor = "ModernMediator.IRequestPostProcessor`2";
+        private const string INotificationHandler = "ModernMediator.INotificationHandler`1";
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
@@ -80,7 +81,7 @@ namespace ModernMediator.Generators
                         var fn = GetFullMetadataName(iface.OriginalDefinition);
                         return fn == IRequestHandler || fn == IStreamRequestHandler ||
                                fn == IPipelineBehavior || fn == IRequestPreProcessor ||
-                               fn == IRequestPostProcessor;
+                               fn == IRequestPostProcessor || fn == INotificationHandler;
                     });
 
                     if (implementsHandlerInterface)
@@ -146,6 +147,50 @@ namespace ModernMediator.Generators
                             RequestType = iface.TypeArguments[0],
                             ResponseType = iface.TypeArguments[1]
                         });
+                    }
+                }
+            }
+
+            // Check for open generic pipeline behaviors (MM006)
+            foreach (var behavior in behaviors)
+            {
+                if (behavior.HandlerType.TypeParameters.Length > 0)
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        DiagnosticDescriptors.OpenGenericBehavior,
+                        behavior.HandlerType.Locations.FirstOrDefault(),
+                        behavior.HandlerType.Name));
+                }
+            }
+
+            // Check for notification handlers returning a value (MM005)
+            var notificationHandlerSymbol = compilation.GetTypeByMetadataName("ModernMediator.INotificationHandler`1");
+            var taskSymbol = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task");
+            if (notificationHandlerSymbol != null && taskSymbol != null)
+            {
+                foreach (var classSymbol in distinctClasses)
+                {
+                    if (classSymbol.IsAbstract)
+                        continue;
+
+                    var implementsNotificationHandler = classSymbol.AllInterfaces.Any(iface =>
+                        SymbolEqualityComparer.Default.Equals(iface.OriginalDefinition, notificationHandlerSymbol));
+
+                    if (!implementsNotificationHandler)
+                        continue;
+
+                    // Check if any Handle method returns something other than Task
+                    foreach (var member in classSymbol.GetMembers("Handle"))
+                    {
+                        if (member is IMethodSymbol method &&
+                            !SymbolEqualityComparer.Default.Equals(method.ReturnType, taskSymbol))
+                        {
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                DiagnosticDescriptors.NotificationHandlerReturnsValue,
+                                classSymbol.Locations.FirstOrDefault(),
+                                classSymbol.Name));
+                            break;
+                        }
                     }
                 }
             }
