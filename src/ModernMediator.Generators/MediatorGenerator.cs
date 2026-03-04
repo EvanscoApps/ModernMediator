@@ -222,6 +222,25 @@ namespace ModernMediator.Generators
                 }
             }
 
+            // Check for handlers with no matching request type (MM007)
+            if (requestInterfaceSymbol != null)
+            {
+                foreach (var handler in handlers)
+                {
+                    var requestIface = handler.RequestType.AllInterfaces
+                        .FirstOrDefault(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, requestInterfaceSymbol));
+                    if (requestIface == null)
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            DiagnosticDescriptors.HandlerNoMatchingRequestType,
+                            handler.HandlerType.Locations.FirstOrDefault(),
+                            handler.HandlerType.Name,
+                            GetFullTypeName(handler.RequestType),
+                            GetFullTypeName(handler.ResponseType!)));
+                    }
+                }
+            }
+
             // Check for duplicate handlers
             var handlersByRequest = handlers
                 .GroupBy(h => GetFullTypeName(h.RequestType), StringComparer.Ordinal)

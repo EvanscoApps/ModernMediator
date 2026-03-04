@@ -653,6 +653,67 @@ namespace TestApp
 
         #endregion
 
+        #region MM007 — HandlerNoMatchingRequestType: Positive Tests
+
+        [Fact]
+        public void MM007_HandlerForNonRequestType_ReportsInfo()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using ModernMediator;
+
+namespace TestApp
+{
+    // NotARequest does NOT implement IRequest<string>
+    public class NotARequest { }
+
+    public class StaleHandler : IRequestHandler<NotARequest, string>
+    {
+        public Task<string> Handle(NotARequest request, CancellationToken ct = default)
+            => Task.FromResult(""stale"");
+    }
+}";
+
+            var diagnostics = GetDiagnostics(source);
+
+            AssertDiagnosticPresent(diagnostics, "MM007", DiagnosticSeverity.Info);
+
+            var mm007 = diagnostics.Single(d => d.Id == "MM007");
+            Assert.Contains("StaleHandler", mm007.GetMessage());
+            Assert.Contains("NotARequest", mm007.GetMessage());
+        }
+
+        #endregion
+
+        #region MM007 — HandlerNoMatchingRequestType: Negative Tests
+
+        [Fact]
+        public void MM007_HandlerForExistingRequestType_NoDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using ModernMediator;
+
+namespace TestApp
+{
+    public record MyRequest : IRequest<string>;
+
+    public class MyHandler : IRequestHandler<MyRequest, string>
+    {
+        public Task<string> Handle(MyRequest request, CancellationToken ct = default)
+            => Task.FromResult(""ok"");
+    }
+}";
+
+            var diagnostics = GetDiagnostics(source);
+
+            AssertNoDiagnostic(diagnostics, "MM007");
+        }
+
+        #endregion
+
         #region Structural Tests
 
         [Fact]
@@ -712,7 +773,7 @@ namespace TestApp
                 .ToList();
 
             // IDs that have dedicated positive tests in this class — no exceptions allowed
-            var testedIds = new HashSet<string> { "MM001", "MM002", "MM003", "MM004", "MM005", "MM006", "MM100" };
+            var testedIds = new HashSet<string> { "MM001", "MM002", "MM003", "MM004", "MM005", "MM006", "MM007", "MM100" };
 
             foreach (var field in descriptorFields)
             {

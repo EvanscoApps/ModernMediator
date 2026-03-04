@@ -55,6 +55,14 @@ namespace ModernMediator.Generators
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
 
+        public static readonly DiagnosticDescriptor HandlerNoMatchingRequestType = new(
+            id: "MM007",
+            title: "Handler has no matching request type",
+            messageFormat: "'{0}' implements IRequestHandler<{1}, {2}> but no type implementing IRequest<{2}> named '{1}' was found in the assembly",
+            category: "ModernMediator",
+            defaultSeverity: DiagnosticSeverity.Info,
+            isEnabledByDefault: true);
+
         public static readonly DiagnosticDescriptor GeneratorSuccess = new(
             id: "MM100",
             title: "ModernMediator registration generated",
