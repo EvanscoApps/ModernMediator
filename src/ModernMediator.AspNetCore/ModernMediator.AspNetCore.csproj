@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<!-- Package info -->
+		<PackageId>ModernMediator.AspNetCore</PackageId>
+		<Version>1.0.0</Version>
+		<Authors>Rob Evans</Authors>
+		<Description>ASP.NET Core Minimal API integration for ModernMediator with compile-time endpoint generation.</Description>
+		<PackageTags>mediator;aspnetcore;minimal-api;endpoints;source-generator</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<RepositoryUrl>https://github.com/EvanscoApps/ModernMediator</RepositoryUrl>
+	</PropertyGroup>
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\ModernMediator\ModernMediator.csproj" />
+		<ProjectReference Include="..\ModernMediator.AspNetCore.Generators\ModernMediator.AspNetCore.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+</Project>

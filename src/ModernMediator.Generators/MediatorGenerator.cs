@@ -152,14 +152,17 @@ namespace ModernMediator.Generators
             }
 
             // Check for open generic pipeline behaviors (MM006)
-            foreach (var behavior in behaviors)
+            // Open generics cannot be registered in generated code (type parameters are not in scope).
+            // They must be registered via AddOpenBehavior() at runtime.
+            for (int i = behaviors.Count - 1; i >= 0; i--)
             {
-                if (behavior.HandlerType.TypeParameters.Length > 0)
+                if (behaviors[i].HandlerType.TypeParameters.Length > 0)
                 {
                     context.ReportDiagnostic(Diagnostic.Create(
                         DiagnosticDescriptors.OpenGenericBehavior,
-                        behavior.HandlerType.Locations.FirstOrDefault(),
-                        behavior.HandlerType.Name));
+                        behaviors[i].HandlerType.Locations.FirstOrDefault(),
+                        behaviors[i].HandlerType.Name));
+                    behaviors.RemoveAt(i);
                 }
             }
 
