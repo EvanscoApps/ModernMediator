@@ -63,6 +63,14 @@ namespace ModernMediator.Generators
             defaultSeverity: DiagnosticSeverity.Info,
             isEnabledByDefault: true);
 
+        public static readonly DiagnosticDescriptor WeakLambdaSubscription = new(
+            id: "MM008",
+            title: "Lambda used with weak reference subscription",
+            messageFormat: "Subscribing a lambda or closure with a weak reference may cause the handler to be garbage collected immediately. Use weak: false or pass a method reference instead",
+            category: "ModernMediator",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true);
+
         public static readonly DiagnosticDescriptor GeneratorSuccess = new(
             id: "MM100",
             title: "ModernMediator registration generated",

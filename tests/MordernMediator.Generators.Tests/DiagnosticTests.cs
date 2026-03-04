@@ -772,8 +772,8 @@ namespace TestApp
                 .Where(f => f.FieldType == typeof(DiagnosticDescriptor))
                 .ToList();
 
-            // IDs that have dedicated positive tests in this class — no exceptions allowed
-            var testedIds = new HashSet<string> { "MM001", "MM002", "MM003", "MM004", "MM005", "MM006", "MM007", "MM100" };
+            // IDs that have dedicated positive tests — MM001-MM007/MM100 in this class, MM008 in AnalyzerTests
+            var testedIds = new HashSet<string> { "MM001", "MM002", "MM003", "MM004", "MM005", "MM006", "MM007", "MM008", "MM100" };
 
             foreach (var field in descriptorFields)
             {
