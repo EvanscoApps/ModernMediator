@@ -293,6 +293,106 @@ namespace TestApp
             Assert.Contains("Handlers: 2", output);
         }
 
+        [Fact]
+        public void Generator_ReportsNoHandlerFound_WhenRequestHasNoHandler()
+        {
+            // Arrange
+            var source = @"
+using ModernMediator;
+
+namespace TestApp
+{
+    public record OrphanRequest : IRequest<string>;
+}";
+
+            // Act
+            var (diagnostics, _) = RunGenerator(source);
+
+            // Assert
+            Assert.Contains(diagnostics, d => d.Id == "MM002" && d.Severity == DiagnosticSeverity.Warning);
+        }
+
+        [Fact]
+        public void Generator_DoesNotReportNoHandlerFound_WhenRequestHasHandler()
+        {
+            // Arrange
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using ModernMediator;
+
+namespace TestApp
+{
+    public record MyRequest : IRequest<string>;
+
+    public class MyHandler : IRequestHandler<MyRequest, string>
+    {
+        public Task<string> Handle(MyRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(""ok"");
+    }
+}";
+
+            // Act
+            var (diagnostics, _) = RunGenerator(source);
+
+            // Assert
+            Assert.DoesNotContain(diagnostics, d => d.Id == "MM002");
+        }
+
+        [Fact]
+        public void Generator_ReportsAbstractHandler()
+        {
+            // Arrange
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using ModernMediator;
+
+namespace TestApp
+{
+    public record TestRequest : IRequest<string>;
+
+    public abstract class AbstractHandler : IRequestHandler<TestRequest, string>
+    {
+        public abstract Task<string> Handle(TestRequest request, CancellationToken cancellationToken = default);
+    }
+}";
+
+            // Act
+            var (diagnostics, output) = RunGenerator(source);
+
+            // Assert
+            Assert.Contains(diagnostics, d => d.Id == "MM003" && d.Severity == DiagnosticSeverity.Error);
+            Assert.DoesNotContain("AbstractHandler", output); // Still excluded from registration
+        }
+
+        [Fact]
+        public void Generator_DoesNotReportAbstractHandler_WhenHandlerIsConcrete()
+        {
+            // Arrange
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using ModernMediator;
+
+namespace TestApp
+{
+    public record TestRequest : IRequest<string>;
+
+    public class ConcreteHandler : IRequestHandler<TestRequest, string>
+    {
+        public Task<string> Handle(TestRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(""ok"");
+    }
+}";
+
+            // Act
+            var (diagnostics, _) = RunGenerator(source);
+
+            // Assert
+            Assert.DoesNotContain(diagnostics, d => d.Id == "MM003");
+        }
+
         private static (ImmutableArray<Diagnostic> Diagnostics, string Output) RunGenerator(string source, string? outputFileName = null)
         {
             outputFileName ??= "ModernMediator.Generated.g.cs";

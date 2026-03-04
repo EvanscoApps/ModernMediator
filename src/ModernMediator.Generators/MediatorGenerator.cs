@@ -43,8 +43,7 @@ namespace ModernMediator.Generators
         private static bool IsCandidateClass(SyntaxNode node)
         {
             return node is ClassDeclarationSyntax classDecl &&
-                   classDecl.BaseList is not null &&
-                   !classDecl.Modifiers.Any(SyntaxKind.AbstractKeyword);
+                   classDecl.BaseList is not null;
         }
 
         private static INamedTypeSymbol? GetClassSymbol(GeneratorSyntaxContext context)
@@ -74,7 +73,25 @@ namespace ModernMediator.Generators
             foreach (var classSymbol in distinctClasses)
             {
                 if (classSymbol.IsAbstract)
+                {
+                    // Report MM003 if abstract class implements any handler interface
+                    bool implementsHandlerInterface = classSymbol.AllInterfaces.Any(iface =>
+                    {
+                        var fn = GetFullMetadataName(iface.OriginalDefinition);
+                        return fn == IRequestHandler || fn == IStreamRequestHandler ||
+                               fn == IPipelineBehavior || fn == IRequestPreProcessor ||
+                               fn == IRequestPostProcessor;
+                    });
+
+                    if (implementsHandlerInterface)
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            DiagnosticDescriptors.HandlerMustBeNonAbstract,
+                            classSymbol.Locations.FirstOrDefault(),
+                            classSymbol.Name));
+                    }
                     continue;
+                }
 
                 foreach (var iface in classSymbol.AllInterfaces)
                 {
@@ -133,6 +150,33 @@ namespace ModernMediator.Generators
                 }
             }
 
+            // Resolve IRequest<TResponse> once for MM004 and MM002 checks
+            var requestInterfaceSymbol = compilation.GetTypeByMetadataName("ModernMediator.IRequest`1");
+
+            // Check for handler return type mismatch (MM004)
+            if (requestInterfaceSymbol != null)
+            {
+                foreach (var handler in handlers)
+                {
+                    var requestIface = handler.RequestType.AllInterfaces
+                        .FirstOrDefault(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, requestInterfaceSymbol));
+                    if (requestIface != null && handler.ResponseType != null)
+                    {
+                        var expectedResponseType = requestIface.TypeArguments[0];
+                        if (!SymbolEqualityComparer.Default.Equals(expectedResponseType, handler.ResponseType))
+                        {
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                DiagnosticDescriptors.HandlerReturnTypeMismatch,
+                                handler.HandlerType.Locations.FirstOrDefault(),
+                                handler.HandlerType.Name,
+                                GetFullTypeName(handler.ResponseType),
+                                GetFullTypeName(handler.RequestType),
+                                GetFullTypeName(expectedResponseType)));
+                        }
+                    }
+                }
+            }
+
             // Check for duplicate handlers
             var handlersByRequest = handlers
                 .GroupBy(h => GetFullTypeName(h.RequestType), StringComparer.Ordinal)
@@ -149,6 +193,28 @@ namespace ModernMediator.Generators
                     handlerNames));
             }
 
+            // Check for request types with no handler (MM002)
+            if (requestInterfaceSymbol != null)
+            {
+                var handledRequestTypeNames = new HashSet<string>(
+                    handlers.Select(h => GetFullTypeName(h.RequestType)));
+
+                var allRequestTypes = new List<INamedTypeSymbol>();
+                FindRequestTypesInNamespace(compilation.GlobalNamespace, requestInterfaceSymbol, allRequestTypes);
+
+                foreach (var requestType in allRequestTypes)
+                {
+                    var requestTypeName = GetFullTypeName(requestType);
+                    if (!handledRequestTypeNames.Contains(requestTypeName))
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            DiagnosticDescriptors.NoHandlerFound,
+                            requestType.Locations.FirstOrDefault(),
+                            requestTypeName));
+                    }
+                }
+            }
+
             // Generate registration code
             var source = GenerateSource(handlers, streamHandlers, behaviors, preProcessors, postProcessors);
             context.AddSource("ModernMediator.Generated.g.cs", SourceText.From(source, Encoding.UTF8));
@@ -156,6 +222,16 @@ namespace ModernMediator.Generators
             // Generate strongly-typed Send extensions
             var sendExtensions = GenerateSendExtensions(handlers, streamHandlers);
             context.AddSource("ModernMediator.SendExtensions.g.cs", SourceText.From(sendExtensions, Encoding.UTF8));
+
+            // Report successful generation (MM100)
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.GeneratorSuccess,
+                Location.None,
+                handlers.Count,
+                streamHandlers.Count,
+                behaviors.Count,
+                preProcessors.Count,
+                postProcessors.Count));
         }
 
         private static string GenerateSource(
@@ -396,6 +472,36 @@ namespace ModernMediator.Generators
         {
             return type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
                 .Replace("global::", "");
+        }
+
+        private static void FindRequestTypesInNamespace(INamespaceSymbol ns, INamedTypeSymbol requestInterface, List<INamedTypeSymbol> result)
+        {
+            foreach (var type in ns.GetTypeMembers())
+            {
+                FindRequestTypesInType(type, requestInterface, result);
+            }
+
+            foreach (var childNs in ns.GetNamespaceMembers())
+            {
+                FindRequestTypesInNamespace(childNs, requestInterface, result);
+            }
+        }
+
+        private static void FindRequestTypesInType(INamedTypeSymbol type, INamedTypeSymbol requestInterface, List<INamedTypeSymbol> result)
+        {
+            if (!type.IsAbstract &&
+                (type.TypeKind == TypeKind.Class || type.TypeKind == TypeKind.Struct) &&
+                type.Locations.Any(l => l.IsInSource) &&
+                type.AllInterfaces.Any(i =>
+                    SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, requestInterface)))
+            {
+                result.Add(type);
+            }
+
+            foreach (var nestedType in type.GetTypeMembers())
+            {
+                FindRequestTypesInType(nestedType, requestInterface, result);
+            }
         }
 
         private class HandlerInfo

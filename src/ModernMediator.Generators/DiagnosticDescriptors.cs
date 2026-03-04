@@ -31,6 +31,14 @@ namespace ModernMediator.Generators
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
+        public static readonly DiagnosticDescriptor HandlerReturnTypeMismatch = new(
+            id: "MM004",
+            title: "Handler return type mismatch",
+            messageFormat: "Handler '{0}' returns '{1}' but the request type '{2}' expects '{3}'",
+            category: "ModernMediator",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
         public static readonly DiagnosticDescriptor GeneratorSuccess = new(
             id: "MM100",
             title: "ModernMediator registration generated",
