@@ -459,6 +459,25 @@ namespace ModernMediator
         }
 
         /// <summary>
+        /// Adds the telemetry registration hook with optional configuration.
+        /// Registers <see cref="TelemetryOptions"/> as a singleton.
+        /// Actual instrumentation is always active via source-generated dispatch code and incurs
+        /// zero cost when no <see cref="System.Diagnostics.ActivityListener"/> or
+        /// <see cref="System.Diagnostics.Metrics.MeterListener"/> is subscribed.
+        /// </summary>
+        /// <param name="configure">Optional action to configure telemetry options. When <c>null</c>, default options are used.</param>
+        /// <returns>The configuration for chaining.</returns>
+        public MediatorConfiguration AddTelemetry(Action<TelemetryOptions>? configure = null)
+        {
+            var options = new TelemetryOptions();
+            configure?.Invoke(options);
+
+            Services.AddSingleton(options);
+
+            return this;
+        }
+
+        /// <summary>
         /// Register an open generic exception handler (applies to all requests for a specific exception type).
         /// </summary>
         /// <param name="openExceptionHandlerType">The open generic exception handler type.</param>

@@ -490,7 +490,26 @@ namespace ModernMediator.Generators
                 sb.AppendLine("            if (handler == null)");
                 sb.AppendLine($"                throw new InvalidOperationException(\"No handler registered for {handler.RequestType.Name}\");");
                 sb.AppendLine();
-                sb.AppendLine("            return await handler.Handle(request, cancellationToken);");
+                sb.AppendLine($"            var activity = global::ModernMediator.MediatorTelemetry.ActivitySource");
+                sb.AppendLine($"                .StartActivity(typeof({requestType}).Name);");
+                sb.AppendLine($"            var sw = global::System.Diagnostics.Stopwatch.StartNew();");
+                sb.AppendLine("            try");
+                sb.AppendLine("            {");
+                sb.AppendLine("                global::ModernMediator.MediatorTelemetry.RequestCounter.Add(1);");
+                sb.AppendLine("                var result = await handler.Handle(request, cancellationToken);");
+                sb.AppendLine("                return result;");
+                sb.AppendLine("            }");
+                sb.AppendLine("            catch (Exception ex)");
+                sb.AppendLine("            {");
+                sb.AppendLine("                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);");
+                sb.AppendLine("                throw;");
+                sb.AppendLine("            }");
+                sb.AppendLine("            finally");
+                sb.AppendLine("            {");
+                sb.AppendLine("                sw.Stop();");
+                sb.AppendLine("                global::ModernMediator.MediatorTelemetry.RequestDuration.Record(sw.Elapsed.TotalMilliseconds);");
+                sb.AppendLine("                activity?.Dispose();");
+                sb.AppendLine("            }");
                 sb.AppendLine("        }");
             }
 
