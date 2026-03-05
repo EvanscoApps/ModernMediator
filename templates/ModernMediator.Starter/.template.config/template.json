@@ -1,0 +1,14 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "Rob Evans",
+    "classifications": ["Web", "API", "Mediator", "CQRS"],
+    "identity": "ModernMediator.Starter",
+    "name": "ModernMediator Starter API",
+    "shortName": "modernmediator",
+    "tags": {
+        "language": "C#",
+        "type": "project"
+    },
+    "sourceName": "ModernMediator.Starter",
+    "preferNameDirectory": true
+}

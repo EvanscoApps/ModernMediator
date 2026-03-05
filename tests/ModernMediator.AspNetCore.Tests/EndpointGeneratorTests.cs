@@ -167,9 +167,96 @@ namespace TestApp
             Assert.Contains("MapPost", output);
         }
 
+        [Fact]
+        public void MultipleEndpoints_EachRegisteredExactlyOnce()
+        {
+            var source = @"
+using ModernMediator;
+using ModernMediator.AspNetCore;
+
+namespace TestApp
+{
+    [Endpoint(""/api/weather"", ""GET"")]
+    public record GetWeather : IRequest<string>;
+
+    [Endpoint(""/api/items"", ""POST"")]
+    public record CreateItem(string Name) : IRequest<string>;
+
+    [Endpoint(""/api/slow"", ""GET"")]
+    public record SlowQuery : IRequest<string>;
+}";
+
+            var (diagnostics, output) = RunGenerator(source);
+
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+
+            // Each route must appear exactly once
+            Assert.Equal(1, CountOccurrences(output, "MapGet(\"/api/weather\""));
+            Assert.Equal(1, CountOccurrences(output, "MapPost(\"/api/items\""));
+            Assert.Equal(1, CountOccurrences(output, "MapGet(\"/api/slow\""));
+
+            // Each request type must appear exactly once in a Map* call
+            Assert.Equal(1, CountOccurrences(output, "GetWeather"));
+            Assert.Equal(1, CountOccurrences(output, "CreateItem"));
+            Assert.Equal(1, CountOccurrences(output, "SlowQuery"));
+        }
+
+        [Fact]
+        public void MultipleEndpoints_SeparateFiles_EachRegisteredExactlyOnce()
+        {
+            var file1 = @"
+using ModernMediator;
+using ModernMediator.AspNetCore;
+
+namespace TestApp
+{
+    [Endpoint(""/api/weather"", ""GET"")]
+    public record GetWeather : IRequest<string>;
+}";
+            var file2 = @"
+using ModernMediator;
+using ModernMediator.AspNetCore;
+
+namespace TestApp
+{
+    [Endpoint(""/api/items"", ""POST"")]
+    public record CreateItem(string Name) : IRequest<string>;
+}";
+            var file3 = @"
+using ModernMediator;
+using ModernMediator.AspNetCore;
+
+namespace TestApp
+{
+    [Endpoint(""/api/slow"", ""GET"")]
+    public record SlowQuery : IRequest<string>;
+}";
+
+            var (diagnostics, output) = RunGenerator(file1, file2, file3);
+
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+            Assert.Equal(1, CountOccurrences(output, "MapGet(\"/api/weather\""));
+            Assert.Equal(1, CountOccurrences(output, "MapPost(\"/api/items\""));
+            Assert.Equal(1, CountOccurrences(output, "MapGet(\"/api/slow\""));
+        }
+
+        private static int CountOccurrences(string text, string search)
+        {
+            int count = 0, index = 0;
+            while ((index = text.IndexOf(search, index, StringComparison.Ordinal)) != -1)
+            {
+                count++;
+                index += search.Length;
+            }
+            return count;
+        }
+
         #region Test Infrastructure
 
         private static (ImmutableArray<Diagnostic> Diagnostics, string Output) RunGenerator(string source)
+            => RunGenerator(new[] { source });
+
+        private static (ImmutableArray<Diagnostic> Diagnostics, string Output) RunGenerator(params string[] sources)
         {
             var references = new[]
             {
@@ -208,11 +295,8 @@ namespace ModernMediator.AspNetCore
     }
 }";
 
-            var syntaxTrees = new[]
-            {
-                CSharpSyntaxTree.ParseText(stubs),
-                CSharpSyntaxTree.ParseText(source)
-            };
+            var syntaxTrees = new List<SyntaxTree> { CSharpSyntaxTree.ParseText(stubs) };
+            syntaxTrees.AddRange(sources.Select(s => CSharpSyntaxTree.ParseText(s)));
 
             var compilation = CSharpCompilation.Create(
                 "TestAssembly",

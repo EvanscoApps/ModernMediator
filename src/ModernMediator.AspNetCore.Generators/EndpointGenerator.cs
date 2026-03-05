@@ -71,6 +71,7 @@ namespace ModernMediator.AspNetCore.Generators
                 return;
 
             var endpoints = new List<EndpointInfo>();
+            var seenRequestTypes = new HashSet<string>();
 
             var distinctClasses = classes
                 .Where(c => c is not null)
@@ -114,6 +115,12 @@ namespace ModernMediator.AspNetCore.Generators
                     continue;
 
                 var responseType = requestIface.TypeArguments[0];
+
+                // Deduplicate by fully-qualified request type name to guard against
+                // incremental pipeline producing duplicate symbols across semantic models.
+                var requestTypeName = GetFullTypeName(classSymbol);
+                if (!seenRequestTypes.Add(requestTypeName))
+                    continue;
 
                 endpoints.Add(new EndpointInfo
                 {
