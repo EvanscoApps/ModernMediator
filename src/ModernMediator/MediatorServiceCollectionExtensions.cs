@@ -459,6 +459,23 @@ namespace ModernMediator
         }
 
         /// <summary>
+        /// Adds the timeout enforcement pipeline behavior.
+        /// Registers <see cref="TimeoutBehavior{TRequest, TResponse}"/> as an open generic
+        /// pipeline behavior. Handlers opt in to timeout enforcement by decorating their
+        /// request type with <see cref="TimeoutAttribute"/>.
+        /// </summary>
+        /// <returns>The configuration for chaining.</returns>
+        public MediatorConfiguration AddTimeout()
+        {
+            Services.Add(new ServiceDescriptor(
+                typeof(IPipelineBehavior<,>),
+                typeof(TimeoutBehavior<,>),
+                BehaviorLifetime));
+
+            return this;
+        }
+
+        /// <summary>
         /// Adds the telemetry registration hook with optional configuration.
         /// Registers <see cref="TelemetryOptions"/> as a singleton.
         /// Actual instrumentation is always active via source-generated dispatch code and incurs
