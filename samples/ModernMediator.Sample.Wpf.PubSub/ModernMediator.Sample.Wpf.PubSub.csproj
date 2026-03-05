@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<UseWPF>true</UseWPF>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+	<!-- Demote App.xaml from ApplicationDefinition to Page so the WPF build
+	     tools do not auto-generate a Main() entry point that triggers the
+	     ModernMediator namespace / class name conflict (CS0426).
+	     A custom Main() with global:: prefix lives in Program.cs instead. -->
+	<ItemGroup>
+		<ApplicationDefinition Remove="App.xaml" />
+		<Page Include="App.xaml" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\ModernMediator\ModernMediator.csproj" />
+		<ProjectReference Include="..\ModernMediator.Sample.Console.Domain\ModernMediator.Sample.Console.Domain.csproj" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+	</ItemGroup>
+</Project>

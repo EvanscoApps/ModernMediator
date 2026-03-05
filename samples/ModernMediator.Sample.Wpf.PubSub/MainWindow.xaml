@@ -1,0 +1,122 @@
+<Window x:Class="ModernMediator.Sample.Wpf.PubSub.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ModernMediator WPF Sample — Pub/Sub with Callbacks"
+        Height="550" Width="900"
+        WindowStartupLocation="CenterScreen">
+
+    <!--
+        Architecture: Two completely decoupled ViewModels communicate exclusively
+        through mediator notifications. Neither ViewModel holds a reference to the other.
+
+        Left panel  → ShelterViewModel (publisher): creates an AnimalAdoptedNotification
+                       with an OnAdoptionConfirmed callback delegate.
+        Right panel → AdoptionFeedViewModel (handler): receives the notification,
+                       generates an AdoptionReceipt, and invokes the callback.
+
+        The callback lets the publisher (ShelterViewModel) react to the handler's
+        completion without knowing anything about who handled the notification.
+    -->
+
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ══════════════════════════════════════════════════════════
+             LEFT PANEL — ShelterViewModel (Publisher)
+             Bound to MainViewModel.Shelter
+             ══════════════════════════════════════════════════════════ -->
+        <DockPanel Grid.Column="0" DataContext="{Binding Shelter}">
+
+            <TextBlock DockPanel.Dock="Top" Text="Animal Shelter — Available for Adoption"
+                       FontSize="16" FontWeight="Bold" Margin="0,0,0,8" />
+
+            <!-- Adopter name input -->
+            <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+
+                <!-- Confirmation message — updated via the OnAdoptionConfirmed callback.
+                     The handler invokes the delegate, which dispatches this update
+                     to the UI thread. Green highlight draws attention to the receipt. -->
+                <TextBlock Text="{Binding ConfirmationMessage}" Margin="0,0,0,8"
+                           FontWeight="SemiBold" Foreground="Green"
+                           TextWrapping="Wrap" />
+
+                <TextBlock Text="Your Name:" Margin="0,0,0,4" />
+                <DockPanel Margin="0,0,0,4">
+                    <!-- Adopt button — disabled if no animal selected or name empty -->
+                    <Button DockPanel.Dock="Right" Content="Adopt Selected Animal"
+                            Width="160" Margin="8,0,0,0"
+                            Command="{Binding AdoptCommand}" />
+                    <TextBox Text="{Binding AdopterName, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalContentAlignment="Center" Padding="4,2" />
+                </DockPanel>
+            </StackPanel>
+
+            <!-- Available animals list with selection binding -->
+            <ListBox ItemsSource="{Binding AvailableAnimals}"
+                     SelectedItem="{Binding SelectedAnimal}"
+                     HorizontalContentAlignment="Stretch"
+                     Margin="0,0,0,0">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="60" />
+                                <ColumnDefinition Width="40" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="1" Text="{Binding Type}" />
+                            <TextBlock Grid.Column="2" Text="{Binding AgeYears, StringFormat={}{0}y}" />
+                            <TextBlock Grid.Column="3" Text="{Binding Details}" Foreground="Gray" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+
+        <!-- Vertical separator -->
+        <Border Grid.Column="1" Width="1" Background="LightGray" />
+
+        <!-- ══════════════════════════════════════════════════════════
+             RIGHT PANEL — AdoptionFeedViewModel (Handler)
+             Bound to MainViewModel.AdoptionFeed.
+             This ViewModel implements INotificationHandler<AnimalAdoptedNotification>
+             and receives notifications WITHOUT any reference to ShelterViewModel.
+             ══════════════════════════════════════════════════════════ -->
+        <DockPanel Grid.Column="2" DataContext="{Binding AdoptionFeed}">
+
+            <TextBlock DockPanel.Dock="Top" Text="Adoption Feed"
+                       FontSize="16" FontWeight="Bold" Margin="0,0,0,8" />
+
+            <!-- Total adoptions counter -->
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                <TextBlock>
+                    <Run Text="Total adoptions: " />
+                    <Run Text="{Binding TotalAdoptions, Mode=OneWay}" FontWeight="Bold" />
+                </TextBlock>
+            </StackPanel>
+
+            <!-- Last adoption highlight -->
+            <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8"
+                       FontStyle="Italic" Foreground="DarkSlateGray">
+                <Run Text="Last: " />
+                <Run Text="{Binding LastAdoption, Mode=OneWay}" />
+            </TextBlock>
+
+            <!-- Scrolling feed of adoption entries (newest first) -->
+            <ListBox ItemsSource="{Binding AdoptionFeed}"
+                     HorizontalContentAlignment="Stretch">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" Margin="4,2" TextWrapping="Wrap" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+    </Grid>
+</Window>
