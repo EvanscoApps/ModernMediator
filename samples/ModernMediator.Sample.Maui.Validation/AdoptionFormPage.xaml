@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:ModernMediator.Sample.Maui.Validation"
+             x:Class="ModernMediator.Sample.Maui.Validation.AdoptionFormPage"
+             Title="ModernMediator — FluentValidation">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <local:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+    <ScrollView Padding="16">
+        <VerticalStackLayout Spacing="12">
+            <Label Text="Animal Adoption Form"
+                   FontSize="24" FontAttributes="Bold"
+                   HorizontalOptions="Center" />
+            <Label Text="Validation errors are caught from ModernValidationException — no direct validator calls in the ViewModel."
+                   FontSize="12" TextColor="Gray"
+                   HorizontalOptions="Center" />
+            <!-- ── Animal Name ── -->
+            <Label Text="Animal Name" FontAttributes="Bold" />
+            <Entry Placeholder="e.g. Rex"
+                   Text="{Binding AnimalName}" />
+            <Label Text="{Binding AnimalNameError}"
+                   TextColor="Red" FontSize="12"
+                   IsVisible="{Binding AnimalNameError, Converter={StaticResource StringNotEmptyConverter}}" />
+            <!-- ── Species ── -->
+            <Label Text="Species (Dog, Cat, or Eagle)" FontAttributes="Bold" />
+            <Entry Placeholder="e.g. Dog"
+                   Text="{Binding Species}" />
+            <Label Text="{Binding SpeciesError}"
+                   TextColor="Red" FontSize="12"
+                   IsVisible="{Binding SpeciesError, Converter={StaticResource StringNotEmptyConverter}}" />
+            <!-- ── Age ── -->
+            <Label Text="Age (Years)" FontAttributes="Bold" />
+            <Entry Placeholder="e.g. 5"
+                   Text="{Binding AgeYears}"
+                   Keyboard="Numeric" />
+            <Label Text="{Binding AgeYearsError}"
+                   TextColor="Red" FontSize="12"
+                   IsVisible="{Binding AgeYearsError, Converter={StaticResource StringNotEmptyConverter}}" />
+            <!-- ── Adopter Name ── -->
+            <Label Text="Your Name" FontAttributes="Bold" />
+            <Entry Placeholder="e.g. Alice"
+                   Text="{Binding AdopterName}" />
+            <Label Text="{Binding AdopterNameError}"
+                   TextColor="Red" FontSize="12"
+                   IsVisible="{Binding AdopterNameError, Converter={StaticResource StringNotEmptyConverter}}" />
+            <!-- ── Adopter Email ── -->
+            <Label Text="Your Email" FontAttributes="Bold" />
+            <Entry Placeholder="e.g. alice@example.com"
+                   Text="{Binding AdopterEmail}"
+                   Keyboard="Email" />
+            <Label Text="{Binding AdopterEmailError}"
+                   TextColor="Red" FontSize="12"
+                   IsVisible="{Binding AdopterEmailError, Converter={StaticResource StringNotEmptyConverter}}" />
+            <!-- ── Activity indicator ── -->
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               HorizontalOptions="Center" />
+            <!-- ── Submit button ── -->
+            <Button Text="Submit Adoption"
+                    Command="{Binding SubmitCommand}"
+                    HorizontalOptions="Center"
+                    Margin="0,8" />
+            <!-- ── Success message — shown when submission succeeds ── -->
+            <Label Text="{Binding SuccessMessage}"
+                   TextColor="Green" FontSize="16" FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   IsVisible="{Binding SuccessMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

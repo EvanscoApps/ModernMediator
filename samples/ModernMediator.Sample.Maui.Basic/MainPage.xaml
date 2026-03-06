@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ModernMediator.Sample.Maui.Basic.MainPage"
+             Title="ModernMediator MAUI Sample">
+    <ScrollView Padding="16">
+        <VerticalStackLayout Spacing="12">
+
+            <!-- ── Title ── -->
+            <Label Text="ModernMediator MAUI Sample"
+                   FontSize="24" FontAttributes="Bold"
+                   HorizontalOptions="Center" />
+
+            <!-- ── Activity indicator — bound to IsBusy ── -->
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               HorizontalOptions="Center" />
+
+            <!-- ── Search panel — dispatches FindAnimalByNameQuery ── -->
+            <Frame Padding="12" HasShadow="False" BorderColor="LightGray">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Search by Name" FontAttributes="Bold" />
+                    <HorizontalStackLayout Spacing="8">
+                        <!-- Entry bound to SearchName -->
+                        <Entry Placeholder="Enter animal name..."
+                               Text="{Binding SearchName}"
+                               HorizontalOptions="FillAndExpand"
+                               WidthRequest="200" />
+                        <!-- Button dispatches FindAnimalByNameQuery -->
+                        <Button Text="Search"
+                                Command="{Binding SearchCommand}" />
+                    </HorizontalStackLayout>
+                    <!-- Result<Animal> outcome: success or "not found" -->
+                    <Label Text="{Binding SearchResult}"
+                           FontAttributes="Italic"
+                           TextColor="DarkSlateGray" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- ── Reload button — re-dispatches GetAnimalsQuery ── -->
+            <Button Text="Reload Animals"
+                    Command="{Binding LoadCommand}"
+                    HorizontalOptions="Start" />
+
+            <!-- ── Animal list — bound to ObservableCollection<AnimalDisplayModel> ── -->
+            <CollectionView ItemsSource="{Binding Animals}"
+                            SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <!-- Each item shows Name, Type, Age, and type-specific Details -->
+                        <Grid Padding="8,4" ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="60" />
+                                <ColumnDefinition Width="40" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Column="0" Text="{Binding Name}" FontAttributes="Bold" />
+                            <Label Grid.Column="1" Text="{Binding Type}" />
+                            <Label Grid.Column="2" Text="{Binding AgeYears, StringFormat='{0}y'}" />
+                            <Label Grid.Column="3" Text="{Binding Details}" TextColor="Gray" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
