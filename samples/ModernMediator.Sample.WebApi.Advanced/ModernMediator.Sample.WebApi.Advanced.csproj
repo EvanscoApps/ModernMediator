@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ModernMediator\ModernMediator.csproj" />
+    <ProjectReference Include="..\..\src\ModernMediator.AspNetCore\ModernMediator.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\ModernMediator.AspNetCore.Generators\ModernMediator.AspNetCore.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\src\ModernMediator.FluentValidation\ModernMediator.FluentValidation.csproj" />
+    <ProjectReference Include="..\ModernMediator.Sample.Console.Domain\ModernMediator.Sample.Console.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
