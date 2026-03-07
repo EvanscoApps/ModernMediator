@@ -1,0 +1,118 @@
+@page "/animals"
+@inject IMediator Mediator
+
+<PageTitle>Animals</PageTitle>
+
+<h1>Animals</h1>
+
+@if (_isBusy)
+{
+    <div class="d-flex align-items-center mb-3">
+        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+        <span>Loading...</span>
+    </div>
+}
+else
+{
+    @* ── Stats panel ── *@
+    @if (_stats is not null)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Animal Stats</h5>
+                <span class="badge bg-primary me-2">Total: @_stats.TotalCount</span>
+                <span class="badge bg-success me-2">Mammals: @_stats.MammalCount</span>
+                <span class="badge bg-info">Birds: @_stats.BirdCount</span>
+            </div>
+        </div>
+    }
+
+    @* ── Animals table ── *@
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Age</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var animal in _animals)
+            {
+                <tr>
+                    <td>@animal.Name</td>
+                    <td>@GetAnimalType(animal)</td>
+                    <td>@animal.AgeYears</td>
+                    <td>@GetAnimalDetails(animal)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @* ── Search ── *@
+    <div class="input-group mb-3" style="max-width: 400px;">
+        <input @bind="_searchName" @bind:event="oninput" class="form-control" placeholder="Search by name..." />
+        <button class="btn btn-primary" @onclick="Search">Search</button>
+    </div>
+
+    @if (_searchResult is not null)
+    {
+        <div class="alert alert-success">
+            Found: <strong>@_searchResult.Name</strong> (@GetAnimalType(_searchResult)) —
+            @GetAnimalDetails(_searchResult)
+        </div>
+    }
+    else if (_searchError is not null)
+    {
+        <div class="alert alert-danger">@_searchError</div>
+    }
+}
+
+@code {
+    private Animal[] _animals = [];
+    private AnimalStats? _stats;
+    private string _searchName = "";
+    private Animal? _searchResult;
+    private string? _searchError;
+    private bool _isBusy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isBusy = true;
+        _animals = await Mediator.Send(new GetAnimalsQuery());
+        _stats = await Mediator.Send(new GetAnimalStatsQuery());
+        _isBusy = false;
+    }
+
+    private async Task Search()
+    {
+        _searchResult = null;
+        _searchError = null;
+
+        if (string.IsNullOrWhiteSpace(_searchName))
+            return;
+
+        var result = await Mediator.Send(new FindAnimalByNameQuery(_searchName));
+        if (result.IsSuccess)
+            _searchResult = result.Value;
+        else
+            _searchError = result.Error.Message;
+    }
+
+    private static string GetAnimalType(Animal animal) => animal switch
+    {
+        Dog => "Dog",
+        Cat => "Cat",
+        Eagle => "Eagle",
+        _ => animal.GetType().Name
+    };
+
+    private static string GetAnimalDetails(Animal animal) => animal switch
+    {
+        Dog d => $"Breed: {d.Breed}",
+        Cat c => $"Indoor: {c.IsIndoor}",
+        Eagle e => $"Wingspan: {e.WingspanMeters}m",
+        _ => ""
+    };
+}

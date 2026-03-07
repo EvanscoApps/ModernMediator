@@ -1,0 +1,25 @@
+@page "/"
+
+<PageTitle>ModernMediator — Blazor WASM</PageTitle>
+
+<h1>ModernMediator Blazor WebAssembly Sample</h1>
+
+<p>
+    This sample demonstrates <strong>ModernMediator</strong> running entirely client-side in the
+    browser via Blazor WebAssembly. Queries are dispatched from <code>@@code</code> blocks with
+    zero server roundtrips — all mediator pipeline processing happens in the browser.
+</p>
+
+<div class="alert alert-success">
+    <strong>AOT Compatible:</strong> ModernMediator uses compile-time
+    source generation with zero runtime reflection in dispatch code.
+    To publish with AOT enabled, add
+    &lt;RunAOTCompilation&gt;true&lt;/RunAOTCompilation&gt;
+    to the .csproj and run <code>dotnet publish -c Release</code>.
+</div>
+
+<div class="alert alert-primary">
+    <strong>What to try:</strong> Navigate to the
+    <a href="/animals">Animals</a> page to see mediator dispatch in action.
+    Open browser developer tools (F12) to see <code>LoggingBehavior</code> output in the console.
+</div>
