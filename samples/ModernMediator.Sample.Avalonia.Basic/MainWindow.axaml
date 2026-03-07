@@ -1,0 +1,52 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ModernMediator.Sample.Avalonia.Basic.MainWindow"
+        Title="ModernMediator Avalonia Sample — Cross-Platform MVVM"
+        Width="700" Height="500">
+    <DockPanel Margin="12">
+
+        <!-- ── Busy indicator ── bound to IsBusy -->
+        <TextBlock DockPanel.Dock="Top"
+                   Text="Loading..."
+                   IsVisible="{Binding IsBusy}"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,8" />
+
+        <!-- ── Search panel ── dispatches FindAnimalByNameQuery via mediator -->
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <TextBlock Text="Search by Name" FontWeight="Bold" Margin="0,0,0,4" />
+            <DockPanel>
+                <!-- Search button dispatches FindAnimalByNameQuery command -->
+                <Button DockPanel.Dock="Right" Content="Search" Width="80" Margin="8,0,0,0"
+                        Command="{Binding SearchCommand}" />
+                <!-- TextBox bound to SearchName -->
+                <TextBox Text="{Binding SearchName}" Watermark="Enter animal name..."
+                         VerticalContentAlignment="Center" />
+            </DockPanel>
+            <!-- Result<Animal> outcome: success details or "not found" message -->
+            <TextBlock Text="{Binding SearchResult}" Margin="0,4,0,0"
+                       FontStyle="Italic" Foreground="Gray" />
+        </StackPanel>
+
+        <!-- ── Reload button ── re-dispatches GetAnimalsQuery -->
+        <Button DockPanel.Dock="Top" Content="Reload Animals" HorizontalAlignment="Left"
+                Margin="0,0,0,8" Padding="12,4"
+                Command="{Binding LoadCommand}" />
+
+        <!-- ── Animal list ── bound to ObservableCollection<AnimalDisplayModel> -->
+        <ItemsControl ItemsSource="{Binding Animals}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <!-- Each item shows Name, Type, Age, and type-specific Details -->
+                    <Grid Margin="4" ColumnDefinitions="120,80,60,*">
+                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="Bold" />
+                        <TextBlock Grid.Column="1" Text="{Binding Type}" />
+                        <TextBlock Grid.Column="2" Text="{Binding AgeYears, StringFormat={}{0}y}" />
+                        <TextBlock Grid.Column="3" Text="{Binding Details}" Foreground="Gray" />
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+    </DockPanel>
+</Window>

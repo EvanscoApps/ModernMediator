@@ -60,6 +60,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernMediator.Sample.Maui.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernMediator.Sample.Maui.Validation", "samples\ModernMediator.Sample.Maui.Validation\ModernMediator.Sample.Maui.Validation.csproj", "{6E5ABCE9-37FE-4DA9-ABBA-CB71598FF393}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "avalonia", "avalonia", "{0E4E755E-D61A-24A5-D77D-E01B89687F1A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernMediator.Sample.Avalonia.Basic", "samples\ModernMediator.Sample.Avalonia.Basic\ModernMediator.Sample.Avalonia.Basic.csproj", "{79F09396-8B37-46B5-B980-2BEE30AB51F6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernMediator.Sample.Avalonia.PubSub", "samples\ModernMediator.Sample.Avalonia.PubSub\ModernMediator.Sample.Avalonia.PubSub.csproj", "{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -274,6 +280,30 @@ Global
 		{6E5ABCE9-37FE-4DA9-ABBA-CB71598FF393}.Release|x64.Build.0 = Release|Any CPU
 		{6E5ABCE9-37FE-4DA9-ABBA-CB71598FF393}.Release|x86.ActiveCfg = Release|Any CPU
 		{6E5ABCE9-37FE-4DA9-ABBA-CB71598FF393}.Release|x86.Build.0 = Release|Any CPU
+		{79F09396-8B37-46B5-B980-2BEE30AB51F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79F09396-8B37-46B5-B980-2BEE30AB51F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79F09396-8B37-46B5-B980-2BEE30AB51F6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{79F09396-8B37-46B5-B980-2BEE30AB51F6}.Debug|x64.Build.0 = Debug|Any CPU
+		{79F09396-8B37-46B5-B980-2BEE30AB51F6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{79F09396-8B37-46B5-B980-2BEE30AB51F6}.Debug|x86.Build.0 = Debug|Any CPU
+		{79F09396-8B37-46B5-B980-2BEE30AB51F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79F09396-8B37-46B5-B980-2BEE30AB51F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79F09396-8B37-46B5-B980-2BEE30AB51F6}.Release|x64.ActiveCfg = Release|Any CPU
+		{79F09396-8B37-46B5-B980-2BEE30AB51F6}.Release|x64.Build.0 = Release|Any CPU
+		{79F09396-8B37-46B5-B980-2BEE30AB51F6}.Release|x86.ActiveCfg = Release|Any CPU
+		{79F09396-8B37-46B5-B980-2BEE30AB51F6}.Release|x86.Build.0 = Release|Any CPU
+		{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0}.Debug|x64.Build.0 = Debug|Any CPU
+		{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0}.Debug|x86.Build.0 = Debug|Any CPU
+		{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0}.Release|x64.ActiveCfg = Release|Any CPU
+		{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0}.Release|x64.Build.0 = Release|Any CPU
+		{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0}.Release|x86.ActiveCfg = Release|Any CPU
+		{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -300,6 +330,9 @@ Global
 		{58EB3DF4-0557-5B68-6678-979937131596} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{98D2165C-E1B8-4B55-8440-38E3F908E065} = {58EB3DF4-0557-5B68-6678-979937131596}
 		{6E5ABCE9-37FE-4DA9-ABBA-CB71598FF393} = {58EB3DF4-0557-5B68-6678-979937131596}
+		{0E4E755E-D61A-24A5-D77D-E01B89687F1A} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
+		{79F09396-8B37-46B5-B980-2BEE30AB51F6} = {0E4E755E-D61A-24A5-D77D-E01B89687F1A}
+		{9AC2B679-1BB4-4B3A-AE1F-EA4D6303BAD0} = {0E4E755E-D61A-24A5-D77D-E01B89687F1A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {61AEFCCA-3FFA-456E-A546-B3306CEE2CE2}

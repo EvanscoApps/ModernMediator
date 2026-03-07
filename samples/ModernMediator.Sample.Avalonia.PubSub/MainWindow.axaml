@@ -1,0 +1,107 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ModernMediator.Sample.Avalonia.PubSub.MainWindow"
+        Title="ModernMediator Avalonia Sample — Pub/Sub with Callbacks"
+        Width="900" Height="550">
+
+    <!--
+        Architecture: Two completely decoupled ViewModels communicate exclusively
+        through mediator notifications. Neither ViewModel holds a reference to the other.
+
+        Left panel  → ShelterViewModel (publisher): creates an AnimalAdoptedNotification
+                       with an OnAdoptionConfirmed callback delegate.
+        Right panel → AdoptionFeedViewModel (handler): receives the notification,
+                       generates an AdoptionReceipt, and invokes the callback.
+
+        The callback lets the publisher (ShelterViewModel) react to the handler's
+        completion without knowing anything about who handled the notification.
+    -->
+
+    <Grid Margin="12" ColumnDefinitions="*,12,*">
+
+        <!-- ══════════════════════════════════════════════════════════
+             LEFT PANEL — ShelterViewModel (Publisher)
+             Bound to MainViewModel.Shelter
+             ══════════════════════════════════════════════════════════ -->
+        <DockPanel Grid.Column="0" DataContext="{Binding Shelter}">
+
+            <TextBlock DockPanel.Dock="Top" Text="Animal Shelter — Available for Adoption"
+                       FontSize="18" FontWeight="Bold" Margin="0,0,0,8" />
+
+            <!-- Adopter name + adopt button + confirmation at bottom -->
+            <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+
+                <!-- Confirmation message — updated via the OnAdoptionConfirmed callback.
+                     The handler invokes the delegate, which dispatches this update
+                     to the UI thread. Green highlight draws attention to the receipt. -->
+                <TextBlock Text="{Binding ConfirmationMessage}" Margin="0,0,0,8"
+                           FontWeight="Bold" Foreground="Green"
+                           TextWrapping="Wrap" />
+
+                <TextBlock Text="Your Name:" Margin="0,0,0,4" />
+                <DockPanel Margin="0,0,0,4">
+                    <!-- Adopt button — disabled if no animal selected or name empty -->
+                    <Button DockPanel.Dock="Right" Content="Adopt Selected Animal"
+                            Width="170" Margin="8,0,0,0"
+                            Command="{Binding AdoptCommand}" />
+                    <TextBox Text="{Binding AdopterName}" Watermark="Enter your name..."
+                             VerticalContentAlignment="Center" />
+                </DockPanel>
+            </StackPanel>
+
+            <!-- Available animals list with selection binding -->
+            <ListBox ItemsSource="{Binding AvailableAnimals}"
+                     SelectedItem="{Binding SelectedAnimal}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="4" ColumnDefinitions="100,60,40,*">
+                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="Bold" />
+                            <TextBlock Grid.Column="1" Text="{Binding Type}" />
+                            <TextBlock Grid.Column="2" Text="{Binding AgeYears, StringFormat={}{0}y}" />
+                            <TextBlock Grid.Column="3" Text="{Binding Details}" Foreground="Gray" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+
+        <!-- Vertical separator -->
+        <Border Grid.Column="1" Width="1" Background="LightGray" />
+
+        <!-- ══════════════════════════════════════════════════════════
+             RIGHT PANEL — AdoptionFeedViewModel (Handler)
+             Bound to MainViewModel.AdoptionFeed.
+             This ViewModel implements INotificationHandler<AnimalAdoptedNotification>
+             and receives notifications WITHOUT any reference to ShelterViewModel.
+             ══════════════════════════════════════════════════════════ -->
+        <DockPanel Grid.Column="2" DataContext="{Binding AdoptionFeed}">
+
+            <TextBlock DockPanel.Dock="Top" Text="Adoption Feed"
+                       FontSize="18" FontWeight="Bold" Margin="0,0,0,8" />
+
+            <!-- Total adoptions counter -->
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                <TextBlock>
+                    <Run Text="Total adoptions: " />
+                    <Run Text="{Binding TotalAdoptions}" FontWeight="Bold" />
+                </TextBlock>
+            </StackPanel>
+
+            <!-- Last adoption highlight -->
+            <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8"
+                       FontStyle="Italic" Foreground="Gray">
+                <Run Text="Last: " />
+                <Run Text="{Binding LastAdoption}" />
+            </TextBlock>
+
+            <!-- Scrolling feed of adoption entries (newest first) -->
+            <ListBox ItemsSource="{Binding AdoptionFeed}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" Margin="4,2" TextWrapping="Wrap" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+    </Grid>
+</Window>
