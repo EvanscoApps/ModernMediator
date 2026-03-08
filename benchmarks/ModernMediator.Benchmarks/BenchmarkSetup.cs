@@ -34,13 +34,21 @@ public class MmNotificationHandler3 : INotificationHandler<MmPingNotification>
         => Task.CompletedTask;
 }
 
+// ── ModernMediator ValueTask handler ─────────────────────────
+
+public class MmPingValueTaskHandler : IValueTaskRequestHandler<MmPingRequest, MmPongResponse>
+{
+    public ValueTask<MmPongResponse> Handle(MmPingRequest request, CancellationToken ct = default)
+        => new(new MmPongResponse(request.Message));
+}
+
 // ── ModernMediator pipeline behavior ─────────────────────────
 
 public class MmLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next,
-        CancellationToken ct) => next();
+    public Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TRequest, TResponse> next,
+        CancellationToken ct) => next(request, ct);
 }
 
 // ── MediatR request/response types ───────────────────────────

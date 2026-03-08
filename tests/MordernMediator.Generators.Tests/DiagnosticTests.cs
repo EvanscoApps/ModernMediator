@@ -582,9 +582,9 @@ namespace TestApp
     public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
         where TRequest : IRequest<TResponse>
     {
-        public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TRequest, TResponse> next, CancellationToken cancellationToken)
         {
-            return await next();
+            return await next(request, cancellationToken);
         }
     }
 }";
@@ -615,9 +615,9 @@ namespace TestApp
 
     public class TestBehavior : IPipelineBehavior<TestRequest, string>
     {
-        public async Task<string> Handle(TestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        public async Task<string> Handle(TestRequest request, RequestHandlerDelegate<TestRequest, string> next, CancellationToken cancellationToken)
         {
-            return await next();
+            return await next(request, cancellationToken);
         }
     }
 }";
@@ -640,7 +640,7 @@ namespace TestApp
     public abstract class AbstractLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
         where TRequest : IRequest<TResponse>
     {
-        public abstract Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken);
+        public abstract Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TRequest, TResponse> next, CancellationToken cancellationToken);
     }
 }";
 
@@ -832,11 +832,11 @@ namespace ModernMediator
         IAsyncEnumerable<TResponse> Handle(TRequest request, CancellationToken cancellationToken = default);
     }
 
-    public delegate Task<TResponse> RequestHandlerDelegate<TResponse>();
+    public delegate Task<TResponse> RequestHandlerDelegate<TRequest, TResponse>(TRequest request, CancellationToken cancellationToken);
 
     public interface IPipelineBehavior<TRequest, TResponse> where TRequest : IRequest<TResponse>
     {
-        Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken);
+        Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TRequest, TResponse> next, CancellationToken cancellationToken);
     }
 
     public interface IRequestPreProcessor<in TRequest>

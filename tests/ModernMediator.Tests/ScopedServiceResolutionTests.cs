@@ -337,10 +337,10 @@ public class ScopedBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, T
         _dependency = dependency;
     }
 
-    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TRequest, TResponse> next, CancellationToken cancellationToken)
     {
         LastInstanceId = _dependency.InstanceId;
-        return await next();
+        return await next(request, cancellationToken);
     }
 }
 

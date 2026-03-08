@@ -11,7 +11,7 @@ namespace ModernMediator
     /// <see cref="TimeoutAttribute"/>. When <typeparamref name="TRequest"/> is decorated
     /// with <c>[Timeout(ms)]</c>, the behavior creates a linked
     /// <see cref="CancellationTokenSource"/> that cancels after the specified duration.
-    /// If no <see cref="TimeoutAttribute"/> is present, the behavior delegates to <c>next()</c>
+    /// If no <see cref="TimeoutAttribute"/> is present, the behavior delegates to <c>next(request, ct)</c>
     /// with zero overhead.
     /// </summary>
     /// <typeparam name="TRequest">The request type.</typeparam>
@@ -36,7 +36,7 @@ namespace ModernMediator
         }
 
         /// <inheritdoc />
-        public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TRequest, TResponse> next, CancellationToken cancellationToken)
         {
             var timeoutMs = TimeoutCache.GetOrAdd(typeof(TRequest), static type =>
             {
@@ -45,11 +45,11 @@ namespace ModernMediator
             });
 
             if (timeoutMs == null)
-                return await next();
+                return await next(request, cancellationToken);
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(timeoutMs.Value);
-            return await next().WaitAsync(cts.Token);
+            return await next(request, cts.Token).WaitAsync(cts.Token);
         }
     }
 }

@@ -36,12 +36,12 @@ namespace ModernMediator.Tests
     {
         private readonly FakeLogger<LoggingBehavior<LogTestRequest, LogTestResponse>> _logger = new();
         private readonly LogTestRequest _request = new("Alice", 30);
-        private readonly RequestHandlerDelegate<LogTestResponse> _next;
+        private readonly RequestHandlerDelegate<LogTestRequest, LogTestResponse> _next;
         private readonly LogTestResponse _expectedResponse = new("Hello Alice");
 
         public LoggingBehaviorTests()
         {
-            _next = () => Task.FromResult(_expectedResponse);
+            _next = (req, ct) => Task.FromResult(_expectedResponse);
         }
 
         [Fact]
@@ -88,7 +88,7 @@ namespace ModernMediator.Tests
             var options = new LoggingOptions { ErrorLogLevel = LogLevel.Critical };
             var behavior = new LoggingBehavior<LogTestRequest, LogTestResponse>(_logger, options);
             var expectedException = new InvalidOperationException("Handler failed");
-            RequestHandlerDelegate<LogTestResponse> failingNext = () => throw expectedException;
+            RequestHandlerDelegate<LogTestRequest, LogTestResponse> failingNext = (req, ct) => throw expectedException;
 
             // Act & Assert
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(

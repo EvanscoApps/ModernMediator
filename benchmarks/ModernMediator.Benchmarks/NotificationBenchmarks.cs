@@ -8,6 +8,7 @@ public class NotificationBenchmarks
 {
     private IMediator _modernMediator = null!;
     private MediatR.IMediator _mediatR = null!;
+    private global::Mediator.IMediator _sgMediator = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -35,6 +36,12 @@ public class NotificationBenchmarks
             cfg.RegisterServicesFromAssembly(typeof(NotificationBenchmarks).Assembly));
         _mediatR = mtrServices.BuildServiceProvider()
             .GetRequiredService<MediatR.IMediator>();
+
+        // martinothamar/Mediator — notification handlers auto-registered via source gen
+        var sgServices = new ServiceCollection();
+        sgServices.AddMediator();
+        _sgMediator = sgServices.BuildServiceProvider()
+            .GetRequiredService<global::Mediator.IMediator>();
     }
 
     [Benchmark(Baseline = true)]
@@ -44,4 +51,8 @@ public class NotificationBenchmarks
     [Benchmark]
     public bool ModernMediator_Publish()
         => _modernMediator.Publish(new MmPingNotification("ping"));
+
+    [Benchmark]
+    public ValueTask Martinothamar_Publish()
+        => _sgMediator.Publish(new SgPingNotification("ping"));
 }

@@ -250,10 +250,10 @@ public class TestLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TReque
 {
     public static int ExecutionCount;
 
-    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TRequest, TResponse> next, CancellationToken cancellationToken)
     {
         Interlocked.Increment(ref ExecutionCount);
-        return await next();
+        return await next(request, cancellationToken);
     }
 }
 
@@ -262,18 +262,18 @@ public class TestValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
 {
     public static int ExecutionCount;
 
-    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TRequest, TResponse> next, CancellationToken cancellationToken)
     {
         Interlocked.Increment(ref ExecutionCount);
-        return await next();
+        return await next(request, cancellationToken);
     }
 }
 
 public class ClosedGenericBehavior : IPipelineBehavior<TestRequest, TestResponse>
 {
-    public Task<TestResponse> Handle(TestRequest request, RequestHandlerDelegate<TestResponse> next, CancellationToken cancellationToken)
+    public Task<TestResponse> Handle(TestRequest request, RequestHandlerDelegate<TestRequest, TestResponse> next, CancellationToken cancellationToken)
     {
-        return next();
+        return next(request, cancellationToken);
     }
 }
 

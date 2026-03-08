@@ -16,7 +16,7 @@ namespace ModernMediator.Tests
         public async Task Handle_CompletesInTime_ReturnsResult()
         {
             var behavior = new TimeoutBehavior<TimedRequest, string>();
-            RequestHandlerDelegate<string> next = () => Task.FromResult("ok");
+            RequestHandlerDelegate<TimedRequest, string> next = (req, ct) => Task.FromResult("ok");
 
             var result = await behavior.Handle(
                 new TimedRequest("test"), next, CancellationToken.None);
@@ -28,9 +28,9 @@ namespace ModernMediator.Tests
         public async Task Handle_ExceedsTimeout_ThrowsOperationCanceledException()
         {
             var behavior = new TimeoutBehavior<ShortTimedRequest, string>();
-            RequestHandlerDelegate<string> next = async () =>
+            RequestHandlerDelegate<ShortTimedRequest, string> next = async (req, ct) =>
             {
-                await Task.Delay(5000);
+                await Task.Delay(5000, ct);
                 return "should not reach";
             };
 
@@ -44,7 +44,7 @@ namespace ModernMediator.Tests
         {
             var behavior = new TimeoutBehavior<UntimedRequest, string>();
             bool nextCalled = false;
-            RequestHandlerDelegate<string> next = () =>
+            RequestHandlerDelegate<UntimedRequest, string> next = (req, ct) =>
             {
                 nextCalled = true;
                 return Task.FromResult("pass-through");
@@ -74,9 +74,9 @@ namespace ModernMediator.Tests
         {
             var behavior = new TimeoutBehavior<TimedRequest, string>();
             using var cts = new CancellationTokenSource();
-            RequestHandlerDelegate<string> next = async () =>
+            RequestHandlerDelegate<TimedRequest, string> next = async (req, ct) =>
             {
-                await Task.Delay(5000);
+                await Task.Delay(5000, ct);
                 return "should not reach";
             };
 
@@ -92,9 +92,9 @@ namespace ModernMediator.Tests
         {
             var behavior = new TimeoutBehavior<ShortTimedRequest, string>();
             using var externalCts = new CancellationTokenSource();
-            RequestHandlerDelegate<string> next = async () =>
+            RequestHandlerDelegate<ShortTimedRequest, string> next = async (req, ct) =>
             {
-                await Task.Delay(5000);
+                await Task.Delay(5000, ct);
                 return "should not reach";
             };
 

@@ -57,10 +57,10 @@ namespace ModernMediator.Tests
 
     public class LoggingBehavior : IPipelineBehavior<PipelineTestRequest, string>
     {
-        public async Task<string> Handle(PipelineTestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        public async Task<string> Handle(PipelineTestRequest request, RequestHandlerDelegate<PipelineTestRequest, string> next, CancellationToken cancellationToken)
         {
             ExecutionTracker.Log("LoggingBehavior:Before");
-            var response = await next();
+            var response = await next(request, cancellationToken);
             ExecutionTracker.Log("LoggingBehavior:After");
             return response;
         }
@@ -68,7 +68,7 @@ namespace ModernMediator.Tests
 
     public class ValidationBehavior : IPipelineBehavior<PipelineTestRequest, string>
     {
-        public async Task<string> Handle(PipelineTestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        public async Task<string> Handle(PipelineTestRequest request, RequestHandlerDelegate<PipelineTestRequest, string> next, CancellationToken cancellationToken)
         {
             ExecutionTracker.Log("ValidationBehavior:Before");
             
@@ -77,7 +77,7 @@ namespace ModernMediator.Tests
                 throw new ArgumentException("Value cannot be empty");
             }
             
-            var response = await next();
+            var response = await next(request, cancellationToken);
             ExecutionTracker.Log("ValidationBehavior:After");
             return response;
         }
@@ -85,10 +85,10 @@ namespace ModernMediator.Tests
 
     public class TimingBehavior : IPipelineBehavior<PipelineTestRequest, string>
     {
-        public async Task<string> Handle(PipelineTestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        public async Task<string> Handle(PipelineTestRequest request, RequestHandlerDelegate<PipelineTestRequest, string> next, CancellationToken cancellationToken)
         {
             ExecutionTracker.Log("TimingBehavior:Before");
-            var response = await next();
+            var response = await next(request, cancellationToken);
             ExecutionTracker.Log("TimingBehavior:After");
             return response;
         }
@@ -97,9 +97,9 @@ namespace ModernMediator.Tests
     // Behavior that modifies the response
     public class ResponseModifyingBehavior : IPipelineBehavior<PipelineTestRequest, string>
     {
-        public async Task<string> Handle(PipelineTestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        public async Task<string> Handle(PipelineTestRequest request, RequestHandlerDelegate<PipelineTestRequest, string> next, CancellationToken cancellationToken)
         {
-            var response = await next();
+            var response = await next(request, cancellationToken);
             return response + " [Modified]";
         }
     }
@@ -107,7 +107,7 @@ namespace ModernMediator.Tests
     // Behavior that short-circuits (doesn't call next)
     public class ShortCircuitBehavior : IPipelineBehavior<PipelineTestRequest, string>
     {
-        public Task<string> Handle(PipelineTestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        public Task<string> Handle(PipelineTestRequest request, RequestHandlerDelegate<PipelineTestRequest, string> next, CancellationToken cancellationToken)
         {
             ExecutionTracker.Log("ShortCircuit");
             return Task.FromResult("Short-circuited");

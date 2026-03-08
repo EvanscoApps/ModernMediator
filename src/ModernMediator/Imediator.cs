@@ -7,14 +7,17 @@ using ModernMediator.Dispatchers;
 namespace ModernMediator
 {
     /// <summary>
-    /// Modern mediator interface for loosely-coupled messaging.
-    /// 
+    /// Mediator interface combining send, publish, and stream capabilities.
+    /// Extends <see cref="ISender"/>, <see cref="IPublisher"/>, and <see cref="IStreamer"/>
+    /// for full mediator functionality. Inject the specific sub-interface when only one
+    /// capability is needed.
+    ///
     /// USAGE (in order of preference):
     /// 1. DI Container: services.AddModernMediator();
     /// 2. Singleton:    Mediator.Instance
     /// 3. Factory:      Mediator.Create()  (for isolated instances)
     /// </summary>
-    public interface IMediator : IDisposable
+    public interface IMediator : ISender, IPublisher, IStreamer, IDisposable
     {
         #region Request/Response
 

@@ -13,6 +13,9 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <!-- MediatR 12.4.1 is the last MIT-licensed version — fair comparison baseline -->
     <PackageReference Include="MediatR" Version="12.4.1" />
+    <!-- martinothamar/Mediator — source-generated mediator -->
+    <PackageReference Include="Mediator.Abstractions" Version="3.0.1" />
+    <PackageReference Include="Mediator.SourceGenerator" Version="3.0.1" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers" />
   </ItemGroup>
 
   <ItemGroup>

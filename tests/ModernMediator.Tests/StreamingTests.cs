@@ -359,6 +359,118 @@ namespace ModernMediator.Tests
         }
     }
 
+    public class StreamCancellationTests
+    {
+        [Fact]
+        public async Task CreateStream_CancelAfter3Items_ItemsAfterNotYielded()
+        {
+            var services = new ServiceCollection();
+            services.AddModernMediator(config =>
+            {
+                config.RegisterStreamHandler<GetNumbersStreamHandler>();
+            });
+            var provider = services.BuildServiceProvider();
+            var mediator = provider.GetRequiredService<IMediator>();
+            var cts = new CancellationTokenSource();
+
+            var results = new List<int>();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            {
+                await foreach (var item in mediator.CreateStream(new GetNumbersStreamRequest(10), cts.Token))
+                {
+                    results.Add(item);
+                    if (results.Count == 3)
+                        cts.Cancel();
+                }
+            });
+
+            Assert.Equal(3, results.Count);
+            Assert.Equal(new[] { 1, 2, 3 }, results);
+        }
+
+        [Fact]
+        public async Task CreateStream_CancelBeforeFirstItem_ImmediateCancellation()
+        {
+            var services = new ServiceCollection();
+            services.AddModernMediator(config =>
+            {
+                config.RegisterStreamHandler<SlowStreamHandler>();
+            });
+            var provider = services.BuildServiceProvider();
+            var mediator = provider.GetRequiredService<IMediator>();
+            var cts = new CancellationTokenSource();
+            cts.Cancel(); // Cancel before starting
+
+            var results = new List<int>();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            {
+                await foreach (var item in mediator.CreateStream(new SlowStreamRequest(100), cts.Token))
+                {
+                    results.Add(item);
+                }
+            });
+
+            Assert.Empty(results);
+        }
+
+        [Fact]
+        public async Task CreateStream_CancelMidStreamWithSlowProducer_CleanCancellation()
+        {
+            var services = new ServiceCollection();
+            services.AddModernMediator(config =>
+            {
+                config.RegisterStreamHandler<SlowStreamHandler>();
+            });
+            var provider = services.BuildServiceProvider();
+            var mediator = provider.GetRequiredService<IMediator>();
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(TimeSpan.FromMilliseconds(150));
+
+            var results = new List<int>();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            {
+                await foreach (var item in mediator.CreateStream(new SlowStreamRequest(50), cts.Token))
+                {
+                    results.Add(item);
+                }
+            });
+
+            // Should have gotten some items but not all 100
+            Assert.True(results.Count > 0, "Should have yielded at least one item");
+            Assert.True(results.Count < 100, "Should have been cancelled before all items");
+        }
+
+        [Fact]
+        public async Task CreateStream_ConcurrentStreams_Isolated()
+        {
+            var services = new ServiceCollection();
+            services.AddModernMediator(config =>
+            {
+                config.RegisterStreamHandler<GetNumbersStreamHandler>();
+            });
+            var provider = services.BuildServiceProvider();
+            var mediator = provider.GetRequiredService<IMediator>();
+
+            var tasks = Enumerable.Range(1, 5).Select(async count =>
+            {
+                var results = new List<int>();
+                await foreach (var item in mediator.CreateStream(new GetNumbersStreamRequest(count)))
+                {
+                    results.Add(item);
+                }
+                return results;
+            }).ToArray();
+
+            var allResults = await Task.WhenAll(tasks);
+
+            for (int i = 0; i < 5; i++)
+            {
+                var expected = Enumerable.Range(1, i + 1).ToList();
+                Assert.Equal(expected, allResults[i]);
+            }
+        }
+    }
+
     public class StreamHandlerRegistrationTests
     {
         [Fact]

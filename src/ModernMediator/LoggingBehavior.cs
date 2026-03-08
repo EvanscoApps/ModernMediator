@@ -30,7 +30,7 @@ namespace ModernMediator
         }
 
         /// <inheritdoc />
-        public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TRequest, TResponse> next, CancellationToken cancellationToken)
         {
             var requestName = typeof(TRequest).Name;
 
@@ -47,7 +47,7 @@ namespace ModernMediator
             TResponse response;
             try
             {
-                response = await next();
+                response = await next(request, cancellationToken);
             }
             catch (Exception ex)
             {

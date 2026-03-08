@@ -8,6 +8,9 @@ public class SendBenchmarks
 {
     private IMediator _modernMediator = null!;
     private MediatR.IMediator _mediatR = null!;
+    private global::Mediator.IMediator _sgMediator = null!;
+
+    private ISender _modernSender = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -16,7 +19,9 @@ public class SendBenchmarks
         var mmServices = new ServiceCollection();
         mmServices.AddModernMediator(cfg =>
             cfg.RegisterServicesFromAssemblies(typeof(SendBenchmarks).Assembly));
-        _modernMediator = mmServices.BuildServiceProvider().GetRequiredService<IMediator>();
+        var mmProvider = mmServices.BuildServiceProvider();
+        _modernMediator = mmProvider.GetRequiredService<IMediator>();
+        _modernSender = mmProvider.GetRequiredService<ISender>();
 
         // MediatR setup
         var mtrServices = new ServiceCollection();
@@ -24,6 +29,12 @@ public class SendBenchmarks
             cfg.RegisterServicesFromAssembly(typeof(SendBenchmarks).Assembly));
         _mediatR = mtrServices.BuildServiceProvider()
             .GetRequiredService<MediatR.IMediator>();
+
+        // martinothamar/Mediator (source-generated) setup
+        var sgServices = new ServiceCollection();
+        sgServices.AddMediator();
+        _sgMediator = sgServices.BuildServiceProvider()
+            .GetRequiredService<global::Mediator.IMediator>();
     }
 
     [Benchmark(Baseline = true)]
@@ -33,4 +44,12 @@ public class SendBenchmarks
     [Benchmark]
     public Task<MmPongResponse> ModernMediator_Send()
         => _modernMediator.Send(new MmPingRequest("ping"));
+
+    [Benchmark]
+    public ValueTask<MmPongResponse> ModernMediator_SendAsync()
+        => _modernSender.SendAsync(new MmPingRequest("ping"));
+
+    [Benchmark]
+    public ValueTask<SgPongResponse> Martinothamar_Send()
+        => _sgMediator.Send(new SgPingRequest("ping"));
 }

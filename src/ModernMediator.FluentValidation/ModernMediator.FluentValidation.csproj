@@ -6,13 +6,18 @@
 		<LangVersion>latest</LangVersion>
 		<!-- Package info -->
 		<PackageId>ModernMediator.FluentValidation</PackageId>
-		<Version>1.0.0</Version>
-		<Authors>Rob Evans</Authors>
-		<Description>FluentValidation integration for ModernMediator with compile-time validator discovery</Description>
-		<PackageTags>mediator;cqrs;validation;fluentvalidation;pipeline</PackageTags>
+		<Version>2.0.0</Version>
+		<AssemblyVersion>2.0.0.0</AssemblyVersion>
+		<FileVersion>2.0.0.0</FileVersion>
+		<Authors>EvanscoApps</Authors>
+		<Company>EvanscoApps LLC</Company>
+		<Copyright>Copyright © 2026 EvanscoApps LLC</Copyright>
+		<Description>FluentValidation integration for ModernMediator. Adds ValidationBehavior pipeline behavior with ModernValidationException.</Description>
+		<PackageTags>mediator;fluentvalidation;validation;cqrs;pipeline</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageProjectUrl>https://github.com/EvanscoApps/ModernMediator</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/EvanscoApps/ModernMediator</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/evanscoapps/ModernMediator</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/evanscoapps/ModernMediator</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="FluentValidation" Version="11.11.0" />

@@ -6,12 +6,18 @@
 		<LangVersion>latest</LangVersion>
 		<!-- Package info -->
 		<PackageId>ModernMediator.AspNetCore</PackageId>
-		<Version>1.0.0</Version>
-		<Authors>Rob Evans</Authors>
-		<Description>ASP.NET Core Minimal API integration for ModernMediator with compile-time endpoint generation.</Description>
-		<PackageTags>mediator;aspnetcore;minimal-api;endpoints;source-generator</PackageTags>
+		<Version>2.0.0</Version>
+		<AssemblyVersion>2.0.0.0</AssemblyVersion>
+		<FileVersion>2.0.0.0</FileVersion>
+		<Authors>EvanscoApps</Authors>
+		<Company>EvanscoApps LLC</Company>
+		<Copyright>Copyright © 2026 EvanscoApps LLC</Copyright>
+		<Description>ASP.NET Core integration for ModernMediator. Compile-time Minimal API endpoint generation via [Endpoint] attribute.</Description>
+		<PackageTags>mediator;aspnetcore;minimal-api;source-generator;endpoints</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<RepositoryUrl>https://github.com/EvanscoApps/ModernMediator</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/evanscoapps/ModernMediator</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/evanscoapps/ModernMediator</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
 	</PropertyGroup>
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />

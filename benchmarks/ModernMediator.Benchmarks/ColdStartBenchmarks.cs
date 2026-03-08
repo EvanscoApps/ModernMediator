@@ -27,4 +27,14 @@ public class ColdStartBenchmarks
         var mediator = provider.GetRequiredService<IMediator>();
         await mediator.Send(new MmPingRequest("ping"));
     }
+
+    [Benchmark]
+    public async Task Martinothamar_ColdStart()
+    {
+        var services = new ServiceCollection();
+        services.AddMediator();
+        var provider = services.BuildServiceProvider();
+        var mediator = provider.GetRequiredService<global::Mediator.IMediator>();
+        await mediator.Send(new SgPingRequest("ping"));
+    }
 }

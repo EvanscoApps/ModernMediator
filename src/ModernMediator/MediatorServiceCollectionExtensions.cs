@@ -25,6 +25,9 @@ namespace ModernMediator
         public static IServiceCollection AddModernMediator(this IServiceCollection services)
         {
             services.TryAddScoped<IMediator>(sp => new Mediator(sp));
+            services.TryAddScoped<ISender>(sp => sp.GetRequiredService<IMediator>());
+            services.TryAddScoped<IPublisher>(sp => sp.GetRequiredService<IMediator>());
+            services.TryAddScoped<IStreamer>(sp => sp.GetRequiredService<IMediator>());
             return services;
         }
 
@@ -72,6 +75,11 @@ namespace ModernMediator
 
                 return mediator;
             });
+
+            // Register segregated interfaces as forwarding aliases
+            services.TryAddScoped<ISender>(sp => sp.GetRequiredService<IMediator>());
+            services.TryAddScoped<IPublisher>(sp => sp.GetRequiredService<IMediator>());
+            services.TryAddScoped<IStreamer>(sp => sp.GetRequiredService<IMediator>());
 
             return services;
         }
@@ -221,6 +229,24 @@ namespace ModernMediator
                         typeof(IRequestPostProcessor<,>),
                         BehaviorLifetime);
 
+                    // Find IValueTaskRequestHandler<,> implementations
+                    RegisterInterfaceImplementations(
+                        type,
+                        typeof(IValueTaskRequestHandler<,>),
+                        HandlerLifetime);
+
+                    // Find IValueTaskPipelineBehavior<,> implementations
+                    RegisterInterfaceImplementations(
+                        type,
+                        typeof(IValueTaskPipelineBehavior<,>),
+                        BehaviorLifetime);
+
+                    // Find INotificationHandler<> implementations
+                    RegisterInterfaceImplementations(
+                        type,
+                        typeof(INotificationHandler<>),
+                        HandlerLifetime);
+
                     // Find IRequestExceptionHandler<,,> implementations
                     RegisterInterfaceImplementations(
                         type,
@@ -333,6 +359,58 @@ namespace ModernMediator
                 var descriptor = new ServiceDescriptor(@interface, type, BehaviorLifetime);
                 Services.TryAddEnumerable(descriptor);
             }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Register a ValueTask pipeline behavior type.
+        /// </summary>
+        /// <typeparam name="TBehavior">The behavior type to register.</typeparam>
+        /// <returns>The configuration for chaining.</returns>
+        public MediatorConfiguration AddValueTaskBehavior<TBehavior>() where TBehavior : class
+        {
+            var type = typeof(TBehavior);
+            var interfaces = type.GetInterfaces()
+                .Where(i => i.IsGenericType &&
+                            i.GetGenericTypeDefinition() == typeof(IValueTaskPipelineBehavior<,>));
+
+            foreach (var @interface in interfaces)
+            {
+                var descriptor = new ServiceDescriptor(@interface, type, BehaviorLifetime);
+                Services.TryAddEnumerable(descriptor);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Register an open generic ValueTask pipeline behavior (applies to all requests).
+        /// </summary>
+        /// <param name="openBehaviorType">The open generic behavior type.</param>
+        /// <returns>The configuration for chaining.</returns>
+        public MediatorConfiguration AddOpenValueTaskBehavior(Type openBehaviorType)
+        {
+            if (!openBehaviorType.IsGenericTypeDefinition)
+            {
+                throw new ArgumentException("Type must be an open generic type definition", nameof(openBehaviorType));
+            }
+
+            var interfaces = openBehaviorType.GetInterfaces()
+                .Where(i => i.IsGenericType &&
+                            i.GetGenericTypeDefinition() == typeof(IValueTaskPipelineBehavior<,>));
+
+            if (!interfaces.Any())
+            {
+                throw new ArgumentException(
+                    $"Type {openBehaviorType.Name} does not implement IValueTaskPipelineBehavior<,>",
+                    nameof(openBehaviorType));
+            }
+
+            Services.Add(new ServiceDescriptor(
+                typeof(IValueTaskPipelineBehavior<,>),
+                openBehaviorType,
+                BehaviorLifetime));
 
             return this;
         }

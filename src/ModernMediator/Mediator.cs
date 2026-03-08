@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using ModernMediator.Dispatchers;
@@ -52,6 +53,21 @@ namespace ModernMediator
         private ErrorPolicy _errorPolicy = ErrorPolicy.ContinueAndAggregate;
         private CachingMode _cachingMode = CachingMode.Eager;
         private bool _disposed;
+
+        /// <summary>
+        /// Cached fully-typed pipeline wrappers per request type. Allocated once per type; zero per-call overhead after first dispatch.
+        /// </summary>
+        private static readonly ConcurrentDictionary<Type, object> _wrapperCache = new();
+
+        /// <summary>
+        /// Cached fully-typed stream handler wrappers per stream request type. One-time allocation per type.
+        /// </summary>
+        private static readonly ConcurrentDictionary<Type, object> _streamWrapperCache = new();
+
+        /// <summary>
+        /// Cached fully-typed ValueTask pipeline wrappers per request type. One-time allocation per type.
+        /// </summary>
+        private static readonly ConcurrentDictionary<Type, object> _valueTaskWrapperCache = new();
 
         /// <summary>
         /// Gets the singleton instance of the Mediator.
@@ -143,62 +159,85 @@ namespace ModernMediator
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
             ThrowIfDisposed();
-
             cancellationToken.ThrowIfCancellationRequested();
 
-            var requestType = request.GetType();
-            var responseType = typeof(TResponse);
-
-            // Get the handler
-            var handlerType = typeof(IRequestHandler<,>).MakeGenericType(requestType, responseType);
-            object? handler = _serviceProvider?.GetService(handlerType);
-
-            if (handler == null)
-            {
+            if (_serviceProvider == null)
                 throw new InvalidOperationException(
-                    $"No handler registered for request type {requestType.Name}. " +
-                    $"Register a handler implementing IRequestHandler<{requestType.Name}, {responseType.Name}> " +
-                    "using AddModernMediator() with assembly scanning or manual registration.");
-            }
+                    "No service provider configured. Use AddModernMediator() or Mediator.Create(serviceProvider).");
 
-            // Build the pipeline
-            var pipeline = BuildPipeline<TResponse>(requestType, responseType, request, handler, cancellationToken);
+            var requestType = request.GetType();
+            var wrapper = (RequestHandlerWrapper<TResponse>)_wrapperCache
+                .GetOrAdd(requestType, static t => CreateWrapper(t));
 
-            // Execute pre-processors
-            await ExecutePreProcessors(requestType, request, cancellationToken);
+            await wrapper.ExecutePreProcessors(request, _serviceProvider, cancellationToken)
+                .ConfigureAwait(false);
 
-            // Execute the pipeline (behaviors + handler) with exception handling
             TResponse response;
             try
             {
-                response = await pipeline();
-            }
-            catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException != null)
-            {
-                // Try exception handlers for the inner exception
-                var handledResult = await TryHandleException<TResponse>(requestType, responseType, request, tie.InnerException, cancellationToken);
-                if (handledResult.Handled)
-                {
-                    return handledResult.Response!;
-                }
-                throw tie.InnerException;
+                response = await wrapper.Handle(request, _serviceProvider, cancellationToken)
+                    .ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                // Try exception handlers
-                var handledResult = await TryHandleException<TResponse>(requestType, responseType, request, ex, cancellationToken);
+                var handledResult = await TryHandleException<TResponse>(
+                    requestType, typeof(TResponse), request, ex, cancellationToken);
                 if (handledResult.Handled)
-                {
                     return handledResult.Response!;
-                }
                 throw;
             }
 
-            // Execute post-processors
-            await ExecutePostProcessors(requestType, responseType, request, response, cancellationToken);
+            await wrapper.ExecutePostProcessors(request, response, _serviceProvider, cancellationToken)
+                .ConfigureAwait(false);
 
             return response;
         }
+
+        private static object CreateWrapper(Type requestType)
+        {
+            var responseType = requestType
+                .GetInterfaces()
+                .First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>))
+                .GetGenericArguments()[0];
+
+            return Activator.CreateInstance(
+                typeof(RequestHandlerWrapperImpl<,>).MakeGenericType(requestType, responseType))!;
+        }
+
+        /// <inheritdoc />
+        public ValueTask<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            ThrowIfDisposed();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (_serviceProvider == null)
+                throw new InvalidOperationException(
+                    "No service provider configured. Use AddModernMediator() or Mediator.Create(serviceProvider).");
+
+            var requestType = request.GetType();
+            var wrapper = (ValueTaskHandlerWrapper<TResponse>)_valueTaskWrapperCache
+                .GetOrAdd(requestType, static t => CreateValueTaskWrapper(t));
+
+            return wrapper.Handle(request, _serviceProvider, cancellationToken);
+        }
+
+        private static object CreateValueTaskWrapper(Type requestType)
+        {
+            var responseType = requestType
+                .GetInterfaces()
+                .First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>))
+                .GetGenericArguments()[0];
+
+            return Activator.CreateInstance(
+                typeof(ValueTaskHandlerWrapperImpl<,>).MakeGenericType(requestType, responseType))!;
+        }
+
+        /// <summary>
+        /// Compiled exception handler delegates keyed by interface type. One-time Expression.Lambda compilation per type triple.
+        /// </summary>
+        private static readonly ConcurrentDictionary<Type, Func<object, object, Exception, CancellationToken, Task>>
+            _exceptionHandlerDelegateCache = new();
 
         private async Task<ExceptionHandlingResult<TResponse>> TryHandleException<TResponse>(
             Type requestType,
@@ -227,29 +266,20 @@ namespace ModernMediator
                 if (handlersObj != null)
                 {
                     var handlers = ((System.Collections.IEnumerable)handlersObj).Cast<object>().ToList();
+                    var invoker = _exceptionHandlerDelegateCache.GetOrAdd(
+                        exceptionHandlerInterfaceType,
+                        static interfaceType => CompileExceptionHandlerDelegate(interfaceType));
 
                     foreach (var handler in handlers)
                     {
-                        // Get the Handle method from the INTERFACE type, not the concrete type
-                        // This handles explicit interface implementations correctly
-                        var handleMethod = exceptionHandlerInterfaceType.GetMethod("Handle");
-                        if (handleMethod == null) continue;
-
-                        try
+                        var resultTask = invoker(handler, request, exception, cancellationToken);
+                        if (resultTask is Task<ExceptionHandlingResult<TResponse>> typedTask)
                         {
-                            var resultTask = handleMethod.Invoke(handler, new object[] { request, exception, cancellationToken });
-                            if (resultTask is Task<ExceptionHandlingResult<TResponse>> typedTask)
+                            var result = await typedTask.ConfigureAwait(false);
+                            if (result.Handled)
                             {
-                                var result = await typedTask.ConfigureAwait(false);
-                                if (result.Handled)
-                                {
-                                    return result;
-                                }
+                                return result;
                             }
-                        }
-                        catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException != null)
-                        {
-                            throw tie.InnerException;
                         }
                     }
                 }
@@ -260,162 +290,60 @@ namespace ModernMediator
             return ExceptionHandlingResult<TResponse>.NotHandled();
         }
 
-        private RequestHandlerDelegate<TResponse> BuildPipeline<TResponse>(
-            Type requestType,
-            Type responseType,
-            object request,
-            object handler,
-            CancellationToken cancellationToken)
+        private static Func<object, object, Exception, CancellationToken, Task> CompileExceptionHandlerDelegate(Type interfaceType)
         {
-            // Get the Handle method on the handler
-            var handleMethod = handler.GetType().GetMethod("Handle");
-            if (handleMethod == null)
-            {
-                throw new InvalidOperationException($"Handle method not found on handler type {handler.GetType().Name}");
-            }
+            // interfaceType is IRequestExceptionHandler<TRequest, TResponse, TException>
+            var genericArgs = interfaceType.GetGenericArguments();
+            var requestType = genericArgs[0];
+            var exceptionType = genericArgs[2];
 
-            // Create the innermost delegate that calls the actual handler
-            RequestHandlerDelegate<TResponse> handlerDelegate = async () =>
-            {
-                try
-                {
-                    var resultTask = (Task<TResponse>?)handleMethod.Invoke(handler, new object[] { request, cancellationToken });
-                    if (resultTask == null)
-                    {
-                        throw new InvalidOperationException($"Handler for {requestType.Name} returned null task.");
-                    }
-                    return await resultTask.ConfigureAwait(false);
-                }
-                catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException != null)
-                {
-                    throw tie.InnerException;
-                }
-            };
+            var handleMethod = interfaceType.GetMethod("Handle")!;
 
-            // Get all pipeline behaviors
+            // Parameters: (object handler, object request, Exception exception, CancellationToken ct)
+            var handlerParam = Expression.Parameter(typeof(object), "handler");
+            var requestParam = Expression.Parameter(typeof(object), "request");
+            var exceptionParam = Expression.Parameter(typeof(Exception), "exception");
+            var ctParam = Expression.Parameter(typeof(CancellationToken), "ct");
+
+            // ((IRequestExceptionHandler<TReq, TRes, TEx>)handler).Handle((TReq)request, (TEx)exception, ct)
+            var call = Expression.Call(
+                Expression.Convert(handlerParam, interfaceType),
+                handleMethod,
+                Expression.Convert(requestParam, requestType),
+                Expression.Convert(exceptionParam, exceptionType),
+                ctParam);
+
+            // Return type is Task<ExceptionHandlingResult<TResponse>> which is assignable to Task
+            var lambda = Expression.Lambda<Func<object, object, Exception, CancellationToken, Task>>(
+                call, handlerParam, requestParam, exceptionParam, ctParam);
+
+            return lambda.Compile();
+        }
+
+        #endregion
+
+        #region Notifications (DI-based)
+
+        /// <inheritdoc />
+        public async Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
+            where TNotification : INotification
+        {
+            if (notification == null) throw new ArgumentNullException(nameof(notification));
+            ThrowIfDisposed();
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (_serviceProvider == null)
+                return; // No DI container — nothing to dispatch
+
+            var handlers = (IEnumerable<INotificationHandler<TNotification>>?)
+                _serviceProvider.GetService(typeof(IEnumerable<INotificationHandler<TNotification>>));
+
+            if (handlers == null)
+                return;
+
+            foreach (var handler in handlers)
             {
-                return handlerDelegate;
-            }
-
-            var behaviorType = typeof(IPipelineBehavior<,>).MakeGenericType(requestType, responseType);
-            var behaviorsEnumerableType = typeof(IEnumerable<>).MakeGenericType(behaviorType);
-            var behaviorsObj = _serviceProvider.GetService(behaviorsEnumerableType);
-
-            if (behaviorsObj == null)
-            {
-                return handlerDelegate;
-            }
-
-            var behaviors = ((System.Collections.IEnumerable)behaviorsObj).Cast<object>().Reverse().ToList();
-
-            if (behaviors.Count == 0)
-            {
-                return handlerDelegate;
-            }
-
-            // Wrap behaviors around the handler, innermost first (so outermost executes first)
-            var currentDelegate = handlerDelegate;
-
-            foreach (var behavior in behaviors)
-            {
-                var behaviorHandleMethod = behavior.GetType().GetMethod("Handle");
-                if (behaviorHandleMethod == null) continue;
-
-                var capturedDelegate = currentDelegate;
-                var capturedBehavior = behavior;
-
-                currentDelegate = async () =>
-                {
-                    try
-                    {
-                        var resultTask = (Task<TResponse>?)behaviorHandleMethod.Invoke(
-                            capturedBehavior,
-                            new object[] { request, capturedDelegate, cancellationToken });
-
-                        if (resultTask == null)
-                        {
-                            throw new InvalidOperationException($"Behavior {capturedBehavior.GetType().Name} returned null task.");
-                        }
-
-                        return await resultTask.ConfigureAwait(false);
-                    }
-                    catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException != null)
-                    {
-                        throw tie.InnerException;
-                    }
-                };
-            }
-
-            return currentDelegate;
-        }
-
-        private async Task ExecutePreProcessors(Type requestType, object request, CancellationToken cancellationToken)
-        {
-            if (_serviceProvider == null) return;
-
-            var preProcessorType = typeof(IRequestPreProcessor<>).MakeGenericType(requestType);
-            var preProcessorsEnumerableType = typeof(IEnumerable<>).MakeGenericType(preProcessorType);
-            var preProcessorsObj = _serviceProvider.GetService(preProcessorsEnumerableType);
-
-            if (preProcessorsObj == null) return;
-
-            var preProcessors = ((System.Collections.IEnumerable)preProcessorsObj).Cast<object>().ToList();
-
-            foreach (var preProcessor in preProcessors)
-            {
-                var processMethod = preProcessor.GetType().GetMethod("Process");
-                if (processMethod == null) continue;
-
-                try
-                {
-                    var task = (Task?)processMethod.Invoke(preProcessor, new object[] { request, cancellationToken });
-                    if (task != null)
-                    {
-                        await task.ConfigureAwait(false);
-                    }
-                }
-                catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException != null)
-                {
-                    throw tie.InnerException;
-                }
-            }
-        }
-
-        private async Task ExecutePostProcessors<TResponse>(
-            Type requestType,
-            Type responseType,
-            object request,
-            TResponse response,
-            CancellationToken cancellationToken)
-        {
-            if (_serviceProvider == null) return;
-
-            var postProcessorType = typeof(IRequestPostProcessor<,>).MakeGenericType(requestType, responseType);
-            var postProcessorsEnumerableType = typeof(IEnumerable<>).MakeGenericType(postProcessorType);
-            var postProcessorsObj = _serviceProvider.GetService(postProcessorsEnumerableType);
-
-            if (postProcessorsObj == null) return;
-
-            var postProcessors = ((System.Collections.IEnumerable)postProcessorsObj).Cast<object>().ToList();
-
-            foreach (var postProcessor in postProcessors)
-            {
-                var processMethod = postProcessor.GetType().GetMethod("Process");
-                if (processMethod == null) continue;
-
-                try
-                {
-                    var task = (Task?)processMethod.Invoke(postProcessor, new object[] { request, response!, cancellationToken });
-                    if (task != null)
-                    {
-                        await task.ConfigureAwait(false);
-                    }
-                }
-                catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException != null)
-                {
-                    throw tie.InnerException;
-                }
+                await handler.Handle(notification, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -431,51 +359,31 @@ namespace ModernMediator
             if (request == null) throw new ArgumentNullException(nameof(request));
             ThrowIfDisposed();
 
-            var requestType = request.GetType();
-            var responseType = typeof(TResponse);
-
-            // Get the handler
-            var handlerType = typeof(IStreamRequestHandler<,>).MakeGenericType(requestType, responseType);
-            object? handler = _serviceProvider?.GetService(handlerType);
-
-            if (handler == null)
-            {
+            if (_serviceProvider == null)
                 throw new InvalidOperationException(
-                    $"No stream handler registered for request type {requestType.Name}. " +
-                    $"Register a handler implementing IStreamRequestHandler<{requestType.Name}, {responseType.Name}> " +
-                    "using AddModernMediator() with assembly scanning or manual registration.");
-            }
+                    "No service provider configured. Use AddModernMediator() or Mediator.Create(serviceProvider).");
 
-            // Get the Handle method
-            var handleMethod = handlerType.GetMethod("Handle");
-            if (handleMethod == null)
-            {
-                throw new InvalidOperationException($"Handle method not found on handler type {handlerType.Name}");
-            }
+            var requestType = request.GetType();
+            var wrapper = (StreamHandlerWrapper<TResponse>)_streamWrapperCache
+                .GetOrAdd(requestType, static t => CreateStreamWrapper(t));
 
-            // Invoke the handler to get the IAsyncEnumerable
-            object? streamResult;
-            try
-            {
-                streamResult = handleMethod.Invoke(handler, new object[] { request, cancellationToken });
-            }
-            catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException != null)
-            {
-                throw tie.InnerException;
-            }
+            var stream = wrapper.Handle(request, _serviceProvider, cancellationToken);
 
-            if (streamResult == null)
-            {
-                throw new InvalidOperationException($"Stream handler for {requestType.Name} returned null.");
-            }
-
-            var asyncEnumerable = (IAsyncEnumerable<TResponse>)streamResult;
-
-            // Yield items from the stream
-            await foreach (var item in asyncEnumerable.WithCancellation(cancellationToken).ConfigureAwait(false))
+            await foreach (var item in stream.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
                 yield return item;
             }
+        }
+
+        private static object CreateStreamWrapper(Type requestType)
+        {
+            var responseType = requestType
+                .GetInterfaces()
+                .First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IStreamRequest<>))
+                .GetGenericArguments()[0];
+
+            return Activator.CreateInstance(
+                typeof(StreamHandlerWrapperImpl<,>).MakeGenericType(requestType, responseType))!;
         }
 
         #endregion

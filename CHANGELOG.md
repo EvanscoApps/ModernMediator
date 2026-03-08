@@ -5,6 +5,66 @@ All notable changes to ModernMediator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## ## [2.0.0] — 2026-03-07
+
+### Added
+- **Compile-time diagnostics** (MM001–MM008, MM100): nine diagnostic rules enforced
+  at build time with positive and negative test coverage for each
+- **LoggingBehavior**: built-in request/response logging with configurable levels and
+  optional payload serialization; registered via `AddLogging()`
+- **Result<T> pattern**: `readonly struct` with implicit conversions, `Map`,
+  `GetValueOrDefault`, and `ResultExtensions`
+- **ModernMediator.AspNetCore**: Minimal API endpoint generation via `[Endpoint]`
+  attribute and `MapMediatorEndpoints()`; MM200 diagnostic for invalid HTTP methods
+- **OpenTelemetry observability**: `MediatorTelemetry` static class with
+  `ActivitySource`, `Meter`, `RequestCounter`, and `RequestDuration` emitted into
+  generated dispatch code; registered via `AddTelemetry()`
+- **TimeoutBehavior**: per-request timeout enforcement via `[Timeout(ms)]` attribute
+  using `CancellationTokenSource.CreateLinkedTokenSource`; registered via `AddTimeout()`
+- **ModernMediator.FluentValidation**: `ValidationBehavior` pipeline integration;
+  registered via `AddModernMediatorValidation()`
+- **Interface segregation**: `ISender`, `IPublisher`, and `IStreamer` interfaces;
+  `IMediator` composes all three; all three registered in DI as forwarding aliases
+- **DI-based notification dispatch**: `IPublisher.Publish<TNotification>` resolves
+  `INotificationHandler<T>` from DI and dispatches sequentially
+- **13 cross-platform samples**: Console, WPF, MAUI, Avalonia, Blazor Server/WASM,
+  Worker Service, WebApi, and WebApi.Advanced
+- **dotnet new template**: `modernmediator` shortname scaffolds a pre-wired starter API
+- **NuGet metadata**: all four packable packages include MIT license expression,
+  RepositoryUrl, package descriptions, and tags
+
+### Performance
+- Typed wrapper dispatch (`RequestHandlerWrapperImpl<TRequest, TResponse>`)
+  with index-based recursion — replaces all reflection in the `Send` hot path
+- **Closure elimination**: `RequestHandlerDelegate<TRequest, TResponse>(TRequest, CancellationToken)`
+  passes request and token explicitly instead of capturing via closure — eliminates
+  one allocation per pipeline step on every dispatch
+- **Full ValueTask pipeline**: `IValueTaskRequestHandler`, `IValueTaskPipelineBehavior`,
+  and `ISender.SendAsync` — zero-allocation path when handler completes synchronously
+- Lower allocations than MediatR on every benchmark; significantly faster cold start
+  and Publish; see [BENCHMARKS.md](BENCHMARKS.md) for full three-way results
+  including martinothamar/Mediator
+- `CreateStream` reflection eliminated via `StreamHandlerWrapperImpl<TRequest, TResponse>`
+- `TryHandleException` reflection eliminated via compiled delegate cache
+- `TimeoutBehavior` attribute lookup amortized via `ConcurrentDictionary<Type, int?>` cache
+
+### Fixed
+- MM002, MM003, MM100 were defined but never reported in v1.0 — now wired and tested
+- EndpointGenerator duplicate route registration under incremental pipeline cache
+  boundaries (string-based deduplication guard)
+- Open generic behaviors incorrectly included in generated DI registration code
+
+### Breaking Changes from v1.0
+- **`RequestHandlerDelegate` signature changed**: from zero-parameter `RequestHandlerDelegate<TResponse>()`
+  to two-parameter `RequestHandlerDelegate<TRequest, TResponse>(TRequest, CancellationToken)`.
+  Custom `IPipelineBehavior` implementations must update `next()` calls to `next(request, cancellationToken)`.
+- **`IPipelineBehavior<TRequest, TResponse>` variance removed**: `TRequest` is no longer
+  declared as `in` (contravariant) due to the delegate change. This rarely affects user code.
+- `ISender`, `IPublisher`, `IStreamer` are new interfaces — existing code injecting
+  `IMediator` is unaffected
+
+---
+
 ## [0.2.2-alpha] - 2026-01-06
 
 ### Added
@@ -58,6 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Predicate filters for subscriptions
 - Covariant message dispatch
 
+[2.0.0]: https://github.com/evanscoapps/ModernMediator/compare/v0.2.2-alpha...v2.0.0
 [0.2.2-alpha]: https://github.com/EvanscoApps/ModernMediator/compare/v0.2.1-alpha...v0.2.2-alpha
 [0.2.1-alpha]: https://github.com/EvanscoApps/ModernMediator/compare/v0.2.0-alpha...v0.2.1-alpha
 [0.2.0-alpha]: https://github.com/EvanscoApps/ModernMediator/releases/tag/v0.2.0-alpha

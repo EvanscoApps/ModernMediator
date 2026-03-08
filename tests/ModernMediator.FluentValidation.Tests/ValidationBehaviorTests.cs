@@ -75,7 +75,7 @@ namespace ModernMediator.FluentValidation.Tests
 
             // Act & Assert
             await Assert.ThrowsAsync<ModernValidationException>(
-                () => behavior.Handle(request, () => Task.FromResult(new TestResponse("ok")), CancellationToken.None));
+                () => behavior.Handle(request, (req, ct) => Task.FromResult(new TestResponse("ok")), CancellationToken.None));
         }
 
         [Fact]
@@ -88,7 +88,7 @@ namespace ModernMediator.FluentValidation.Tests
             var expectedResponse = new TestResponse("Hello, Alice!");
 
             // Act
-            var result = await behavior.Handle(request, () => Task.FromResult(expectedResponse), CancellationToken.None);
+            var result = await behavior.Handle(request, (req, ct) => Task.FromResult(expectedResponse), CancellationToken.None);
 
             // Assert
             Assert.Equal(expectedResponse, result);
@@ -104,7 +104,7 @@ namespace ModernMediator.FluentValidation.Tests
             var expectedResponse = new TestResponse("Hello, Alice!");
 
             // Act
-            var result = await behavior.Handle(request, () => Task.FromResult(expectedResponse), CancellationToken.None);
+            var result = await behavior.Handle(request, (req, ct) => Task.FromResult(expectedResponse), CancellationToken.None);
 
             // Assert
             Assert.Equal(expectedResponse, result);
@@ -120,7 +120,7 @@ namespace ModernMediator.FluentValidation.Tests
 
             // Act
             var ex = await Assert.ThrowsAsync<ModernValidationException>(
-                () => behavior.Handle(request, () => Task.FromResult(new TestResponse("ok")), CancellationToken.None));
+                () => behavior.Handle(request, (req, ct) => Task.FromResult(new TestResponse("ok")), CancellationToken.None));
 
             // Assert
             Assert.Equal(2, ex.Errors.Count);
@@ -138,13 +138,52 @@ namespace ModernMediator.FluentValidation.Tests
 
             // Act
             var ex = await Assert.ThrowsAsync<ModernValidationException>(
-                () => behavior.Handle(request, () => Task.FromResult(new TestResponse("ok")), CancellationToken.None));
+                () => behavior.Handle(request, (req, ct) => Task.FromResult(new TestResponse("ok")), CancellationToken.None));
 
             // Assert
             Assert.Equal(2, ex.Errors.Count);
             Assert.Contains(ex.Errors, e => e.ErrorMessage == "Name is required.");
             Assert.Contains(ex.Errors, e => e.ErrorMessage == "Age must be positive.");
             Assert.Contains("2 error(s)", ex.Message);
+        }
+
+        [Fact]
+        public async Task Handle_ValidRequest_FullPipeline_NoExceptionAndHandlerResponseReturned()
+        {
+            // Arrange — valid request goes through the full pipeline
+            var validators = new List<IValidator<TestRequest>> { new NameValidator(), new AgeValidator() };
+            var behavior = new ValidationBehavior<TestRequest, TestResponse>(validators);
+            var request = new TestRequest("Alice", 30);
+            var expectedResponse = new TestResponse("Hello, Alice!");
+
+            // Act
+            var result = await behavior.Handle(
+                request,
+                (req, ct) => Task.FromResult(expectedResponse),
+                CancellationToken.None);
+
+            // Assert — no exception thrown, handler response returned normally
+            Assert.Equal(expectedResponse, result);
+            Assert.Equal("Hello, Alice!", result.Message);
+        }
+
+        [Fact]
+        public async Task Handle_NoRegisteredValidator_PassesThroughWithoutException()
+        {
+            // Arrange — empty validator list (no validators registered for this request type)
+            var validators = new List<IValidator<TestRequest>>();
+            var behavior = new ValidationBehavior<TestRequest, TestResponse>(validators);
+            var request = new TestRequest("Bob", 25);
+            var expectedResponse = new TestResponse("Hello, Bob!");
+
+            // Act
+            var result = await behavior.Handle(
+                request,
+                (req, ct) => Task.FromResult(expectedResponse),
+                CancellationToken.None);
+
+            // Assert — passes through with no exception
+            Assert.Equal(expectedResponse, result);
         }
 
         [Fact]
@@ -159,14 +198,14 @@ namespace ModernMediator.FluentValidation.Tests
 
             // Act — failing async rule
             var ex = await Assert.ThrowsAsync<ModernValidationException>(
-                () => behavior.Handle(failingRequest, () => Task.FromResult(new TestResponse("ok")), CancellationToken.None));
+                () => behavior.Handle(failingRequest, (req, ct) => Task.FromResult(new TestResponse("ok")), CancellationToken.None));
 
             // Assert — failure case
             Assert.Single(ex.Errors);
             Assert.Equal("Async: Name must not be empty.", ex.Errors[0].ErrorMessage);
 
             // Act — passing async rule
-            var result = await behavior.Handle(passingRequest, () => Task.FromResult(expectedResponse), CancellationToken.None);
+            var result = await behavior.Handle(passingRequest, (req, ct) => Task.FromResult(expectedResponse), CancellationToken.None);
 
             // Assert — success case
             Assert.Equal(expectedResponse, result);

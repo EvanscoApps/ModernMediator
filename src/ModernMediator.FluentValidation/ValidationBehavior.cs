@@ -37,11 +37,11 @@ namespace ModernMediator.FluentValidation
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The response from the next handler.</returns>
         /// <exception cref="ModernValidationException">Thrown when one or more validators report failures.</exception>
-        public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TRequest, TResponse> next, CancellationToken cancellationToken)
         {
             var validators = _validators.ToList();
             if (validators.Count == 0)
-                return await next();
+                return await next(request, cancellationToken);
 
             var results = await Task.WhenAll(
                 validators.Select(v => v.ValidateAsync(new ValidationContext<TRequest>(request), cancellationToken)));
@@ -54,7 +54,7 @@ namespace ModernMediator.FluentValidation
             if (failures.Count > 0)
                 throw new ModernValidationException(failures);
 
-            return await next();
+            return await next(request, cancellationToken);
         }
     }
 }
