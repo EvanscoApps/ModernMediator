@@ -519,7 +519,7 @@
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">ModernMediator</div>
-            <div class="sidebar-version">v1.0.0</div>
+            <div class="sidebar-version">v2.0.0</div>
         </div>
 
         <div class="nav-section">
@@ -539,6 +539,16 @@
             <a href="#pipeline-behaviors" class="nav-link">Pipeline Behaviors</a>
             <a href="#processors" class="nav-link">Pre/Post Processors</a>
             <a href="#exception-handlers" class="nav-link">Exception Handlers</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">v2.0 Features</div>
+            <a href="#valuetask" class="nav-link">ValueTask Pipeline</a>
+            <a href="#builtin-behaviors" class="nav-link">Built-in Behaviors</a>
+            <a href="#result-pattern" class="nav-link">Result&lt;T&gt;</a>
+            <a href="#endpoints" class="nav-link">Endpoint Generation</a>
+            <a href="#telemetry" class="nav-link">Telemetry</a>
+            <a href="#interface-segregation" class="nav-link">ISender / IPublisher</a>
         </div>
 
         <div class="nav-section">
@@ -569,7 +579,7 @@
         <header class="hero">
             <h1>ModernMediator</h1>
             <p class="hero-subtitle">A Comprehensive Tutorial</p>
-            <span class="hero-version">Version 1.0.0</span>
+            <span class="hero-version">Version 2.0.0</span>
         </header>
 
         <div class="content">
@@ -756,8 +766,8 @@
                 <ol>
                     <li>Implement <code>IPipelineBehavior&lt;TRequest, TResponse&gt;</code></li>
                     <li>The <code>Handle</code> method receives the request and a <code>next</code> delegate</li>
-                    <li>Call <code>await next()</code> to continue the pipeline and get the response</li>
-                    <li>Add logic before and/or after the <code>next()</code> call</li>
+                    <li>Call <code>await next(request, cancellationToken)</code> to continue the pipeline and get the response</li>
+                    <li>Add logic before and/or after the <code>next(request, cancellationToken)</code> call</li>
                 </ol>
 
                 <h3>Common Use Cases</h3>
@@ -766,11 +776,11 @@
                     <li><strong>Validation</strong> — reject bad requests before they reach the handler</li>
                     <li><strong>Performance timing</strong> — start stopwatch before, stop after</li>
                     <li><strong>Transaction management</strong> — begin before, commit/rollback after</li>
-                    <li><strong>Exception handling</strong> — wrap <code>next()</code> in try/catch</li>
+                    <li><strong>Exception handling</strong> — wrap <code>next(request, cancellationToken)</code> in try/catch</li>
                 </ul>
 
                 <div class="callout">
-                    <p><strong>Key characteristic:</strong> Because you control when <code>next()</code> is called, you can short-circuit the pipeline entirely—returning early without ever reaching the handler.</p>
+                    <p><strong>Key characteristic:</strong> Because you control when <code>next(request, cancellationToken)</code> is called, you can short-circuit the pipeline entirely—returning early without ever reaching the handler.</p>
                 </div>
 
                 <div class="callout">
@@ -853,6 +863,169 @@
                 <button class="code-btn" onclick="openModal('exception-handler-code')">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
                     View Exception Handler Example
+                </button>
+            </section>
+
+            <!-- ValueTask Pipeline -->
+            <section id="valuetask">
+                <h2>ValueTask Pipeline</h2>
+                <p>The ValueTask pipeline is a zero-allocation fast path for handlers that complete synchronously. When a handler returns a cached or pre-computed result, the entire pipeline avoids allocating a <code>Task</code> object on the heap.</p>
+
+                <p>Implement <code>IValueTaskRequestHandler&lt;TRequest, TResponse&gt;</code> instead of <code>IRequestHandler</code>, and call <code>sender.SendAsync&lt;TResponse&gt;(request)</code> instead of <code>Send</code>. The corresponding pipeline behavior interface is <code>IValueTaskPipelineBehavior&lt;TRequest, TResponse&gt;</code>.</p>
+
+                <h3>Benefits</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Benefit</th><th>Explanation</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Zero allocation</td><td>Synchronous completions avoid heap-allocating a Task</td></tr>
+                            <tr><td>Lower latency</td><td>Benchmarked at 90ns / 72B vs 241ns / 216B for the Task path</td></tr>
+                            <tr><td>Cache-friendly</td><td>Ideal for handlers returning cached or in-memory results</td></tr>
+                            <tr><td>Full pipeline support</td><td>ValueTask behaviors compose identically to Task behaviors</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('valuetask-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View ValueTask Example
+                </button>
+            </section>
+
+            <!-- Built-in Behaviors -->
+            <section id="builtin-behaviors">
+                <h2>Built-in Behaviors</h2>
+                <p>ModernMediator ships with four production-ready pipeline behaviors that cover the most common cross-cutting concerns. Each is registered via a single fluent method call on the configuration builder.</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Behavior</th><th>Registration</th><th>Purpose</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>LoggingBehavior</td><td><code>AddLogging()</code></td><td>Logs request type, duration, and optionally the payload before and after handling</td></tr>
+                            <tr><td>TimeoutBehavior</td><td><code>AddTimeout()</code></td><td>Enforces per-request timeouts via <code>[Timeout(ms)]</code> attribute</td></tr>
+                            <tr><td>ValidationBehavior</td><td><code>AddOpenBehavior(typeof(ValidationBehavior&lt;,&gt;))</code></td><td>Runs FluentValidation validators before the handler (requires ModernMediator.FluentValidation package)</td></tr>
+                            <tr><td>TelemetryBehavior</td><td><code>AddTelemetry()</code></td><td>Emits OpenTelemetry traces and metrics for every request</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('builtin-behaviors-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Built-in Behaviors Example
+                </button>
+            </section>
+
+            <!-- Result<T> -->
+            <section id="result-pattern">
+                <h2>Result&lt;T&gt; Pattern</h2>
+                <p><code>Result&lt;T&gt;</code> is a readonly struct that represents either a success value or an error, without throwing exceptions. It enables explicit error handling through return values instead of exceptions, making failure paths visible in method signatures.</p>
+
+                <p>Results support implicit conversions from both <code>T</code> (success) and <code>ResultError</code> (failure), so handlers can simply <code>return value</code> or <code>return new ResultError("message")</code>. The <code>Map</code>, <code>GetValueOrDefault</code>, and pattern-matching APIs make consuming results ergonomic.</p>
+
+                <h3>Benefits</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Benefit</th><th>Explanation</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>No exceptions for expected failures</td><td>Validation errors, not-found, etc. are values, not exceptions</td></tr>
+                            <tr><td>Explicit error paths</td><td>Callers must handle the error case — it cannot be accidentally ignored</td></tr>
+                            <tr><td>Zero allocation</td><td>Readonly struct avoids heap allocation for the result wrapper itself</td></tr>
+                            <tr><td>Composable</td><td>Map and Bind enable functional-style chaining</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('result-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Result&lt;T&gt; Example
+                </button>
+            </section>
+
+            <!-- Endpoint Generation -->
+            <section id="endpoints">
+                <h2>Endpoint Generation</h2>
+                <p>The <code>[Endpoint]</code> attribute on a request record tells the ModernMediator.AspNetCore source generator to emit a Minimal API endpoint at compile time. At startup, a single call to <code>app.MapMediatorEndpoints()</code> wires all generated endpoints into the ASP.NET Core routing pipeline.</p>
+
+                <p>The generator validates your endpoint declarations at build time. The <code>MM200</code> diagnostic warns when an invalid HTTP method is specified, catching configuration errors before deployment.</p>
+
+                <h3>Benefits</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Benefit</th><th>Explanation</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Zero boilerplate</td><td>No manual <code>app.MapPost</code> / <code>app.MapGet</code> wiring per endpoint</td></tr>
+                            <tr><td>Compile-time safety</td><td>Invalid HTTP methods are caught by MM200 diagnostic during build</td></tr>
+                            <tr><td>Co-located definition</td><td>Route, method, and request type defined in one place</td></tr>
+                            <tr><td>AOT compatible</td><td>Source-generated — no runtime reflection</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('endpoints-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Endpoint Generation Example
+                </button>
+            </section>
+
+            <!-- Telemetry -->
+            <section id="telemetry">
+                <h2>Telemetry</h2>
+                <p>ModernMediator includes built-in OpenTelemetry support via <code>MediatorTelemetry</code>. An <code>ActivitySource</code> emits distributed traces for every request, and a <code>Meter</code> records <code>RequestCounter</code> and <code>RequestDuration</code> metrics. These integrate with any OpenTelemetry-compatible backend (Jaeger, Zipkin, Prometheus, Azure Monitor, etc.).</p>
+
+                <p>Enable telemetry by calling <code>AddTelemetry()</code> during registration. The <code>TelemetryBehavior</code> pipeline behavior wraps each request in an Activity span and records timing metrics automatically.</p>
+
+                <h3>What Gets Recorded</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Signal</th><th>Name</th><th>Details</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Trace</td><td>Activity span per request</td><td>Request type, duration, success/failure status</td></tr>
+                            <tr><td>Metric</td><td>RequestCounter</td><td>Count of requests by type and outcome</td></tr>
+                            <tr><td>Metric</td><td>RequestDuration</td><td>Histogram of request latency by type</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('telemetry-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Telemetry Example
+                </button>
+            </section>
+
+            <!-- Interface Segregation -->
+            <section id="interface-segregation">
+                <h2>ISender / IPublisher / IStreamer</h2>
+                <p>ModernMediator follows the Interface Segregation Principle by splitting capabilities into focused interfaces. Instead of depending on the full <code>IMediator</code>, components can depend only on the capability they need.</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Interface</th><th>Capability</th><th>Methods</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>ISender</code></td><td>Request/Response</td><td><code>Send</code>, <code>SendAsync</code></td></tr>
+                            <tr><td><code>IPublisher</code></td><td>Pub/Sub</td><td><code>Publish</code>, <code>Subscribe</code></td></tr>
+                            <tr><td><code>IStreamer</code></td><td>Streaming</td><td><code>CreateStream</code></td></tr>
+                            <tr><td><code>IMediator</code></td><td>All of the above</td><td>Composes ISender + IPublisher + IStreamer</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p>Injecting the narrowest interface makes dependencies explicit and prevents misuse — a service that only sends commands cannot accidentally publish notifications.</p>
+
+                <button class="code-btn" onclick="openModal('interface-segregation-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Interface Segregation Example
                 </button>
             </section>
 
@@ -1255,6 +1428,12 @@
                     <li><strong>Assembly Scanning and Manual DI Registration</strong> — Flexible handler registration strategies</li>
                     <li><strong>Async-First Design</strong> — True parallelism with Task.WhenAll and full cancellation support</li>
                     <li><strong>Error Handling</strong> — Configurable policies, centralized events, and clean exception unwrapping</li>
+                    <li><strong>ValueTask Pipeline</strong> — Zero-allocation fast path via IValueTaskRequestHandler and SendAsync</li>
+                    <li><strong>Built-in Behaviors</strong> — Production-ready Logging, Timeout, Validation, and Telemetry behaviors</li>
+                    <li><strong>Result&lt;T&gt; Pattern</strong> — Readonly struct for explicit success/error handling without exceptions</li>
+                    <li><strong>Endpoint Generation</strong> — Source-generated Minimal API endpoints via [Endpoint] attribute</li>
+                    <li><strong>Telemetry</strong> — OpenTelemetry traces and metrics with ActivitySource and Meter</li>
+                    <li><strong>Interface Segregation</strong> — ISender, IPublisher, and IStreamer for focused dependencies</li>
                 </ul>
 
                 <p>ModernMediator combines these features into a cohesive library that supports applications from simple desktop tools to complex distributed systems, with first-class support for modern .NET capabilities including Native AOT compilation.</p>
@@ -1389,12 +1568,12 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
     where TRequest : IRequest<TResponse>
 {
     public async Task<TResponse> Handle(
-        TRequest request, 
-        RequestHandlerDelegate<TResponse> next, 
+        TRequest request,
+        RequestHandlerDelegate<TRequest, TResponse> next,
         CancellationToken ct)
     {
         _logger.LogInformation("Handling {Request}", typeof(TRequest).Name);
-        var response = await next();
+        var response = await next(request, ct);
         _logger.LogInformation("Handled {Request}", typeof(TRequest).Name);
         return response;
     }
@@ -1405,13 +1584,13 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
     where TRequest : IRequest<TResponse>
 {
     public async Task<TResponse> Handle(
-        TRequest request, 
-        RequestHandlerDelegate<TResponse> next, 
+        TRequest request,
+        RequestHandlerDelegate<TRequest, TResponse> next,
         CancellationToken ct)
     {
         var errors = await _validator.ValidateAsync(request, ct);
         if (errors.Any()) throw new ValidationException(errors);
-        return await next();
+        return await next(request, ct);
     }
 }
 
@@ -1713,10 +1892,183 @@ mediator.ErrorPolicy = ErrorPolicy.LogAndContinue;
 // Subscribe to errors for logging/monitoring
 mediator.HandlerError += (sender, args) =>
 {
-    logger.LogError(args.Exception, 
-        "Handler error for {MessageType}", 
+    logger.LogError(args.Exception,
+        "Handler error for {MessageType}",
         args.MessageType.Name);
 };`
+            },
+            'valuetask-code': {
+                title: 'ValueTask Pipeline',
+                code: `// Define a ValueTask handler for synchronous-completion paths
+public class GetCachedUserHandler : IValueTaskRequestHandler<GetCachedUserQuery, UserDto>
+{
+    private readonly ConcurrentDictionary<int, UserDto> _cache = new();
+
+    public ValueTask<UserDto> Handle(GetCachedUserQuery request, CancellationToken ct = default)
+    {
+        // Cache hit: completes synchronously, zero Task allocation
+        if (_cache.TryGetValue(request.UserId, out var cached))
+            return ValueTask.FromResult(cached);
+
+        // Cache miss: falls back to async work
+        return LoadAndCacheAsync(request, ct);
+    }
+
+    private async ValueTask<UserDto> LoadAndCacheAsync(GetCachedUserQuery request, CancellationToken ct)
+    {
+        var user = await _db.Users.FindAsync(request.UserId, ct);
+        var dto = new UserDto(user.Id, user.Name, user.Email);
+        _cache[request.UserId] = dto;
+        return dto;
+    }
+}
+
+// Call via ISender.SendAsync for the zero-allocation path
+ISender sender = serviceProvider.GetRequiredService<ISender>();
+var user = await sender.SendAsync(new GetCachedUserQuery(42));`
+            },
+            'builtin-behaviors-code': {
+                title: 'Built-in Behaviors',
+                code: `// Register all four built-in behaviors
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+
+    // Logging: logs request type, duration, and optionally the payload
+    config.AddLogging(opts => opts.LogRequestPayload = true);
+
+    // Timeout: enforces per-request timeouts via [Timeout] attribute
+    config.AddTimeout();
+
+    // Validation: runs FluentValidation validators before the handler
+    // Requires: dotnet add package ModernMediator.FluentValidation
+    config.AddOpenBehavior(typeof(ValidationBehavior<,>));
+
+    // Telemetry: emits OpenTelemetry traces and metrics
+    config.AddTelemetry();
+});
+
+// Mark specific requests with a timeout
+[Timeout(5000)] // 5-second timeout
+public record SlowExternalQuery(string Url) : IRequest<string>;`
+            },
+            'result-code': {
+                title: 'Result<T> Pattern',
+                code: `// Handler returning Result<T> instead of throwing exceptions
+public class GetUserHandler : IRequestHandler<GetUserQuery, Result<UserDto>>
+{
+    public async Task<Result<UserDto>> Handle(GetUserQuery request, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FindAsync(request.UserId, ct);
+
+        // Implicit conversion from ResultError (failure path)
+        if (user is null)
+            return new ResultError("User not found", "NOT_FOUND");
+
+        // Implicit conversion from T (success path)
+        return new UserDto(user.Id, user.Name, user.Email);
+    }
+}
+
+// Consuming the result
+var result = await mediator.Send(new GetUserQuery(42));
+
+if (result.IsSuccess)
+{
+    Console.WriteLine(result.Value.Name);
+}
+else
+{
+    Console.WriteLine(result.Error.Message); // "User not found"
+    Console.WriteLine(result.Error.Code);    // "NOT_FOUND"
+}
+
+// Functional-style with Map
+var name = result.Map(u => u.Name).GetValueOrDefault("Unknown");`
+            },
+            'endpoints-code': {
+                title: 'Endpoint Generation',
+                code: `// Annotate request records with [Endpoint] to generate Minimal API routes
+[Endpoint(HttpMethod.Post, "/api/users")]
+public record CreateUserCommand(string Name, string Email) : IRequest<UserDto>;
+
+[Endpoint(HttpMethod.Get, "/api/users/{UserId}")]
+public record GetUserQuery(int UserId) : IRequest<UserDto>;
+
+[Endpoint(HttpMethod.Delete, "/api/users/{UserId}")]
+public record DeleteUserCommand(int UserId) : IRequest;
+
+// Program.cs - wire all generated endpoints with one call
+var app = builder.Build();
+app.MapMediatorEndpoints(); // Source-generated, AOT-compatible
+app.Run();
+
+// The source generator emits compile-time diagnostics:
+// MM200 - Invalid HTTP method specified in [Endpoint] attribute`
+            },
+            'telemetry-code': {
+                title: 'Telemetry',
+                code: `// Enable telemetry in registration
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.AddTelemetry();
+});
+
+// Configure OpenTelemetry to export ModernMediator traces and metrics
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing
+        .AddSource(MediatorTelemetry.ActivitySourceName) // "ModernMediator"
+        .AddJaegerExporter())
+    .WithMetrics(metrics => metrics
+        .AddMeter(MediatorTelemetry.MeterName)           // "ModernMediator"
+        .AddPrometheusExporter());
+
+// What gets recorded automatically:
+// - Activity span per request (type, duration, success/failure)
+// - RequestCounter metric (count by request type and outcome)
+// - RequestDuration metric (histogram of latency by request type)`
+            },
+            'interface-segregation-code': {
+                title: 'ISender / IPublisher / IStreamer',
+                code: `// Inject the narrowest interface your service needs
+
+// A command service only needs to send requests
+public class OrderService
+{
+    private readonly ISender _sender;
+
+    public OrderService(ISender sender) => _sender = sender;
+
+    public async Task<OrderDto> CreateOrder(CreateOrderCommand command)
+    {
+        return await _sender.Send(command);
+    }
+
+    // Or use the zero-allocation ValueTask path
+    public async ValueTask<OrderDto> GetOrder(GetOrderQuery query)
+    {
+        return await _sender.SendAsync(query);
+    }
+}
+
+// A notification service only needs pub/sub
+public class NotificationService
+{
+    private readonly IPublisher _publisher;
+
+    public NotificationService(IPublisher publisher) => _publisher = publisher;
+
+    public bool NotifyAll(OrderShippedEvent evt) => _publisher.Publish(evt);
+}
+
+// IMediator composes all three — use when you need everything
+public class DashboardController
+{
+    private readonly IMediator _mediator;
+
+    public DashboardController(IMediator mediator) => _mediator = mediator;
+}`
             }
         };
 
