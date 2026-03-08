@@ -720,40 +720,40 @@ mediator.HandlerError += (sender, args) =>
 
 ### ModernMediator vs MediatR
 
-| Feature                        | ModernMediator        | MediatR           |
-| :----------------------------- | :-------------------- | :---------------- |
-| Request/Response               | ✅ Yes                | ✅ Yes            |
-| Notifications (Pub/Sub)        | ✅ Yes                | ✅ Yes            |
-| Pub/Sub with Callbacks         | ✅ Yes                | ❌ No             |
-| Pipeline Behaviors             | ✅ Yes                | ✅ Yes            |
-| Streaming                      | ✅ Yes                | ✅ Yes            |
-| Assembly Scanning              | ✅ Yes                | ✅ Yes            |
-| Exception Handlers             | ✅ Yes                | ❌ No             |
-| Source Generators              | ✅ Yes                | ❌ No             |
-| Native AOT                     | ✅ Yes                | ❌ No             |
-| ValueTask Pipeline             | ✅ SendAsync          | ❌ No             |
-| Result\<T\> Pattern            | ✅ Built-in           | ❌ No             |
-| Built-in Logging Behavior      | ✅ AddLogging()       | ❌ No             |
-| Built-in Timeout Behavior      | ✅ AddTimeout()       | ❌ No             |
-| Built-in Validation Behavior   | ✅ FluentValidation   | ❌ No             |
-| OpenTelemetry Integration      | ✅ AddTelemetry()     | ❌ No             |
-| Endpoint Generation            | ✅ [Endpoint]         | ❌ No             |
-| ISender/IPublisher/IStreamer    | ✅ Segregated         | ✅ ISender only   |
-| Weak References                | ✅ Yes                | ❌ No             |
-| Runtime Subscribe/Unsubscribe  | ✅ Yes                | ❌ No             |
-| UI Thread Dispatch             | ✅ Built-in           | ❌ Manual         |
-| Covariance                     | ✅ Yes                | ❌ No             |
-| Predicate Filters              | ✅ Yes                | ❌ No             |
-| String Key Routing             | ✅ Yes                | ❌ No             |
-| Parallel Notifications         | ✅ Default            | ❌ Sequential     |
-| Compile-time Diagnostics       | ✅ 10 rules           | ❌ No             |
-| MIT License                    | ✅ Yes                | ❌ Commercial*    |
+MediatR v12.x is the last open-source release under the Apache 2.0 license. MediatR v13+ requires a commercial license from Lucky Penny Software. The comparison below reflects capabilities as of MediatR 12.x.
 
-*MediatR moved to commercial licensing in July 2025
+| Feature                        | ModernMediator        | MediatR 12.x (Apache 2.0) |
+| :----------------------------- | :-------------------- | :------------------------- |
+| Request/Response               | ✅ Yes                | ✅ Yes                     |
+| Notifications (Pub/Sub)        | ✅ Yes                | ✅ Yes                     |
+| Pub/Sub with Callbacks         | ✅ Yes                | ❌ No                      |
+| Pipeline Behaviors             | ✅ Yes                | ✅ Yes                     |
+| Streaming                      | ✅ Yes                | ✅ Yes                     |
+| Assembly Scanning              | ✅ Yes                | ✅ Yes                     |
+| Exception Handlers             | ✅ Yes                | ❌ No                      |
+| Source Generators              | ✅ Yes                | ❌ No                      |
+| Native AOT                     | ✅ Yes                | ❌ No                      |
+| ValueTask Pipeline             | ✅ SendAsync          | ❌ No                      |
+| Result\<T\> Pattern            | ✅ Built-in           | ❌ No                      |
+| Built-in Logging Behavior      | ✅ AddLogging()       | ❌ No                      |
+| Built-in Timeout Behavior      | ✅ AddTimeout()       | ❌ No                      |
+| Built-in Validation Behavior   | ✅ FluentValidation   | ❌ No                      |
+| OpenTelemetry Integration      | ✅ AddTelemetry()     | ❌ No                      |
+| Endpoint Generation            | ✅ [Endpoint]         | ❌ No                      |
+| ISender/IPublisher/IStreamer    | ✅ Segregated         | ✅ ISender only            |
+| Weak References                | ✅ Yes                | ❌ No                      |
+| Runtime Subscribe/Unsubscribe  | ✅ Yes                | ❌ No                      |
+| UI Thread Dispatch             | ✅ Built-in           | ❌ Manual                  |
+| Covariance                     | ✅ Yes                | ❌ No                      |
+| Predicate Filters              | ✅ Yes                | ❌ No                      |
+| String Key Routing             | ✅ Yes                | ❌ No                      |
+| Parallel Notifications         | ✅ Default            | ❌ Sequential              |
+| Compile-time Diagnostics       | ✅ 10 rules           | ❌ No                      |
+| License                        | ✅ MIT                | Apache 2.0 (v13+ commercial) |
 
 ### Performance vs MediatR
 
-ModernMediator allocates less memory than MediatR on every benchmark. The `SendAsync` ValueTask path is over 2x faster with 80% fewer allocations. See [BENCHMARKS.md](BENCHMARKS.md) for full three-way results including martinothamar/Mediator.
+ModernMediator allocates less memory than MediatR 12.4.1 on every benchmark. The `SendAsync` ValueTask path is over 2x faster with 80% fewer allocations. MediatR v13+ may have different performance characteristics. See [BENCHMARKS.md](BENCHMARKS.md) for full three-way results including martinothamar/Mediator.
 
 ### ModernMediator vs Prism EventAggregator
 

@@ -13,13 +13,15 @@ All benchmarks use `IterationCount=20, WarmupCount=5` with `MemoryDiagnoser` ena
 
 ## Libraries Compared
 
-| Library                                                                          | Version          | Approach                   | License     |
-| :------------------------------------------------------------------------------- | :--------------- | :------------------------- | :---------- |
-| [MediatR](https://github.com/jbogard/MediatR)                                   | 12.4.1           | Runtime reflection + DI    | Commercial  |
-| [ModernMediator](https://github.com/evanscoapps/ModernMediator)                  | 2.0.0-preview.1  | Source generators + DI     | MIT         |
-| [martinothamar/Mediator](https://github.com/martinothamar/Mediator)              | 3.0.1            | Source generators (monomorphized) | MIT   |
+| Library                                                                          | Version          | Approach                          | License                                               |
+| :------------------------------------------------------------------------------- | :--------------- | :-------------------------------- | :---------------------------------------------------- |
+| [MediatR](https://github.com/jbogard/MediatR)                                   | 12.4.1           | Runtime reflection + DI           | Apache 2.0 (v12.x; v13+ requires commercial license)  |
+| [ModernMediator](https://github.com/evanscoapps/ModernMediator)                  | 2.0.0            | Source generators + DI            | MIT                                                   |
+| [martinothamar/Mediator](https://github.com/martinothamar/Mediator)              | 3.0.1            | Source generators (monomorphized) | MIT                                                   |
 
 These three libraries represent distinct architectural trade-offs. MediatR uses runtime reflection with DI container resolution. ModernMediator uses source generators for registration and diagnostics with runtime-composable pipeline behaviors. martinothamar/Mediator uses source generators to produce monomorphized dispatch methods — a concrete method per request type with no dictionary lookup or virtual dispatch at runtime.
+
+These benchmarks use MediatR 12.4.1, the last major open-source release under the Apache 2.0 license. MediatR v13+ is dual-licensed commercial software under Lucky Penny Software and may have different performance characteristics. Results here apply only to the version tested.
 
 ## Results
 
@@ -97,7 +99,7 @@ These three libraries occupy different positions on the speed-versus-flexibility
 
 **martinothamar/Mediator** is the raw speed leader. It achieves this by generating a concrete monomorphized method for every request type at compile time. There is no dictionary lookup and no virtual dispatch. The trade-off is that pipeline behaviors are source-generator-controlled rather than runtime-composable. The library does not ship built-in validation, logging, telemetry, or timeout behaviors. It has been in 3.x preview since early 2024.
 
-**MediatR** is the established incumbent with the largest ecosystem. It uses runtime reflection and DI container resolution, which gives it full runtime flexibility at the cost of higher allocations per dispatch. As of version 13, MediatR requires a commercial license.
+**MediatR** is the established incumbent with the largest ecosystem. It uses runtime reflection and DI container resolution, which gives it full runtime flexibility at the cost of higher allocations per dispatch. As of version 13, MediatR requires a commercial license. The benchmarks in this document use version 12.4.1, the last major open-source release under the Apache 2.0 license.
 
 **ModernMediator** sits between these two. Source generators handle registration, diagnostics, and endpoint generation at compile time. Pipeline behaviors are runtime-composable through DI, supporting the same `AddBehavior<>()` pattern that MediatR users expect. The library ships with built-in FluentValidation integration, logging, telemetry via `ActivitySource` and `Meter`, timeout enforcement, ASP.NET Core endpoint generation, and a `Result<T>` pattern — all under the MIT license. The `SendAsync` ValueTask path offers a zero-allocation dispatch option that no other full-featured mediator provides.
 
