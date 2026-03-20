@@ -10,7 +10,7 @@ namespace ModernMediator;
 /// Builds and caches Polly resilience pipelines per request type.
 /// Registered as a singleton by <c>AddCircuitBreaker()</c>.
 /// </summary>
-internal sealed class CircuitBreakerRegistry : ICircuitBreakerRegistry
+public sealed class CircuitBreakerRegistry : ICircuitBreakerRegistry
 {
     private readonly ConcurrentDictionary<Type, object> _pipelines = new();
 
