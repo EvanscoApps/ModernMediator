@@ -573,6 +573,105 @@ namespace ModernMediator
         }
 
         /// <summary>
+        /// Adds the idempotency pipeline behavior.
+        /// Registers <see cref="IdempotencyBehavior{TRequest, TResponse}"/> as an open
+        /// generic pipeline behavior. Requests opt in by decorating with
+        /// <see cref="IdempotentAttribute"/>.
+        /// </summary>
+        /// <param name="configure">Optional action to configure idempotency options.</param>
+        /// <returns>The configuration for chaining.</returns>
+        public MediatorConfiguration AddIdempotency(
+            Action<IdempotencyOptions>? configure = null)
+        {
+            var options = new IdempotencyOptions();
+            configure?.Invoke(options);
+
+            switch (options.StoreMode)
+            {
+                case IdempotencyStoreMode.InMemory:
+                    Services.AddMemoryCache();
+                    Services.TryAddSingleton<IIdempotencyStore, InMemoryIdempotencyStore>();
+                    break;
+                case IdempotencyStoreMode.DistributedCache:
+                    Services.TryAddSingleton<IIdempotencyStore, DistributedIdempotencyStore>();
+                    break;
+            }
+
+            Services.Add(new ServiceDescriptor(
+                typeof(IPipelineBehavior<,>),
+                typeof(IdempotencyBehavior<,>),
+                BehaviorLifetime));
+
+            return this;
+        }
+
+        /// <summary>
+        /// Adds the retry pipeline behavior.
+        /// Registers <see cref="RetryBehavior{TRequest, TResponse}"/> as an open generic
+        /// pipeline behavior. Requests opt in by decorating with <see cref="RetryAttribute"/>.
+        /// </summary>
+        /// <param name="configure">Optional action to configure retry options.</param>
+        /// <returns>The configuration for chaining.</returns>
+        public MediatorConfiguration AddRetry(Action<RetryOptions>? configure = null)
+        {
+            var options = new RetryOptions();
+            configure?.Invoke(options);
+            Services.AddSingleton(options);
+            Services.Add(new ServiceDescriptor(
+                typeof(IPipelineBehavior<,>),
+                typeof(RetryBehavior<,>),
+                BehaviorLifetime));
+            return this;
+        }
+
+        /// <summary>
+        /// Adds the audit pipeline behavior.
+        /// Registers <see cref="AuditBehavior{TRequest, TResponse}"/> as an open generic
+        /// pipeline behavior. All requests are audited unless decorated with
+        /// <see cref="NoAuditAttribute"/>. Requires a registered <see cref="IAuditWriter"/>
+        /// implementation.
+        /// </summary>
+        /// <typeparam name="TWriter">The <see cref="IAuditWriter"/> implementation to register.</typeparam>
+        /// <param name="configure">Optional action to configure audit options.</param>
+        /// <returns>The configuration for chaining.</returns>
+        public MediatorConfiguration AddAudit<TWriter>(
+            Action<AuditOptions>? configure = null)
+            where TWriter : class, IAuditWriter
+        {
+            var options = new AuditOptions();
+            configure?.Invoke(options);
+            Services.AddSingleton(options);
+            Services.AddSingleton<IAuditWriter, TWriter>();
+
+            if (options.DispatchMode == AuditDispatchMode.Channel)
+                AuditHostedServiceExtensions.AddAuditChannelInfrastructure(Services, options);
+
+            Services.Add(new ServiceDescriptor(
+                typeof(IPipelineBehavior<,>),
+                typeof(AuditBehavior<,>),
+                BehaviorLifetime));
+
+            return this;
+        }
+
+        /// <summary>
+        /// Adds the circuit breaker pipeline behavior.
+        /// Registers <see cref="CircuitBreakerBehavior{TRequest, TResponse}"/> as an open
+        /// generic pipeline behavior. Requests opt in by decorating with
+        /// <see cref="CircuitBreakerAttribute"/>. Circuit state is scoped per request type.
+        /// </summary>
+        /// <returns>The configuration for chaining.</returns>
+        public MediatorConfiguration AddCircuitBreaker()
+        {
+            Services.TryAddSingleton<ICircuitBreakerRegistry, CircuitBreakerRegistry>();
+            Services.Add(new ServiceDescriptor(
+                typeof(IPipelineBehavior<,>),
+                typeof(CircuitBreakerBehavior<,>),
+                BehaviorLifetime));
+            return this;
+        }
+
+        /// <summary>
         /// Register an open generic exception handler (applies to all requests for a specific exception type).
         /// </summary>
         /// <param name="openExceptionHandlerType">The open generic exception handler type.</param>
