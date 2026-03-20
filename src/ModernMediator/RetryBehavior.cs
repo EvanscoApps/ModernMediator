@@ -47,7 +47,7 @@ public sealed class RetryBehavior<TRequest, TResponse>
     {
         var attribute = GetAttribute();
 
-        if (attribute is null)
+        if (attribute is null || attribute.MaxAttempts <= 1)
             return await next(request, cancellationToken).ConfigureAwait(false);
 
         var pipeline = GetOrCreatePipeline(attribute);
