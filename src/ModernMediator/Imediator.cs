@@ -30,7 +30,7 @@ namespace ModernMediator
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The response from the handler.</returns>
         /// <exception cref="InvalidOperationException">Thrown when no handler or multiple handlers are registered.</exception>
-        Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
+        new Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
 
         #endregion
 
@@ -54,7 +54,7 @@ namespace ModernMediator
         /// }
         /// </code>
         /// </example>
-        IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default);
+        new IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default);
 
         #endregion
 
