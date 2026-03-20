@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{11111111-111
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{22222222-2222-2222-2222-222222222222}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MordernMediator.Generators.Tests", "tests\MordernMediator.Generators.Tests\MordernMediator.Generators.Tests.csproj", "{7E4E1F2F-87F2-C189-E44E-FECB8DEEF186}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernMediator.Generators.Tests", "tests\ModernMediator.Generators.Tests\ModernMediator.Generators.Tests.csproj", "{7E4E1F2F-87F2-C189-E44E-FECB8DEEF186}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
 	ProjectSection(SolutionItems) = preProject
