@@ -23,9 +23,11 @@ namespace ModernMediator
     /// so the reflection cost is incurred only once per request type for the lifetime of the
     /// application. This is an accepted tradeoff for attribute-driven timeout configuration.
     /// </remarks>
+#pragma warning disable MM006
     public class TimeoutBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
         where TRequest : IRequest<TResponse>
     {
+#pragma warning restore MM006
         private static readonly ConcurrentDictionary<Type, int?> TimeoutCache = new();
 
         /// <summary>

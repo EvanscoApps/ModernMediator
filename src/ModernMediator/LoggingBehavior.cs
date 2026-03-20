@@ -12,9 +12,11 @@ namespace ModernMediator
     /// </summary>
     /// <typeparam name="TRequest">The request type.</typeparam>
     /// <typeparam name="TResponse">The response type.</typeparam>
+#pragma warning disable MM006
     public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
         where TRequest : IRequest<TResponse>
     {
+#pragma warning restore MM006
         private readonly ILogger<LoggingBehavior<TRequest, TResponse>> _logger;
         private readonly LoggingOptions _options;
 
