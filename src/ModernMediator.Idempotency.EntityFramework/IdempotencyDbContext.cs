@@ -8,7 +8,7 @@ namespace ModernMediator.Idempotency.EntityFramework;
 /// Kept separate from the caller's application context following the same
 /// pattern as <c>AuditDbContext</c>. See ADR-003 and ADR-004.
 /// </summary>
-public sealed class IdempotencyDbContext : DbContext
+public class IdempotencyDbContext : DbContext
 {
     /// <summary>
     /// Initializes a new instance of <see cref="IdempotencyDbContext"/>.
