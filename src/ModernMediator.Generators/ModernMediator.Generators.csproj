@@ -12,6 +12,9 @@
 
 		<!-- Package info -->
 		<PackageId>ModernMediator.Generators</PackageId>
+		<Version>2.1.0</Version>
+		<AssemblyVersion>2.1.0.0</AssemblyVersion>
+		<FileVersion>2.1.0.0</FileVersion>
 		<Description>Source generators for ModernMediator - enables AOT compilation and eliminates reflection</Description>
 		<Authors>Rob Evans</Authors>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>

@@ -9,9 +9,9 @@
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<!-- Package info -->
 		<PackageId>ModernMediator.AspNetCore.Generators</PackageId>
-		<Version>2.0.0</Version>
-		<AssemblyVersion>2.0.0.0</AssemblyVersion>
-		<FileVersion>2.0.0.0</FileVersion>
+		<Version>2.1.0</Version>
+		<AssemblyVersion>2.1.0.0</AssemblyVersion>
+		<FileVersion>2.1.0.0</FileVersion>
 		<Description>Source generators for ModernMediator ASP.NET Core Minimal API endpoint generation.</Description>
 		<Authors>EvanscoApps</Authors>
 		<Company>EvanscoApps LLC</Company>

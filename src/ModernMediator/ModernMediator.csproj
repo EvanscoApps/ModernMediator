@@ -6,9 +6,9 @@
 		<LangVersion>latest</LangVersion>
 		<!-- Package info -->
 		<PackageId>ModernMediator</PackageId>
-		<Version>2.0.0</Version>
-		<AssemblyVersion>2.0.0.0</AssemblyVersion>
-		<FileVersion>2.0.0.0</FileVersion>
+		<Version>2.1.0</Version>
+		<AssemblyVersion>2.1.0.0</AssemblyVersion>
+		<FileVersion>2.1.0.0</FileVersion>
 		<Authors>EvanscoApps</Authors>
 		<Company>EvanscoApps LLC</Company>
 		<Copyright>Copyright © 2026 EvanscoApps LLC</Copyright>
