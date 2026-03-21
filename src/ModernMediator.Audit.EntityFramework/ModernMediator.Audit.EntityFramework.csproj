@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+        <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <ImplicitUsings>disable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+                <LangVersion>latest</LangVersion>
+                <!-- Package info -->
+                <PackageId>ModernMediator.Audit.EntityFramework</PackageId>
+                <Version>2.1.0</Version>
+                <AssemblyVersion>2.1.0.0</AssemblyVersion>
+                <FileVersion>2.1.0.0</FileVersion>
+                <Authors>EvanscoApps</Authors>
+                <Company>EvanscoApps LLC</Company>
+                <Copyright>Copyright © 2026 EvanscoApps LLC</Copyright>
+                <Description>Entity Framework Core audit writer for ModernMediator. Persists AuditRecord instances to a dedicated AuditDbContext using a separate database context to avoid transactional coupling with application data. See ADR-003.</Description>
+                <PackageTags>mediator;audit;entityframework;efcore;cqrs;pipeline</PackageTags>
+                <PackageLicenseExpression>MIT</PackageLicenseExpression>
+                <PackageProjectUrl>https://github.com/evanscoapps/ModernMediator</PackageProjectUrl>
+                <RepositoryUrl>https://github.com/evanscoapps/ModernMediator</RepositoryUrl>
+                <RepositoryType>git</RepositoryType>
+        </PropertyGroup>
+        <ItemGroup>
+                <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2" />
+                <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.2" />
+                <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+        </ItemGroup>
+        <ItemGroup>
+                <ProjectReference Include="..\ModernMediator\ModernMediator.csproj" />
+        </ItemGroup>
+</Project>
