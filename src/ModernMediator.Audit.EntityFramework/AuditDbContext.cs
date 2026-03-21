@@ -7,7 +7,7 @@ namespace ModernMediator.Audit.EntityFramework;
 /// instances. Kept separate from the caller's application context to avoid
 /// transactional coupling and thread-safety issues. See ADR-003.
 /// </summary>
-public sealed class AuditDbContext : DbContext
+public class AuditDbContext : DbContext
 {
     /// <summary>
     /// Initializes a new instance of <see cref="AuditDbContext"/>.
