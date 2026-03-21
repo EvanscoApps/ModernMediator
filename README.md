@@ -11,7 +11,7 @@ Production-ready. Please report issues on GitHub.
 ## Documentation
 
 📖 [Interactive Tutorial](https://evanscoapps.github.io/ModernMediator/ModernMediator-Tutorial.html)
-📊 [Benchmarks](BENCHMARKS.md)
+📊 [Benchmarks](https://github.com/evanscoapps/ModernMediator/blob/main/BENCHMARKS.md)
 
 ## Do You Need a Mediator?
 
@@ -72,7 +72,7 @@ ModernMediator ships built-in behaviors for validation (via FluentValidation), l
 ### Performance
 - **ValueTask Pipeline** — `IValueTaskRequestHandler` and `ISender.SendAsync` for zero-allocation dispatch
 - **Closure Elimination** — `RequestHandlerDelegate<TRequest, TResponse>` passes request and token explicitly
-- **Lower allocations than MediatR** on every benchmark — see [BENCHMARKS.md](BENCHMARKS.md)
+- **Lower allocations than MediatR** on every benchmark — see 📊 [Benchmarks](https://github.com/evanscoapps/ModernMediator/blob/main/BENCHMARKS.md)
 - **4x faster cold start** than MediatR via source-generated registration
 
 ### Observability
@@ -796,7 +796,7 @@ MediatR v12.x is the last open-source release under the Apache 2.0 license. Medi
 
 ### Performance vs MediatR
 
-ModernMediator allocates less memory than MediatR 12.4.1 on every benchmark. The `SendAsync` ValueTask path is over 2x faster with 80% fewer allocations. MediatR v13+ may have different performance characteristics. See [BENCHMARKS.md](BENCHMARKS.md) for full three-way results including martinothamar/Mediator.
+ModernMediator allocates less memory than MediatR 12.4.1 on every benchmark. The `SendAsync` ValueTask path is over 2x faster with 80% fewer allocations. MediatR v13+ may have different performance characteristics. See 📊 [Benchmarks](https://github.com/evanscoapps/ModernMediator/blob/main/BENCHMARKS.md) for full three-way results including martinothamar/Mediator.
 
 ### ModernMediator vs Prism EventAggregator
 
