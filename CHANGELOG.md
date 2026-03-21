@@ -40,6 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   database with fingerprint-keyed deduplication and TTL expiry
 - **`AddModernMediatorAspNetCore()`**: now registers `IHttpContextAccessor` automatically;
   previously a no-op placeholder
+- **`AuditRecord.TraceId`**: automatically populated from
+  `Activity.Current` when an active distributed trace is present;
+  null when no trace context exists
 
 ### Changed
 - Total publishable packages increased from four to seven

@@ -39,12 +39,13 @@ public sealed class SerilogAuditWriter : IAuditWriter
 
         _logger.Write(level,
             "Audit | {RequestTypeName} | User: {UserId} | Succeeded: {Succeeded} | " +
-            "Duration: {DurationMs}ms | CorrelationId: {CorrelationId} | " +
-            "Failure: {FailureReason}",
+            "Duration: {DurationMs}ms | TraceId: {TraceId} | " +
+            "CorrelationId: {CorrelationId} | Failure: {FailureReason}",
             record.RequestTypeName,
             record.UserId ?? "anonymous",
             record.Succeeded,
             record.Duration.TotalMilliseconds,
+            record.TraceId ?? "none",
             record.CorrelationId ?? "none",
             record.FailureReason ?? string.Empty);
 

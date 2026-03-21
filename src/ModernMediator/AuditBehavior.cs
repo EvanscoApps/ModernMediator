@@ -144,7 +144,8 @@ public sealed class AuditBehavior<TRequest, TResponse>
             Succeeded = succeeded,
             FailureReason = failureReason,
             Duration = duration,
-            CorrelationId = null
+            CorrelationId = null,
+            TraceId = Activity.Current?.TraceId.ToString()
         };
     }
 

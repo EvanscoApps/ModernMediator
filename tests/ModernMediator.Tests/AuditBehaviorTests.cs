@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -215,5 +216,50 @@ public sealed class AuditBehaviorTests
 
         Assert.Single(writer.Records);
         Assert.True(writer.Records[0].Succeeded);
+    }
+
+    [Fact]
+    public async Task Handle_AuditedRequest_ActiveActivity_TraceIdPopulated()
+    {
+        var (behavior, _, channel) = BuildChannelBehavior<AuditedRequest, string>();
+
+        using var activitySource = new ActivitySource("TestSource");
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = _ => true,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        using var activity = activitySource.StartActivity("TestOperation");
+        Assert.NotNull(activity);
+
+        await behavior.Handle(
+            new AuditedRequest { Value = "traced" },
+            (_, _) => Task.FromResult("ok"),
+            CancellationToken.None);
+
+        var record = await DrainOneAsync(channel);
+
+        Assert.NotNull(record.TraceId);
+        Assert.Equal(activity.TraceId.ToString(), record.TraceId);
+    }
+
+    [Fact]
+    public async Task Handle_AuditedRequest_NoActivity_TraceIdIsNull()
+    {
+        var (behavior, _, channel) = BuildChannelBehavior<AuditedRequest, string>();
+
+        // Ensure no ambient Activity
+        Activity.Current = null;
+
+        await behavior.Handle(
+            new AuditedRequest { Value = "untraced" },
+            (_, _) => Task.FromResult("ok"),
+            CancellationToken.None);
+
+        var record = await DrainOneAsync(channel);
+
+        Assert.Null(record.TraceId);
     }
 }

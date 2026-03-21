@@ -56,7 +56,7 @@ ModernMediator ships built-in behaviors for validation (via FluentValidation), l
 - **Built-in LoggingBehavior** — Request/response logging with configurable levels via `AddLogging()`
 - **Built-in TimeoutBehavior** — Per-request timeout via `[Timeout(ms)]` attribute and `AddTimeout()`
 - **Built-in ValidationBehavior** — FluentValidation integration via `ModernMediator.FluentValidation`
-- **Built-in AuditBehavior** — per-request audit recording (type, user, duration, outcome) dispatched to any `IAuditWriter`; opt out with `[NoAudit]`; registered via `AddAudit()`
+- **Built-in AuditBehavior** — per-request audit recording (type, user, trace ID, duration, outcome) dispatched to any `IAuditWriter`; opt out with `[NoAudit]`; registered via `AddAudit()`
 - **Built-in IdempotencyBehavior** — deduplicates requests marked `[Idempotent]` by key and TTL using any `IIdempotencyStore`; registered via `AddIdempotency()`
 - **Built-in CircuitBreakerBehavior** — per-request-type circuit breaker via `[CircuitBreaker]` attribute; open circuit throws `CircuitBreakerOpenException`; registered via `AddCircuitBreaker()`
 - **Built-in RetryBehavior** — automatic retry with configurable count and delay strategy (None, Fixed, Linear, Exponential) via `[Retry]` attribute; registered via `AddRetry()`

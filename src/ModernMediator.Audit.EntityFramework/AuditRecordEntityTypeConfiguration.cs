@@ -50,5 +50,10 @@ public sealed class AuditRecordEntityTypeConfiguration
 
         builder.Property(r => r.CorrelationId)
             .HasMaxLength(256);
+
+        builder.Property(r => r.TraceId)
+            .HasMaxLength(32)
+            .IsUnicode(false)
+            .IsRequired(false);
     }
 }

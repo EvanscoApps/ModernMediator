@@ -48,4 +48,10 @@ public sealed class AuditRecord
     /// or <c>null</c> if no correlation id was available.
     /// </summary>
     public string? CorrelationId { get; init; }
+
+    /// <summary>
+    /// The distributed trace identifier from Activity.Current at the time the
+    /// request entered the pipeline. Null if no active Activity was present.
+    /// </summary>
+    public string? TraceId { get; init; }
 }
