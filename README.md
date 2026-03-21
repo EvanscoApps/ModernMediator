@@ -840,7 +840,7 @@ ModernMediator excels at plugin architectures where plugins load/unload at runti
 Built-in UI thread dispatchers, memory-efficient weak references, easy decoupling of components. Replaces both EventAggregator and MediatR.
 
 ### ASP.NET Core
-Full DI integration with proper scoped service support. Request/response for CQRS patterns. Built-in pipeline behaviors for validation, logging, telemetry, and timeout. `[Endpoint]` attribute for Minimal API generation. Handlers can inject scoped services like `DbContext`.
+Full DI integration with proper scoped service support. Request/response for CQRS patterns. Built-in pipeline behaviors for validation, logging, telemetry, and timeout. `[Endpoint]` attribute for Minimal API generation. Handlers can inject scoped services like `DbContext`. Call `services.AddModernMediatorAspNetCore()` to register `IHttpContextAccessor` and other ASP.NET Core integration services in one step.
 
 ### Large Dataset Processing
 Streaming with `IAsyncEnumerable` for memory efficiency. Cancellation support for long-running operations. Backpressure-friendly enumeration.

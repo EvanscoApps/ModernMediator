@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ModernMediator.Idempotency.EntityFramework** (new package): `EfCoreIdempotencyStore`
   and `IdempotencyDbContext` — persists idempotency entries to any EF Core-supported
   database with fingerprint-keyed deduplication and TTL expiry
+- **`AddModernMediatorAspNetCore()`**: now registers `IHttpContextAccessor` automatically;
+  previously a no-op placeholder
 
 ### Changed
 - Total publishable packages increased from four to seven

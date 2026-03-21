@@ -2389,7 +2389,10 @@ public record CallThirdPartyApiQuery(string Endpoint) : IRequest<ApiResponse>;`
             },
             'current-user-code': {
                 title: 'Current User Accessor',
-                code: `// ASP.NET Core — register HttpContextCurrentUserAccessor
+                code: `// Register ASP.NET Core integration services (registers IHttpContextAccessor)
+services.AddModernMediatorAspNetCore();
+
+// ASP.NET Core — register HttpContextCurrentUserAccessor
 // (requires ModernMediator.AspNetCore)
 services.AddAspNetCoreCurrentUser();
 
