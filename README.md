@@ -56,6 +56,10 @@ ModernMediator ships built-in behaviors for validation (via FluentValidation), l
 - **Built-in LoggingBehavior** — Request/response logging with configurable levels via `AddLogging()`
 - **Built-in TimeoutBehavior** — Per-request timeout via `[Timeout(ms)]` attribute and `AddTimeout()`
 - **Built-in ValidationBehavior** — FluentValidation integration via `ModernMediator.FluentValidation`
+- **Built-in AuditBehavior** — per-request audit recording (type, user, duration, outcome) dispatched to any `IAuditWriter`; opt out with `[NoAudit]`; registered via `AddAudit()`
+- **Built-in IdempotencyBehavior** — deduplicates requests marked `[Idempotent]` by key and TTL using any `IIdempotencyStore`; registered via `AddIdempotency()`
+- **Built-in CircuitBreakerBehavior** — per-request-type circuit breaker via `[CircuitBreaker]` attribute; open circuit throws `CircuitBreakerOpenException`; registered via `AddCircuitBreaker()`
+- **Built-in RetryBehavior** — automatic retry with configurable count and delay strategy (None, Fixed, Linear, Exponential) via `[Retry]` attribute; registered via `AddRetry()`
 
 ### Source Generators & AOT
 - **Source Generators** — Compile-time code generation eliminates reflection
@@ -87,6 +91,7 @@ ModernMediator ships built-in behaviors for validation (via FluentValidation), l
 - **Predicate Filters** — Filter messages at subscription time
 - **Covariance** — Subscribe to base types, receive derived messages
 - **String Key Routing** — Topic-based subscriptions alongside type-based
+- **ICurrentUserAccessor** — abstraction for resolving current user identity in pipeline behaviors; `HttpContextCurrentUserAccessor` (in `ModernMediator.AspNetCore`) resolves `UserId` and `UserName` from `IHttpContextAccessor`
 
 ### Async-First Design
 - **True Async Handlers** — `SubscribeAsync` with proper `Task.WhenAll` aggregation
@@ -119,6 +124,9 @@ Optional packages:
 ```bash
 dotnet add package ModernMediator.FluentValidation
 dotnet add package ModernMediator.AspNetCore
+dotnet add package ModernMediator.Audit.Serilog
+dotnet add package ModernMediator.Audit.EntityFramework
+dotnet add package ModernMediator.Idempotency.EntityFramework
 ```
 
 ## Quick Start
@@ -325,15 +333,27 @@ ModernMediator ships behaviors for common cross-cutting concerns:
 services.AddModernMediator(config =>
 {
     config.RegisterServicesFromAssemblyContaining<Program>();
-    
+
     // Built-in logging with configurable levels
     config.AddLogging();
-    
+
     // Per-request timeout enforcement via [Timeout(ms)] attribute
     config.AddTimeout();
-    
+
     // OpenTelemetry traces and metrics
     config.AddTelemetry();
+
+    // Audit recording — pluggable IAuditWriter, opt out with [NoAudit]
+    config.AddAudit();
+
+    // Request deduplication — pluggable IIdempotencyStore, opt in with [Idempotent]
+    config.AddIdempotency();
+
+    // Per-request-type circuit breaker via [CircuitBreaker] attribute
+    config.AddCircuitBreaker();
+
+    // Automatic retry with configurable delay strategy via [Retry] attribute
+    config.AddRetry();
 });
 
 // FluentValidation integration (separate package)
@@ -368,6 +388,24 @@ services.AddModernMediator(config =>
     config.AddOpenBehavior(typeof(TransactionBehavior<,>));
 });
 ```
+
+#### Recommended Registration Order
+
+Behaviors execute in registration order (first registered = outermost). For the built-in
+behaviors, register them in this sequence so each layer wraps the one inside it correctly:
+
+| Order | Behavior              | Registration              | Reason                                              |
+| :---: | :-------------------- | :------------------------ | :-------------------------------------------------- |
+| 1     | RetryBehavior         | `AddRetry()`              | Outermost — retries the entire inner pipeline       |
+| 2     | CircuitBreakerBehavior| `AddCircuitBreaker()`     | Fails fast before attempting work                   |
+| 3     | TimeoutBehavior       | `AddTimeout()`            | Enforces ceiling on each attempt                    |
+| 4     | AuditBehavior         | `AddAudit()`              | Records outcome of each attempt                     |
+| 5     | IdempotencyBehavior   | `AddIdempotency()`        | Short-circuits before validation if already handled |
+| 6     | LoggingBehavior       | `AddLogging()`            | Logs the request entering the inner pipeline        |
+| 7     | ValidationBehavior    | `AddOpenBehavior(typeof(ValidationBehavior<,>))` | Rejects invalid requests before handler |
+| 8     | Handler               | —                         | Executes the business logic                         |
+
+You are not required to register all behaviors — only the ones your application needs.
 
 > **Note:** Assembly scanning skips open generic types. Always use `AddOpenBehavior()` for behaviors that apply to all request types.
 
@@ -739,6 +777,11 @@ MediatR v12.x is the last open-source release under the Apache 2.0 license. Medi
 | Built-in Timeout Behavior      | ✅ AddTimeout()       | ❌ No                      |
 | Built-in Validation Behavior   | ✅ FluentValidation   | ❌ No                      |
 | OpenTelemetry Integration      | ✅ AddTelemetry()     | ❌ No                      |
+| Built-in Audit Behavior        | ✅ AddAudit()         | ❌ No                      |
+| Built-in Idempotency Behavior  | ✅ AddIdempotency()   | ❌ No                      |
+| Built-in Circuit Breaker       | ✅ AddCircuitBreaker()| ❌ No                      |
+| Built-in Retry Behavior        | ✅ AddRetry()         | ❌ No                      |
+| Current User Accessor          | ✅ ICurrentUserAccessor| ❌ No                     |
 | Endpoint Generation            | ✅ [Endpoint]         | ❌ No                      |
 | ISender/IPublisher/IStreamer    | ✅ Segregated         | ✅ ISender only            |
 | Weak References                | ✅ Yes                | ❌ No                      |

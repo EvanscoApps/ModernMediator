@@ -5,7 +5,46 @@ All notable changes to ModernMediator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## ## [2.0.0] — 2026-03-07
+## [2.1.0] — 2026-03-21
+
+### Added
+- **AuditBehavior**: pipeline behavior that captures per-request audit records
+  (RequestTypeName, UserId, CorrelationId, duration, success/failure) and dispatches
+  them to any `IAuditWriter` implementation; registered via `AddAudit()`
+- **`[NoAudit]` attribute**: opt individual request types out of audit recording
+- **AuditChannelDrainer** and **AuditHostedServiceExtensions**: fire-and-forget async
+  drain loop via `System.Threading.Channels`; registered via `AddAuditDrainer()`
+- **IdempotencyBehavior**: deduplicates requests marked with `[Idempotent]` by key
+  and TTL using any `IIdempotencyStore` implementation; registered via `AddIdempotency()`
+- **InMemoryIdempotencyStore**: built-in in-process idempotency store
+- **DistributedIdempotencyStore**: `IDistributedCache`-backed idempotency store
+- **CircuitBreakerBehavior**: per-request-type circuit breaker enforced via
+  `[CircuitBreaker]` attribute; open circuit throws `CircuitBreakerOpenException`;
+  registered via `AddCircuitBreaker()`
+- **RetryBehavior**: automatic retry with configurable count and delay strategy
+  (None, Fixed, Linear, Exponential) via `[Retry]` attribute;
+  registered via `AddRetry()`
+- **ICurrentUserAccessor**: abstraction for resolving the current user identity
+  within pipeline behaviors
+- **HttpContextCurrentUserAccessor** (`ModernMediator.AspNetCore`): `IHttpContextAccessor`-
+  backed implementation exposing `UserId` (NameIdentifier claim) and `UserName`
+  (Name claim); registered via `AddAspNetCoreCurrentUser()`
+- **AspNetCoreAuditExtensions** (`ModernMediator.AspNetCore`): convenience extension
+  wiring `HttpContextCurrentUserAccessor` into the audit pipeline
+- **ModernMediator.Audit.Serilog** (new package): `SerilogAuditWriter` — structured
+  Serilog sink for audit records; logs at Information on success, Warning on failure
+- **ModernMediator.Audit.EntityFramework** (new package): `EfCoreAuditWriter` and
+  `AuditDbContext` — persists audit records to any EF Core-supported database
+- **ModernMediator.Idempotency.EntityFramework** (new package): `EfCoreIdempotencyStore`
+  and `IdempotencyDbContext` — persists idempotency entries to any EF Core-supported
+  database with fingerprint-keyed deduplication and TTL expiry
+
+### Changed
+- Total publishable packages increased from four to seven
+
+---
+
+## [2.0.0] — 2026-03-07
 
 ### Added
 - **Compile-time diagnostics** (MM001–MM008, MM100): nine diagnostic rules enforced
@@ -118,6 +157,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Predicate filters for subscriptions
 - Covariant message dispatch
 
+[2.1.0]: https://github.com/evanscoapps/ModernMediator/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/evanscoapps/ModernMediator/compare/v0.2.2-alpha...v2.0.0
 [0.2.2-alpha]: https://github.com/EvanscoApps/ModernMediator/compare/v0.2.1-alpha...v0.2.2-alpha
 [0.2.1-alpha]: https://github.com/EvanscoApps/ModernMediator/compare/v0.2.0-alpha...v0.2.1-alpha

@@ -519,7 +519,7 @@
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">ModernMediator</div>
-            <div class="sidebar-version">v2.0.0</div>
+            <div class="sidebar-version">v2.1.0</div>
         </div>
 
         <div class="nav-section">
@@ -552,6 +552,15 @@
         </div>
 
         <div class="nav-section">
+            <div class="nav-section-title">v2.1 Features</div>
+            <a href="#audit-behavior" class="nav-link">Audit Behavior</a>
+            <a href="#idempotency-behavior" class="nav-link">Idempotency Behavior</a>
+            <a href="#circuit-breaker-behavior" class="nav-link">Circuit Breaker</a>
+            <a href="#retry-behavior" class="nav-link">Retry Behavior</a>
+            <a href="#current-user-accessor" class="nav-link">Current User Accessor</a>
+        </div>
+
+        <div class="nav-section">
             <div class="nav-section-title">Advanced</div>
             <a href="#source-generators" class="nav-link">Source Generators</a>
             <a href="#caching-mode" class="nav-link">CachingMode</a>
@@ -579,7 +588,7 @@
         <header class="hero">
             <h1>ModernMediator</h1>
             <p class="hero-subtitle">A Comprehensive Tutorial</p>
-            <span class="hero-version">Version 2.0.0</span>
+            <span class="hero-version">Version 2.1.0</span>
         </header>
 
         <div class="content">
@@ -909,6 +918,30 @@
                             <tr><td>TimeoutBehavior</td><td><code>AddTimeout()</code></td><td>Enforces per-request timeouts via <code>[Timeout(ms)]</code> attribute</td></tr>
                             <tr><td>ValidationBehavior</td><td><code>AddOpenBehavior(typeof(ValidationBehavior&lt;,&gt;))</code></td><td>Runs FluentValidation validators before the handler (requires ModernMediator.FluentValidation package)</td></tr>
                             <tr><td>TelemetryBehavior</td><td><code>AddTelemetry()</code></td><td>Emits OpenTelemetry traces and metrics for every request</td></tr>
+                            <tr><td>AuditBehavior</td><td><code>AddAudit()</code></td><td>Records per-request audit entries (type, user, duration, outcome) dispatched to any <code>IAuditWriter</code>; opt out with <code>[NoAudit]</code></td></tr>
+                            <tr><td>IdempotencyBehavior</td><td><code>AddIdempotency()</code></td><td>Deduplicates requests marked <code>[Idempotent]</code> by key and TTL using any <code>IIdempotencyStore</code></td></tr>
+                            <tr><td>CircuitBreakerBehavior</td><td><code>AddCircuitBreaker()</code></td><td>Per-request-type circuit breaker via <code>[CircuitBreaker]</code> attribute; open circuit throws <code>CircuitBreakerOpenException</code></td></tr>
+                            <tr><td>RetryBehavior</td><td><code>AddRetry()</code></td><td>Automatic retry with configurable count and delay strategy (None, Fixed, Linear, Exponential) via <code>[Retry]</code> attribute</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Recommended Registration Order</h3>
+                <p>Behaviors execute in registration order — first registered is outermost. Register built-in behaviors in this sequence so each layer wraps the one inside it correctly:</p>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Order</th><th>Behavior</th><th>Registration</th><th>Reason</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>1</td><td>RetryBehavior</td><td><code>AddRetry()</code></td><td>Outermost — retries the entire inner pipeline</td></tr>
+                            <tr><td>2</td><td>CircuitBreakerBehavior</td><td><code>AddCircuitBreaker()</code></td><td>Fails fast before attempting work</td></tr>
+                            <tr><td>3</td><td>TimeoutBehavior</td><td><code>AddTimeout()</code></td><td>Enforces ceiling on each attempt</td></tr>
+                            <tr><td>4</td><td>AuditBehavior</td><td><code>AddAudit()</code></td><td>Records outcome of each attempt</td></tr>
+                            <tr><td>5</td><td>IdempotencyBehavior</td><td><code>AddIdempotency()</code></td><td>Short-circuits before validation if already handled</td></tr>
+                            <tr><td>6</td><td>LoggingBehavior</td><td><code>AddLogging()</code></td><td>Logs the request entering the inner pipeline</td></tr>
+                            <tr><td>7</td><td>ValidationBehavior</td><td><code>AddOpenBehavior(typeof(ValidationBehavior&lt;,&gt;))</code></td><td>Rejects invalid requests before handler</td></tr>
+                            <tr><td>8</td><td>Handler</td><td>—</td><td>Executes the business logic</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1406,6 +1439,163 @@
                 </button>
             </section>
 
+            <!-- Audit Behavior -->
+            <section id="audit-behavior">
+                <h2>Audit Behavior</h2>
+                <p><code>AuditBehavior</code> captures a structured record of every request that passes through the pipeline — including the request type, current user identity, correlation ID, duration, and whether the request succeeded or failed. Records are dispatched asynchronously to any <code>IAuditWriter</code> implementation, so writing to Serilog, a database, or a custom sink requires no changes to the behavior itself.</p>
+
+                <p>Individual request types can opt out of auditing by decorating the request record with <code>[NoAudit]</code>. Audit drain is handled by a hosted background service registered via <code>AddAuditDrainer()</code>, which processes records from an in-memory channel without blocking the request pipeline.</p>
+
+                <h3>What Gets Recorded</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Field</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>RequestTypeName</td><td>Full name of the request type</td></tr>
+                            <tr><td>UserId</td><td>Resolved from <code>ICurrentUserAccessor</code>; null if not configured</td></tr>
+                            <tr><td>CorrelationId</td><td>Optional correlation identifier for request tracing</td></tr>
+                            <tr><td>DurationMs</td><td>Elapsed milliseconds from pipeline entry to handler return</td></tr>
+                            <tr><td>Succeeded</td><td>True if handler returned without exception</td></tr>
+                            <tr><td>FailureReason</td><td>Exception message if the request failed; null on success</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Available Writers</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Package</th><th>Writer</th><th>Notes</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>ModernMediator (core)</td><td>Custom <code>IAuditWriter</code></td><td>Implement the interface directly</td></tr>
+                            <tr><td>ModernMediator.Audit.Serilog</td><td><code>SerilogAuditWriter</code></td><td>Logs at Information on success, Warning on failure</td></tr>
+                            <tr><td>ModernMediator.Audit.EntityFramework</td><td><code>EfCoreAuditWriter</code></td><td>Persists to any EF Core-supported database</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('audit-behavior-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Audit Behavior Example
+                </button>
+            </section>
+
+            <!-- Idempotency Behavior -->
+            <section id="idempotency-behavior">
+                <h2>Idempotency Behavior</h2>
+                <p><code>IdempotencyBehavior</code> prevents duplicate processing of requests that have already been handled. A request marked with <code>[Idempotent]</code> is identified by a fingerprint derived from the request content and type. If a matching fingerprint exists in the configured <code>IIdempotencyStore</code> and has not expired, the cached response is returned immediately — the handler never runs.</p>
+
+                <p>This is essential for operations that must not be applied twice: payments, order submissions, inventory adjustments, or any command where retries from network failures could cause duplicate side effects.</p>
+
+                <h3>Store Options</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Package</th><th>Store</th><th>Notes</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>ModernMediator (core)</td><td><code>InMemoryIdempotencyStore</code></td><td>In-process; does not survive restarts</td></tr>
+                            <tr><td>ModernMediator (core)</td><td><code>DistributedIdempotencyStore</code></td><td>Backed by <code>IDistributedCache</code> (Redis, SQL Server, etc.)</td></tr>
+                            <tr><td>ModernMediator.Idempotency.EntityFramework</td><td><code>EfCoreIdempotencyStore</code></td><td>Persists to any EF Core-supported database with TTL expiry</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('idempotency-behavior-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Idempotency Behavior Example
+                </button>
+            </section>
+
+            <!-- Circuit Breaker Behavior -->
+            <section id="circuit-breaker-behavior">
+                <h2>Circuit Breaker Behavior</h2>
+                <p><code>CircuitBreakerBehavior</code> protects your application from repeatedly calling a handler that is known to be failing. When a request type decorated with <code>[CircuitBreaker]</code> accumulates enough consecutive failures, the circuit opens. While open, subsequent requests for that type are rejected immediately with <code>CircuitBreakerOpenException</code> — no handler invocation occurs.</p>
+
+                <p>After a configured timeout, the circuit moves to half-open and allows a single probe request through. If it succeeds, the circuit closes and normal operation resumes. If it fails, the circuit reopens.</p>
+
+                <h3>Circuit States</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>State</th><th>Behavior</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Closed</td><td>Normal operation — requests pass through to the handler</td></tr>
+                            <tr><td>Open</td><td>Requests rejected immediately with <code>CircuitBreakerOpenException</code></td></tr>
+                            <tr><td>Half-Open</td><td>One probe request allowed through; result determines next state</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="callout">
+                    <p><strong>Per-request-type isolation:</strong> Each request type has its own independent circuit. A failing <code>GetExternalDataQuery</code> does not affect the circuit for <code>CreateOrderCommand</code>.</p>
+                </div>
+
+                <button class="code-btn" onclick="openModal('circuit-breaker-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Circuit Breaker Example
+                </button>
+            </section>
+
+            <!-- Retry Behavior -->
+            <section id="retry-behavior">
+                <h2>Retry Behavior</h2>
+                <p><code>RetryBehavior</code> automatically retries a failing handler a configurable number of times before allowing the exception to propagate. The delay between attempts is controlled by a <code>RetryDelayStrategy</code>, allowing you to implement immediate retry, fixed delay, linear backoff, or exponential backoff depending on the failure characteristics of the handler.</p>
+
+                <p>Apply the <code>[Retry]</code> attribute to any request type to opt in. Requests without the attribute are unaffected.</p>
+
+                <h3>Delay Strategies</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Strategy</th><th>Delay Pattern</th><th>Best For</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>None</td><td>Immediate retry, no delay</td><td>Transient in-memory failures</td></tr>
+                            <tr><td>Fixed</td><td>Same delay between every attempt</td><td>Rate-limited APIs with known reset intervals</td></tr>
+                            <tr><td>Linear</td><td>Delay increases by a fixed amount each attempt</td><td>Gradually backing off under load</td></tr>
+                            <tr><td>Exponential</td><td>Delay doubles each attempt</td><td>Distributed systems, external services</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('retry-behavior-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Retry Behavior Example
+                </button>
+            </section>
+
+            <!-- Current User Accessor -->
+            <section id="current-user-accessor">
+                <h2>Current User Accessor</h2>
+                <p><code>ICurrentUserAccessor</code> is an abstraction that pipeline behaviors use to resolve the identity of the current user without depending on a specific platform or authentication mechanism. The <code>AuditBehavior</code> uses it to populate the <code>UserId</code> field on every audit record.</p>
+
+                <p><code>HttpContextCurrentUserAccessor</code> (in <code>ModernMediator.AspNetCore</code>) is the built-in implementation for ASP.NET Core. It resolves <code>UserId</code> from the <code>NameIdentifier</code> claim and <code>UserName</code> from the <code>Name</code> claim via <code>IHttpContextAccessor</code>. Register it via <code>AddAspNetCoreCurrentUser()</code>.</p>
+
+                <p>For non-ASP.NET Core applications, implement <code>ICurrentUserAccessor</code> directly and register it with the DI container before calling <code>AddAudit()</code>.</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Property</th><th>Source Claim</th><th>Returns</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>UserId</td><td><code>ClaimTypes.NameIdentifier</code></td><td>Claim value or null if absent / no HttpContext</td></tr>
+                            <tr><td>UserName</td><td><code>ClaimTypes.Name</code></td><td>Claim value or null if absent / no HttpContext</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="code-btn" onclick="openModal('current-user-code')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    View Current User Accessor Example
+                </button>
+            </section>
+
             <!-- Conclusion -->
             <section id="conclusion">
                 <h2>Summary</h2>
@@ -1434,6 +1624,11 @@
                     <li><strong>Endpoint Generation</strong> — Source-generated Minimal API endpoints via [Endpoint] attribute</li>
                     <li><strong>Telemetry</strong> — OpenTelemetry traces and metrics with ActivitySource and Meter</li>
                     <li><strong>Interface Segregation</strong> — ISender, IPublisher, and IStreamer for focused dependencies</li>
+                    <li><strong>Audit Behavior</strong> — per-request audit recording dispatched to any IAuditWriter; Serilog and EF Core writers available as separate packages</li>
+                    <li><strong>Idempotency Behavior</strong> — duplicate request prevention via [Idempotent] attribute with pluggable store; in-memory, distributed cache, and EF Core stores included</li>
+                    <li><strong>Circuit Breaker Behavior</strong> — per-request-type circuit breaker via [CircuitBreaker] attribute with closed/open/half-open state management</li>
+                    <li><strong>Retry Behavior</strong> — automatic retry with configurable count and delay strategy (None, Fixed, Linear, Exponential) via [Retry] attribute</li>
+                    <li><strong>Current User Accessor</strong> — ICurrentUserAccessor abstraction with HttpContextCurrentUserAccessor for ASP.NET Core claim resolution</li>
                 </ul>
 
                 <p>ModernMediator combines these features into a cohesive library that supports applications from simple desktop tools to complex distributed systems, with first-class support for modern .NET capabilities including Native AOT compilation.</p>
@@ -2069,6 +2264,158 @@ public class DashboardController
 
     public DashboardController(IMediator mediator) => _mediator = mediator;
 }`
+            },
+            'audit-behavior-code': {
+                title: 'Audit Behavior',
+                code: `// Register audit behavior with Serilog writer (ModernMediator.Audit.Serilog)
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.AddAudit();
+});
+
+// Register the drain loop (processes records from background channel)
+services.AddAuditDrainer();
+
+// Register a writer — choose one:
+
+// Option A: Serilog (requires ModernMediator.Audit.Serilog)
+services.AddSingleton<IAuditWriter, SerilogAuditWriter>();
+
+// Option B: Entity Framework (requires ModernMediator.Audit.EntityFramework)
+services.AddDbContext<AuditDbContext>(opts => opts.UseSqlServer(connectionString));
+services.AddScoped<IAuditWriter, EfCoreAuditWriter>();
+
+// Option C: Custom writer
+services.AddSingleton<IAuditWriter, MyCustomAuditWriter>();
+
+// Opt out of auditing for a specific request type
+[NoAudit]
+public record HealthCheckQuery() : IRequest<string>;
+
+// Wire up ICurrentUserAccessor so UserId is populated in audit records
+// (ASP.NET Core — requires ModernMediator.AspNetCore)
+services.AddAspNetCoreCurrentUser();`
+            },
+            'idempotency-behavior-code': {
+                title: 'Idempotency Behavior',
+                code: `// Register idempotency behavior
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.AddIdempotency();
+});
+
+// Register a store — choose one:
+
+// Option A: In-memory (single process, does not survive restarts)
+services.AddSingleton<IIdempotencyStore, InMemoryIdempotencyStore>();
+
+// Option B: Distributed cache (Redis, SQL Server, etc.)
+services.AddStackExchangeRedisCache(opts => opts.Configuration = redisConnection);
+services.AddSingleton<IIdempotencyStore, DistributedIdempotencyStore>();
+
+// Option C: Entity Framework (requires ModernMediator.Idempotency.EntityFramework)
+services.AddDbContext<IdempotencyDbContext>(opts => opts.UseSqlServer(connectionString));
+services.AddScoped<IIdempotencyStore, EfCoreIdempotencyStore>();
+
+// Mark request types as idempotent — specify TTL in seconds
+[Idempotent(ttlSeconds: 300)] // Cache result for 5 minutes
+public record SubmitPaymentCommand(Guid PaymentId, decimal Amount) : IRequest<PaymentResult>;
+
+// On first call: handler runs, result cached by fingerprint
+var result = await sender.Send(new SubmitPaymentCommand(paymentId, 99.99m));
+
+// On duplicate call within TTL: handler skipped, cached result returned
+var result2 = await sender.Send(new SubmitPaymentCommand(paymentId, 99.99m));`
+            },
+            'circuit-breaker-code': {
+                title: 'Circuit Breaker Behavior',
+                code: `// Register circuit breaker behavior
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.AddCircuitBreaker();
+});
+
+// Mark a request type with circuit breaker settings
+[CircuitBreaker(failureThreshold: 5, openDurationMs: 30000)]
+public record GetExternalDataQuery(string Key) : IRequest<ExternalData>;
+
+// Normal operation — requests pass through
+var data = await sender.Send(new GetExternalDataQuery("key"));
+
+// After 5 consecutive failures, circuit opens
+// Subsequent requests throw immediately without hitting the handler
+try
+{
+    var data = await sender.Send(new GetExternalDataQuery("key"));
+}
+catch (CircuitBreakerOpenException ex)
+{
+    // Circuit is open — handle gracefully (return cached data, return error, etc.)
+    logger.LogWarning("Circuit open for {RequestType}", ex.RequestType);
+}
+
+// After openDurationMs (30 seconds), circuit moves to half-open
+// One probe request is allowed through — if it succeeds, circuit closes`
+            },
+            'retry-behavior-code': {
+                title: 'Retry Behavior',
+                code: `// Register retry behavior
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.AddRetry();
+});
+
+// Immediate retry — no delay between attempts
+[Retry(maxRetries: 3, delayStrategy: RetryDelayStrategy.None)]
+public record GetInventoryQuery(int ProductId) : IRequest<InventoryDto>;
+
+// Fixed delay — same delay between every attempt
+[Retry(maxRetries: 3, delayMs: 500, delayStrategy: RetryDelayStrategy.Fixed)]
+public record SendEmailCommand(string To, string Subject) : IRequest;
+
+// Linear backoff — delay increases by delayMs each attempt
+// Attempt 1: 500ms, Attempt 2: 1000ms, Attempt 3: 1500ms
+[Retry(maxRetries: 3, delayMs: 500, delayStrategy: RetryDelayStrategy.Linear)]
+public record SyncExternalDataCommand() : IRequest;
+
+// Exponential backoff — delay doubles each attempt
+// Attempt 1: 500ms, Attempt 2: 1000ms, Attempt 3: 2000ms
+[Retry(maxRetries: 3, delayMs: 500, delayStrategy: RetryDelayStrategy.Exponential)]
+public record CallThirdPartyApiQuery(string Endpoint) : IRequest<ApiResponse>;`
+            },
+            'current-user-code': {
+                title: 'Current User Accessor',
+                code: `// ASP.NET Core — register HttpContextCurrentUserAccessor
+// (requires ModernMediator.AspNetCore)
+services.AddAspNetCoreCurrentUser();
+
+// The accessor exposes two properties:
+// - UserId: resolved from ClaimTypes.NameIdentifier
+// - UserName: resolved from ClaimTypes.Name
+// Both return null if the claim is absent or there is no active HttpContext
+
+// Combined with AuditBehavior, UserId is populated automatically on every audit record:
+services.AddModernMediator(config =>
+{
+    config.RegisterServicesFromAssemblyContaining<Program>();
+    config.AddAudit();
+});
+services.AddAuditDrainer();
+services.AddAspNetCoreCurrentUser();
+services.AddSingleton<IAuditWriter, SerilogAuditWriter>();
+
+// Custom implementation for non-ASP.NET Core applications
+public class MyCurrentUserAccessor : ICurrentUserAccessor
+{
+    public string? UserId => Thread.CurrentPrincipal?.Identity?.Name;
+    public string? UserName => Thread.CurrentPrincipal?.Identity?.Name;
+}
+
+services.AddSingleton<ICurrentUserAccessor, MyCurrentUserAccessor>();`
             }
         };
 
