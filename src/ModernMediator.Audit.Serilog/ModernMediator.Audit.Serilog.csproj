@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+        <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <ImplicitUsings>disable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+                <LangVersion>latest</LangVersion>
+                <!-- Package info -->
+                <PackageId>ModernMediator.Audit.Serilog</PackageId>
+                <Version>2.1.0</Version>
+                <AssemblyVersion>2.1.0.0</AssemblyVersion>
+                <FileVersion>2.1.0.0</FileVersion>
+                <Authors>EvanscoApps</Authors>
+                <Company>EvanscoApps LLC</Company>
+                <Copyright>Copyright © 2026 EvanscoApps LLC</Copyright>
+                <Description>Serilog audit writer for ModernMediator. Writes AuditRecord instances as structured log events via Serilog.</Description>
+                <PackageTags>mediator;audit;serilog;cqrs;pipeline</PackageTags>
+                <PackageLicenseExpression>MIT</PackageLicenseExpression>
+                <PackageProjectUrl>https://github.com/evanscoapps/ModernMediator</PackageProjectUrl>
+                <RepositoryUrl>https://github.com/evanscoapps/ModernMediator</RepositoryUrl>
+                <RepositoryType>git</RepositoryType>
+        </PropertyGroup>
+        <ItemGroup>
+                <PackageReference Include="Serilog" Version="4.2.0" />
+                <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+        </ItemGroup>
+        <ItemGroup>
+                <ProjectReference Include="..\ModernMediator\ModernMediator.csproj" />
+        </ItemGroup>
+</Project>
