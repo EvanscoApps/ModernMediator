@@ -19,7 +19,8 @@
 		<Authors>Rob Evans</Authors>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryUrl>https://github.com/EvanscoApps/ModernMediator</RepositoryUrl>
-
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		
 		<!-- Important: Include as analyzer -->
 		<IncludeBuildOutput>false</IncludeBuildOutput>
 		<DevelopmentDependency>true</DevelopmentDependency>
