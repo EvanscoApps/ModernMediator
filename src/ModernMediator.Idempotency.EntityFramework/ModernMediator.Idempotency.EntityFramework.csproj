@@ -18,6 +18,7 @@
                 <PackageProjectUrl>https://github.com/evanscoapps/ModernMediator</PackageProjectUrl>
                 <RepositoryUrl>https://github.com/evanscoapps/ModernMediator</RepositoryUrl>
                 <RepositoryType>git</RepositoryType>
+                <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         </PropertyGroup>
         <ItemGroup>
                 <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2" />
