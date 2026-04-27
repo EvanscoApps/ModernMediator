@@ -18,8 +18,12 @@
 		<PackageProjectUrl>https://github.com/evanscoapps/ModernMediator</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/evanscoapps/ModernMediator</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	</PropertyGroup>
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>

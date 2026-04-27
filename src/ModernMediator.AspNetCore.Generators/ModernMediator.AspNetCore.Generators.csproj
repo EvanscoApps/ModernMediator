@@ -20,6 +20,7 @@
 		<PackageProjectUrl>https://github.com/evanscoapps/ModernMediator</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/evanscoapps/ModernMediator</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<!-- Important: Include as analyzer -->
 		<IncludeBuildOutput>false</IncludeBuildOutput>
 		<DevelopmentDependency>true</DevelopmentDependency>
@@ -32,5 +33,9 @@
 	<!-- Pack the generator as an analyzer -->
 	<ItemGroup>
 		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 </Project>
