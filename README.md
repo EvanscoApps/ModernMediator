@@ -98,7 +98,7 @@ ModernMediator ships built-in behaviors for validation (via FluentValidation), l
 - **Cancellation Support** — All async operations respect `CancellationToken`
 - **Parallel Execution** — Notifications execute handlers concurrently
 
-### Error Handling
+### Error Policies
 - **Three Policies** — `ContinueAndAggregate`, `StopOnFirstError`, `LogAndContinue`
 - **HandlerError Event** — Hook for logging and monitoring
 - **Exception Unwrapping** — Clean stack traces without reflection noise
@@ -570,6 +570,8 @@ public class SendOrderEmailHandler : INotificationHandler<OrderCreatedNotificati
 await publisher.Publish(new OrderCreatedNotification(123), ct);
 ```
 
+Errors thrown by DI-resolved notification handlers participate in the unified `ErrorPolicy` and `HandlerError` story. See [Error Handling](#error-handling) below for the policy semantics, the event args properties, and the cancellation contract.
+
 #### Pub/Sub and DI Scoping
 
 When using dependency injection, `IMediator` is registered as Scoped. This means Pub/Sub subscriptions are per-scope:
@@ -741,18 +743,41 @@ mediator.SetDispatcher(new AvaloniaDispatcher());
 
 ### Error Handling
 
+`ErrorPolicy` and the `HandlerError` event govern notification dispatch error handling on both paths uniformly: handlers registered as `INotificationHandler<T>` and resolved via DI, and runtime callbacks registered via `Subscribe<T>` or `SubscribeAsync<T>`. Configuring the policy or subscribing to the event affects both kinds of handler invocations identically.
+
+`ErrorPolicy` is a property on `Mediator` (or set via the `MediatorConfiguration` callback in `AddModernMediator`) that takes one of three values:
+
+- `ContinueAndAggregate` (default): all handlers run, exceptions are collected, and an `AggregateException` is thrown after dispatch completes.
+- `LogAndContinue`: each handler exception is surfaced via `HandlerError` and dispatch continues to the remaining handlers without propagating.
+- `StopOnFirstError`: the first handler exception fires `HandlerError` and then propagates from `Publish`. Remaining handlers are not invoked.
+
+The `HandlerError` event is a universal observation channel. It fires for every handler exception under every policy, regardless of which dispatch path produced the exception. The policy governs propagation and aggregation; the event governs observation. Subscribers receive a `HandlerErrorEventArgs` with these properties:
+
+- `Exception`: the unwrapped handler exception.
+- `Message`: the published notification.
+- `MessageType`: the runtime type of the notification.
+- `HandlerType`: the concrete handler type. On the DI-resolved path, this is the resolved handler class (for example, `typeof(SendOrderEmailHandler)`). On the Subscribe-callback path, this is `Method.DeclaringType` with compiler-generated closure types unwrapped to the enclosing user type.
+- `HandlerInstance`: the resolved DI handler instance on the DI-resolved path, or `Delegate.Target` on the Subscribe-callback path. Null for static delegate subscriptions.
+
 ```csharp
-// Set error policy
 mediator.ErrorPolicy = ErrorPolicy.LogAndContinue;
 
-// Subscribe to errors
 mediator.HandlerError += (sender, args) =>
 {
-    logger.LogError(args.Exception, 
-        "Handler error for {MessageType}", 
+    logger.LogError(args.Exception,
+        "Handler {HandlerType} failed for {MessageType}",
+        args.HandlerType?.FullName,
         args.MessageType.Name);
 };
+
+// Both paths fire the same event with the same args shape:
+mediator.Subscribe<OrderCreatedEvent>(e => throw new InvalidOperationException("from callback"));
+await publisher.Publish(new OrderCreatedNotification(123)); // DI-resolved handlers also covered
 ```
+
+Cooperative cancellation is treated as distinct from a handler fault. When the publish token's `IsCancellationRequested` is true and a handler throws `OperationCanceledException`, the event does not fire and the policy does not apply. The exception propagates from `Publish` unconditionally. This matches .NET conventions for cooperative cancellation across async APIs.
+
+For consumers who want to route contained subscriber exceptions to a specific observability system rather than the default `ILogger` route, register an `ISubscriberExceptionSink` implementation in the service collection. ModernMediator uses the registered sink in preference to the built-in logging fallback. See ADR-005 in `docs/decisions/` for the full event semantics specification, and ADR-006 for the dispatch-path participation contract.
 
 ## Comparisons
 
