@@ -31,6 +31,10 @@ namespace ModernMediator.Internal
 
         public bool IsAlive => _isStatic || (_targetRef?.IsAlive ?? false);
 
+        public Type? HandlerType => HandlerIdentification.ResolveHandlerType(_method);
+
+        public object? HandlerInstance => _isStatic ? null : _targetRef?.Target;
+
         public async Task<object?>? TryInvokeAsync(object message)
         {
             if (message is not TMessage typedMessage)

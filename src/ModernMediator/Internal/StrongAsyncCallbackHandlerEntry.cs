@@ -20,6 +20,10 @@ namespace ModernMediator.Internal
 
         public bool IsAlive => true;
 
+        public Type? HandlerType => HandlerIdentification.ResolveHandlerType(_handler);
+
+        public object? HandlerInstance => _handler.Target;
+
         public async Task<object?>? TryInvokeAsync(object message)
         {
             if (message is not TMessage typedMessage)

@@ -30,6 +30,10 @@ namespace ModernMediator.Internal
 
         public bool IsAlive => _isStatic || (_targetRef?.IsAlive ?? false);
 
+        public Type? HandlerType => HandlerIdentification.ResolveHandlerType(_method);
+
+        public object? HandlerInstance => _isStatic ? null : _targetRef?.Target;
+
         public bool TryInvoke(object message, out object? response)
         {
             response = default;

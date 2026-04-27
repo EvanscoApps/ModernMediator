@@ -21,6 +21,8 @@ namespace ModernMediator
 
         // Request/Response handlers (DI-registered)
         private IServiceProvider? _serviceProvider;
+        private ISubscriberExceptionSink? _subscriberExceptionSink;
+        private bool _sinkResolved;
 
         // Pub/Sub handlers
         private readonly ReaderWriterLockSlim _typeHandlersLock = new ReaderWriterLockSlim();
@@ -333,7 +335,7 @@ namespace ModernMediator
             cancellationToken.ThrowIfCancellationRequested();
 
             if (_serviceProvider == null)
-                return; // No DI container — nothing to dispatch
+                return;
 
             var handlers = (IEnumerable<INotificationHandler<TNotification>>?)
                 _serviceProvider.GetService(typeof(IEnumerable<INotificationHandler<TNotification>>));
@@ -341,9 +343,31 @@ namespace ModernMediator
             if (handlers == null)
                 return;
 
-            foreach (var handler in handlers)
+            var handlerList = handlers.ToList();
+            if (handlerList.Count == 0)
+                return;
+
+            var exceptions = new List<Exception>();
+
+            foreach (var handler in handlerList)
             {
-                await handler.Handle(notification, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await handler.Handle(notification, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    HandleError(ex, notification, typeof(TNotification), exceptions, handler.GetType(), handler);
+                }
+            }
+
+            if (_errorPolicy == ErrorPolicy.ContinueAndAggregate && exceptions.Count > 0)
+            {
+                throw new AggregateException("One or more handlers threw exceptions", exceptions);
             }
         }
 
@@ -682,7 +706,7 @@ namespace ModernMediator
             if (handlers.IsEmpty)
                 return false;
 
-            var tasks = new List<Task>();
+            var trackedTasks = new List<TrackedHandlerTask<IAsyncHandlerEntry>>();
             var exceptions = new List<Exception>();
 
             foreach (var h in handlers)
@@ -694,37 +718,18 @@ namespace ModernMediator
                     var task = h.TryInvokeAsync(message);
                     if (task != null)
                     {
-                        tasks.Add(task);
+                        trackedTasks.Add(new TrackedHandlerTask<IAsyncHandlerEntry>(task, h));
                     }
                 }
                 catch (Exception ex)
                 {
-                    // Unwrap TargetInvocationException from reflection-based invocation
-                    var actualException = ex is System.Reflection.TargetInvocationException tie && tie.InnerException != null
-                        ? tie.InnerException
-                        : ex;
-
-                    var errorArgs = new HandlerErrorEventArgs(actualException, message, messageType);
-                    var handler = HandlerError;
-                    handler?.Invoke(this, errorArgs);
-
-                    if (_errorPolicy == ErrorPolicy.ContinueAndAggregate)
-                    {
-                        exceptions.Add(actualException);
-                    }
-                    else if (_errorPolicy == ErrorPolicy.StopOnFirstError)
-                    {
-                        throw actualException;
-                    }
+                    HandleError(ex, message, messageType, exceptions, h.HandlerType, h.HandlerInstance);
                 }
             }
 
-            if (tasks.Count > 0)
+            if (trackedTasks.Count > 0)
             {
-                // CRITICAL FIX: Store the Task.WhenAll task so we can access its .Exception property.
-                // When you 'await' a faulted Task.WhenAll, C# only throws the FIRST exception.
-                // The full AggregateException with ALL exceptions is only available via task.Exception.
-                var whenAllTask = Task.WhenAll(tasks);
+                var whenAllTask = Task.WhenAll(trackedTasks.Select(t => t.Task));
 
                 try
                 {
@@ -732,36 +737,23 @@ namespace ModernMediator
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    // Cancellation was requested - re-throw to propagate cancellation
                     throw;
                 }
                 catch
                 {
-                    // The 'await' unwraps the AggregateException and only throws the first inner exception.
-                    // Access whenAllTask.Exception to get the complete AggregateException with ALL failures.
-                    var aggregateException = whenAllTask.Exception;
-
-                    if (aggregateException != null)
+                    // Per ADR-005, attribute each per-handler fault individually so HandlerError
+                    // fires once per failing handler with full HandlerType/HandlerInstance, rather
+                    // than once with the aggregate and null attribution.
+                    foreach (var tracked in trackedTasks)
                     {
-                        var errorArgs = new HandlerErrorEventArgs(aggregateException, message, messageType);
-                        var handler = HandlerError;
-                        handler?.Invoke(this, errorArgs);
+                        if (!tracked.Task.IsFaulted) continue;
 
-                        if (_errorPolicy == ErrorPolicy.ContinueAndAggregate)
+                        var taskException = tracked.Task.Exception;
+                        if (taskException == null) continue;
+
+                        foreach (var innerEx in taskException.Flatten().InnerExceptions)
                         {
-                            var flattened = aggregateException.Flatten();
-                            // Unwrap TargetInvocationException from reflection-based invocation
-                            foreach (var innerEx in flattened.InnerExceptions)
-                            {
-                                var actualException = innerEx is System.Reflection.TargetInvocationException tie && tie.InnerException != null
-                                    ? tie.InnerException
-                                    : innerEx;
-                                exceptions.Add(actualException);
-                            }
-                        }
-                        else if (_errorPolicy == ErrorPolicy.StopOnFirstError)
-                        {
-                            throw;
+                            HandleError(innerEx, message, messageType, exceptions, tracked.Entry.HandlerType, tracked.Entry.HandlerInstance);
                         }
                     }
                 }
@@ -774,7 +766,7 @@ namespace ModernMediator
                 throw new AggregateException("One or more async handlers threw exceptions", exceptions);
             }
 
-            return tasks.Count > 0;
+            return trackedTasks.Count > 0;
         }
 
         #endregion
@@ -864,22 +856,7 @@ namespace ModernMediator
                 }
                 catch (Exception ex)
                 {
-                    var actualException = ex is System.Reflection.TargetInvocationException tie && tie.InnerException != null
-                        ? tie.InnerException
-                        : ex;
-
-                    var errorArgs = new HandlerErrorEventArgs(actualException, message, messageType);
-                    var handler = HandlerError;
-                    handler?.Invoke(this, errorArgs);
-
-                    if (_errorPolicy == ErrorPolicy.ContinueAndAggregate)
-                    {
-                        exceptions.Add(actualException);
-                    }
-                    else if (_errorPolicy == ErrorPolicy.StopOnFirstError)
-                    {
-                        throw actualException;
-                    }
+                    HandleError(ex, message, messageType, exceptions, h.HandlerType, h.HandlerInstance);
                 }
             }
 
@@ -908,7 +885,7 @@ namespace ModernMediator
             if (handlers.IsEmpty)
                 return Array.Empty<TResponse>();
 
-            var tasks = new List<Task<object?>>();
+            var trackedTasks = new List<TrackedHandlerTask<IAsyncCallbackHandlerEntry>>();
             var exceptions = new List<Exception>();
 
             foreach (var h in handlers)
@@ -920,35 +897,20 @@ namespace ModernMediator
                     var task = h.TryInvokeAsync(message);
                     if (task != null)
                     {
-                        tasks.Add(task);
+                        trackedTasks.Add(new TrackedHandlerTask<IAsyncCallbackHandlerEntry>(task, h));
                     }
                 }
                 catch (Exception ex)
                 {
-                    var actualException = ex is System.Reflection.TargetInvocationException tie && tie.InnerException != null
-                        ? tie.InnerException
-                        : ex;
-
-                    var errorArgs = new HandlerErrorEventArgs(actualException, message, messageType);
-                    var handler = HandlerError;
-                    handler?.Invoke(this, errorArgs);
-
-                    if (_errorPolicy == ErrorPolicy.ContinueAndAggregate)
-                    {
-                        exceptions.Add(actualException);
-                    }
-                    else if (_errorPolicy == ErrorPolicy.StopOnFirstError)
-                    {
-                        throw actualException;
-                    }
+                    HandleError(ex, message, messageType, exceptions, h.HandlerType, h.HandlerInstance);
                 }
             }
 
             var responses = new List<TResponse>();
 
-            if (tasks.Count > 0)
+            if (trackedTasks.Count > 0)
             {
-                var whenAllTask = Task.WhenAll(tasks);
+                var whenAllTask = Task.WhenAll(trackedTasks.Select(t => (Task<object?>)t.Task));
 
                 try
                 {
@@ -967,28 +929,16 @@ namespace ModernMediator
                 }
                 catch
                 {
-                    var aggregateException = whenAllTask.Exception;
-
-                    if (aggregateException != null)
+                    foreach (var tracked in trackedTasks)
                     {
-                        var errorArgs = new HandlerErrorEventArgs(aggregateException, message, messageType);
-                        var handler = HandlerError;
-                        handler?.Invoke(this, errorArgs);
+                        if (!tracked.Task.IsFaulted) continue;
 
-                        if (_errorPolicy == ErrorPolicy.ContinueAndAggregate)
+                        var taskException = tracked.Task.Exception;
+                        if (taskException == null) continue;
+
+                        foreach (var innerEx in taskException.Flatten().InnerExceptions)
                         {
-                            var flattened = aggregateException.Flatten();
-                            foreach (var innerEx in flattened.InnerExceptions)
-                            {
-                                var actualException = innerEx is System.Reflection.TargetInvocationException tie && tie.InnerException != null
-                                    ? tie.InnerException
-                                    : innerEx;
-                                exceptions.Add(actualException);
-                            }
-                        }
-                        else if (_errorPolicy == ErrorPolicy.StopOnFirstError)
-                        {
-                            throw;
+                            HandleError(innerEx, message, messageType, exceptions, tracked.Entry.HandlerType, tracked.Entry.HandlerInstance);
                         }
                     }
                 }
@@ -1324,7 +1274,7 @@ namespace ModernMediator
                 }
                 catch (Exception ex)
                 {
-                    HandleError(ex, message, messageType, exceptions);
+                    HandleError(ex, message, messageType, exceptions, h.HandlerType, h.HandlerInstance);
 
                     if (_errorPolicy == ErrorPolicy.StopOnFirstError)
                         break;
@@ -1339,7 +1289,7 @@ namespace ModernMediator
             return anyInvoked;
         }
 
-        private void HandleError(Exception ex, object message, Type messageType, List<Exception> exceptions)
+        private void HandleError(Exception ex, object message, Type messageType, List<Exception> exceptions, Type? handlerType = null, object? handlerInstance = null)
         {
             // Unwrap TargetInvocationException from reflection-based invocation (weak references)
             // so users get the original exception, not the reflection wrapper
@@ -1347,10 +1297,23 @@ namespace ModernMediator
                 ? tie.InnerException
                 : ex;
 
-            var errorArgs = new HandlerErrorEventArgs(actualException, message, messageType);
+            var errorArgs = new HandlerErrorEventArgs(actualException, message, messageType, handlerType, handlerInstance);
 
             var handler = HandlerError;
-            handler?.Invoke(this, errorArgs);
+            if (handler != null)
+            {
+                foreach (var subscriber in handler.GetInvocationList())
+                {
+                    try
+                    {
+                        ((EventHandler<HandlerErrorEventArgs>)subscriber).Invoke(this, errorArgs);
+                    }
+                    catch (Exception subscriberEx)
+                    {
+                        GetSubscriberExceptionSink().OnSubscriberException(subscriberEx);
+                    }
+                }
+            }
 
             if (_errorPolicy == ErrorPolicy.ContinueAndAggregate)
             {
@@ -1360,6 +1323,25 @@ namespace ModernMediator
             {
                 throw actualException;
             }
+        }
+
+        private ISubscriberExceptionSink GetSubscriberExceptionSink()
+        {
+            if (!_sinkResolved)
+            {
+                var registered = _serviceProvider?.GetService(typeof(ISubscriberExceptionSink)) as ISubscriberExceptionSink;
+                if (registered != null)
+                {
+                    _subscriberExceptionSink = registered;
+                }
+                else
+                {
+                    var logger = _serviceProvider?.GetService(typeof(Microsoft.Extensions.Logging.ILogger<Mediator>)) as Microsoft.Extensions.Logging.ILogger<Mediator>;
+                    _subscriberExceptionSink = new LoggerSubscriberExceptionSink(logger);
+                }
+                _sinkResolved = true;
+            }
+            return _subscriberExceptionSink!;
         }
 
         private void PruneDeadHandlers(IReadOnlyList<Type> matchedTypes)
