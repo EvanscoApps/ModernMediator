@@ -150,7 +150,18 @@ namespace ModernMediator
             ConfigureAction?.Invoke(mediator);
         }
 
-        private IServiceCollection Services =>
+        /// <summary>
+        /// Gets the underlying <see cref="IServiceCollection"/> for direct registration of
+        /// related services. Intended for use by package-level extension methods (for example,
+        /// FluentValidation, Audit, or Idempotency integrations) that need to register a
+        /// pipeline behavior at the current position in the configuration sequence alongside
+        /// the supporting services that the behavior depends on.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the configuration was constructed via the parameterless constructor
+        /// (source-generated registration scenario) and no service collection is available.
+        /// </exception>
+        public IServiceCollection Services =>
             _services ?? throw new InvalidOperationException(
                 "Assembly scanning and handler registration require IServiceCollection. " +
                 "Use AddModernMediator() extension method, not the parameterless constructor.");
