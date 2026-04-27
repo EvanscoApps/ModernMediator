@@ -63,8 +63,8 @@ See the [core ModernMediator README](https://github.com/evanscoapps/ModernMediat
 
 `HttpContextCurrentUserAccessor` exposes the authenticated user's identity to handlers via the `ICurrentUserAccessor` interface (defined in the core `ModernMediator` package). It surfaces two pre-extracted values:
 
-- `UserId` — the `ClaimTypes.NameIdentifier` claim
-- `UserName` — `IIdentity.Name`
+- `UserId`: the `ClaimTypes.NameIdentifier` claim
+- `UserName`: `IIdentity.Name`
 
 Both return `null` when no HTTP context is available or the request is unauthenticated.
 

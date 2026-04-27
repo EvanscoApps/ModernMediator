@@ -61,16 +61,16 @@ In that case, you would implement a custom `IAuditWriter` that targets your appl
 
 `AuditRecord` is mapped to a single `AuditRecords` table configured with `HasNoKey()` (audit records are append-only and addressed by query, not by primary key). The columns are:
 
-- `RequestTypeName` (nvarchar(512), required) — the fully qualified type name of the dispatched request
-- `SerializedPayload` (nvarchar(max), required) — JSON serialization of the request
-- `UserId` (nvarchar(256), nullable) — from `ICurrentUserAccessor.UserId` if available
-- `UserName` (nvarchar(256), nullable) — from `ICurrentUserAccessor.UserName` if available
-- `Timestamp` (datetime, required) — when the audit record was produced
-- `Succeeded` (bit, required) — `true` if the handler completed without throwing, `false` otherwise
-- `FailureReason` (nvarchar(2048), nullable) — the exception message on failure
-- `Duration` (bigint, required) — handler execution time stored as `TimeSpan.Ticks` via a value converter
-- `CorrelationId` (nvarchar(256), nullable) — an optional correlation id from the request context
-- `TraceId` (varchar(32), nullable) — the distributed trace id from `Activity.Current` if available
+- `RequestTypeName` (nvarchar(512), required): the fully qualified type name of the dispatched request
+- `SerializedPayload` (nvarchar(max), required): JSON serialization of the request
+- `UserId` (nvarchar(256), nullable): from `ICurrentUserAccessor.UserId` if available
+- `UserName` (nvarchar(256), nullable): from `ICurrentUserAccessor.UserName` if available
+- `Timestamp` (datetime, required): when the audit record was produced
+- `Succeeded` (bit, required): `true` if the handler completed without throwing, `false` otherwise
+- `FailureReason` (nvarchar(2048), nullable): the exception message on failure
+- `Duration` (bigint, required): handler execution time stored as `TimeSpan.Ticks` via a value converter
+- `CorrelationId` (nvarchar(256), nullable): an optional correlation id from the request context
+- `TraceId` (varchar(32), nullable): the distributed trace id from `Activity.Current` if available
 
 ## Opting requests out
 

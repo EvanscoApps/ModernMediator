@@ -66,11 +66,11 @@ When the request is dispatched, `IdempotencyBehavior` computes a SHA-256 fingerp
 
 `IdempotencyRecord` is mapped to a single `IdempotencyRecords` table. The columns are:
 
-- `Fingerprint` (nchar(64), primary key) — SHA-256 hex digest of the request, fixed length. The primary-key constraint is what guarantees exactly-once execution at the database level.
-- `SerializedResponse` (nvarchar(max), required) — JSON serialization of the cached response
-- `ResponseTypeName` (nvarchar(512), required) — fully qualified response type name, used for deserialization
-- `CachedAt` (datetimeoffset, required) — UTC timestamp at which the entry was written
-- `ExpiresAt` (datetimeoffset, required) — UTC timestamp at which the entry becomes ineligible for cache retrieval; carries an index named `IX_IdempotencyRecords_ExpiresAt` to support cleanup queries
+- `Fingerprint` (nchar(64), primary key): SHA-256 hex digest of the request, fixed length. The primary-key constraint is what guarantees exactly-once execution at the database level.
+- `SerializedResponse` (nvarchar(max), required): JSON serialization of the cached response
+- `ResponseTypeName` (nvarchar(512), required): fully qualified response type name, used for deserialization
+- `CachedAt` (datetimeoffset, required): UTC timestamp at which the entry was written
+- `ExpiresAt` (datetimeoffset, required): UTC timestamp at which the entry becomes ineligible for cache retrieval; carries an index named `IX_IdempotencyRecords_ExpiresAt` to support cleanup queries
 
 The model configuration is applied inline in `IdempotencyDbContext.OnModelCreating`. There is no separate `IEntityTypeConfiguration<IdempotencyRecord>` shipped with the package: if you want to host idempotency records in your existing context, subclass `IdempotencyDbContext` (it is unsealed) or copy the configuration into your own `OnModelCreating`.
 
