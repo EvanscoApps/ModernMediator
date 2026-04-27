@@ -8,11 +8,15 @@ One prompt at a time. Claude drafts a prompt for Claude Code (CC), the user runs
 
 CC prompts go in their own fenced code block, one prompt per Claude response. Other content in the same response (commentary, analysis, justification) sits outside the fenced block.
 
+CC should not pause mid-task to ask whether Claude is following along, whether the approach looks right, or whether to continue to the next step of an already-issued prompt. The prompt's instructions are the contract: execute through to the prompt's defined stop points (a verification gate that failed, an explicit "stop and report" condition, or the prompt's final step), then report. Status questions, progress check-ins, and "ready to continue?" prompts add a round trip without adding information. If CC genuinely needs a decision Claude has not provided, it should report what it has done so far, state the specific decision needed, and stop; otherwise it should keep working.
+
 ## Investigation before implementation
 
 When a change has any structural or behavioral risk, the first CC prompt for that change is an investigation prompt: read these files, report verbatim content with line numbers, confirm the current state. Only after the investigation result is in does Claude draft the implementation prompt. The implementation prompt then has accurate context, including the exact strings that need to be matched and replaced.
 
 After substantive edits, CC verifies verbatim: report post-edit content with line counts, grep for the anti-patterns that were supposed to be removed and confirm zero matches, run the relevant test slice. The verification step closes the loop on whether the change actually landed as intended.
+
+Build and test verification gates apply to changes introduced by the current work. Pre-existing warnings or test failures in code untouched by this work are reported as a sidebar but do not gate progress; addressing them is a separate work item with its own commit. The scope rule is: warnings or failures in projects, files, or test methods that this prompt did not modify are out of scope. If a pre-existing failure makes verification impossible (for example, a test runner that won't run because of an unrelated compile error), CC stops and reports rather than guessing whether to proceed.
 
 ## Decision style
 
