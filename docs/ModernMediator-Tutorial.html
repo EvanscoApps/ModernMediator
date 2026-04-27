@@ -519,7 +519,7 @@
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">ModernMediator</div>
-            <div class="sidebar-version">v2.1.0</div>
+            <div class="sidebar-version">v2.2</div>
         </div>
 
         <div class="nav-section">
@@ -588,7 +588,7 @@
         <header class="hero">
             <h1>ModernMediator</h1>
             <p class="hero-subtitle">A Comprehensive Tutorial</p>
-            <span class="hero-version">Version 2.1.0</span>
+            <span class="hero-version">Version 2.2</span>
         </header>
 
         <div class="content">
@@ -916,7 +916,7 @@
                         <tbody>
                             <tr><td>LoggingBehavior</td><td><code>AddLogging()</code></td><td>Logs request type, duration, and optionally the payload before and after handling</td></tr>
                             <tr><td>TimeoutBehavior</td><td><code>AddTimeout()</code></td><td>Enforces per-request timeouts via <code>[Timeout(ms)]</code> attribute</td></tr>
-                            <tr><td>ValidationBehavior</td><td><code>AddOpenBehavior(typeof(ValidationBehavior&lt;,&gt;))</code></td><td>Runs FluentValidation validators before the handler (requires ModernMediator.FluentValidation package)</td></tr>
+                            <tr><td>ValidationBehavior</td><td><code>services.AddModernMediatorValidation(assembly)</code></td><td>Single call that scans for FluentValidation validators and registers <code>ValidationBehavior&lt;,&gt;</code> (requires ModernMediator.FluentValidation package)</td></tr>
                             <tr><td>TelemetryBehavior</td><td><code>AddTelemetry()</code></td><td>Emits OpenTelemetry traces and metrics for every request</td></tr>
                             <tr><td>AuditBehavior</td><td><code>AddAudit()</code></td><td>Records per-request audit entries (type, user, duration, outcome) dispatched to any <code>IAuditWriter</code>; opt out with <code>[NoAudit]</code></td></tr>
                             <tr><td>IdempotencyBehavior</td><td><code>AddIdempotency()</code></td><td>Deduplicates requests marked <code>[Idempotent]</code> by key and TTL using any <code>IIdempotencyStore</code></td></tr>
@@ -940,7 +940,7 @@
                             <tr><td>4</td><td>AuditBehavior</td><td><code>AddAudit()</code></td><td>Records outcome of each attempt</td></tr>
                             <tr><td>5</td><td>IdempotencyBehavior</td><td><code>AddIdempotency()</code></td><td>Short-circuits before validation if already handled</td></tr>
                             <tr><td>6</td><td>LoggingBehavior</td><td><code>AddLogging()</code></td><td>Logs the request entering the inner pipeline</td></tr>
-                            <tr><td>7</td><td>ValidationBehavior</td><td><code>AddOpenBehavior(typeof(ValidationBehavior&lt;,&gt;))</code></td><td>Rejects invalid requests before handler</td></tr>
+                            <tr><td>7</td><td>ValidationBehavior</td><td><code>services.AddModernMediatorValidation(assembly)</code></td><td>Rejects invalid requests before handler</td></tr>
                             <tr><td>8</td><td>Handler</td><td>—</td><td>Executes the business logic</td></tr>
                         </tbody>
                     </table>
@@ -1055,6 +1055,8 @@
                 </div>
 
                 <p>Injecting the narrowest interface makes dependencies explicit and prevents misuse — a service that only sends commands cannot accidentally publish notifications.</p>
+
+                <p>A single <code>IPublisher.Publish</code> call dispatches to both DI-resolved <code>INotificationHandler&lt;T&gt;</code> instances and runtime <code>Subscribe&lt;T&gt;</code> callbacks. Both delivery paths participate uniformly in the configured <code>ErrorPolicy</code> and observe the <code>HandlerError</code> event with the same <code>HandlerErrorEventArgs</code> shape.</p>
 
                 <button class="code-btn" onclick="openModal('interface-segregation-code')">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
@@ -1426,7 +1428,28 @@
                 </div>
 
                 <h3>HandlerError Event</h3>
-                <p>A hook that fires whenever a handler throws an exception, regardless of the error policy. This provides a centralized point for logging and monitoring without requiring custom exception handlers.</p>
+                <p><code>HandlerError</code> is a universal observation channel. It fires for every handler exception under every <code>ErrorPolicy</code>, regardless of which dispatch path produced the exception. The policy governs propagation and aggregation; the event governs observation. The same subscription receives events from handlers registered as <code>INotificationHandler&lt;T&gt;</code> and resolved via DI, and from runtime callbacks registered via <code>Subscribe&lt;T&gt;</code> or <code>SubscribeAsync&lt;T&gt;</code>.</p>
+
+                <p>Subscribers receive a <code>HandlerErrorEventArgs</code> with the following properties:</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Property</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>Exception</code></td><td>The unwrapped handler exception</td></tr>
+                            <tr><td><code>Message</code></td><td>The published notification</td></tr>
+                            <tr><td><code>MessageType</code></td><td>The runtime type of the notification</td></tr>
+                            <tr><td><code>HandlerType</code></td><td>The concrete handler type. On the DI-resolved path, the resolved handler class. On the Subscribe-callback path, <code>Method.DeclaringType</code> with compiler-generated closure types unwrapped to the enclosing user type.</td></tr>
+                            <tr><td><code>HandlerInstance</code></td><td>The resolved DI handler instance on the DI-resolved path, or <code>Delegate.Target</code> on the Subscribe-callback path. Null for static delegate subscriptions.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p>Cooperative cancellation is treated as distinct from a handler fault. When the publish token's <code>IsCancellationRequested</code> is true and a handler throws <code>OperationCanceledException</code>, the event does not fire and the policy does not apply. The exception propagates from <code>Publish</code> unconditionally.</p>
+
+                <p>For consumers who want to route contained subscriber exceptions to a specific observability system rather than the default <code>ILogger</code> route, register an <code>ISubscriberExceptionSink</code> implementation in the service collection.</p>
 
                 <h3>Exception Unwrapping</h3>
                 <p>When handlers are invoked through reflection or dynamic dispatch, exceptions get wrapped in <code>TargetInvocationException</code> or <code>AggregateException</code>. Stack traces become cluttered with framework noise, making debugging harder.</p>
@@ -1444,7 +1467,7 @@
                 <h2>Audit Behavior</h2>
                 <p><code>AuditBehavior</code> captures a structured record of every request that passes through the pipeline — including the request type, current user identity, correlation ID, duration, and whether the request succeeded or failed. Records are dispatched asynchronously to any <code>IAuditWriter</code> implementation, so writing to Serilog, a database, or a custom sink requires no changes to the behavior itself.</p>
 
-                <p>Individual request types can opt out of auditing by decorating the request record with <code>[NoAudit]</code>. Audit drain is handled by a hosted background service registered via <code>AddAuditDrainer()</code>, which processes records from an in-memory channel without blocking the request pipeline.</p>
+                <p>Individual request types can opt out of auditing by decorating the request record with <code>[NoAudit]</code>. Audit drain is handled by a hosted background service registered automatically by <code>AddAudit&lt;TWriter&gt;()</code>, which processes records from an in-memory channel without blocking the request pipeline.</p>
 
                 <h3>What Gets Recorded</h3>
                 <div class="table-wrapper">
@@ -1454,11 +1477,15 @@
                         </thead>
                         <tbody>
                             <tr><td>RequestTypeName</td><td>Full name of the request type</td></tr>
+                            <tr><td>SerializedPayload</td><td>JSON-serialized request payload for diagnostic purposes</td></tr>
                             <tr><td>UserId</td><td>Resolved from <code>ICurrentUserAccessor</code>; null if not configured</td></tr>
-                            <tr><td>CorrelationId</td><td>Optional correlation identifier for request tracing</td></tr>
-                            <tr><td>DurationMs</td><td>Elapsed milliseconds from pipeline entry to handler return</td></tr>
+                            <tr><td>UserName</td><td>User display name resolved via <code>ICurrentUserAccessor</code> (nullable string)</td></tr>
+                            <tr><td>Timestamp</td><td><code>DateTimeOffset</code> when the audit record was created</td></tr>
                             <tr><td>Succeeded</td><td>True if handler returned without exception</td></tr>
                             <tr><td>FailureReason</td><td>Exception message if the request failed; null on success</td></tr>
+                            <tr><td>Duration</td><td><code>TimeSpan</code> from pipeline entry to handler return (stored as ticks)</td></tr>
+                            <tr><td>CorrelationId</td><td>Optional correlation identifier for request tracing</td></tr>
+                            <tr><td>TraceId</td><td><code>Activity.Current.TraceId.ToString()</code> if available (nullable string)</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1574,7 +1601,7 @@
                 <h2>Current User Accessor</h2>
                 <p><code>ICurrentUserAccessor</code> is an abstraction that pipeline behaviors use to resolve the identity of the current user without depending on a specific platform or authentication mechanism. The <code>AuditBehavior</code> uses it to populate the <code>UserId</code> field on every audit record.</p>
 
-                <p><code>HttpContextCurrentUserAccessor</code> (in <code>ModernMediator.AspNetCore</code>) is the built-in implementation for ASP.NET Core. It resolves <code>UserId</code> from the <code>NameIdentifier</code> claim and <code>UserName</code> from the <code>Name</code> claim via <code>IHttpContextAccessor</code>. Register it via <code>AddAspNetCoreCurrentUser()</code>.</p>
+                <p><code>HttpContextCurrentUserAccessor</code> (in <code>ModernMediator.AspNetCore</code>) is the built-in implementation for ASP.NET Core. It resolves <code>UserId</code> from the <code>NameIdentifier</code> claim and <code>UserName</code> from the <code>Name</code> claim via <code>IHttpContextAccessor</code>. It is auto-registered when you call <code>config.AddAudit&lt;TWriter&gt;(o =&gt; o.UseHttpContextIdentity(services))</code>. For applications that do not use the audit pipeline but still want the accessor available, register it manually via <code>services.AddSingleton&lt;ICurrentUserAccessor, HttpContextCurrentUserAccessor&gt;()</code>.</p>
 
                 <p>For non-ASP.NET Core applications, implement <code>ICurrentUserAccessor</code> directly and register it with the DI container before calling <code>AddAudit()</code>.</p>
 
@@ -1774,7 +1801,11 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
     }
 }
 
-// Validation behavior (open generic)
+// Validation behavior (open generic) - TEACHING EXAMPLE ONLY.
+// In production, do not hand-roll this: the ModernMediator.FluentValidation
+// package ships a fully-featured ValidationBehavior, registered via
+// services.AddModernMediatorValidation(assembly). See the FluentValidation
+// section for the canonical wiring.
 public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
@@ -2041,15 +2072,18 @@ services.AddModernMediator(config =>
     
     // Open generic behaviors must be registered explicitly
     config.AddOpenBehavior(typeof(LoggingBehavior<,>));
-    config.AddOpenBehavior(typeof(ValidationBehavior<,>));
-    
+
     // Closed generic (request-specific) behaviors are auto-discovered
     // config.AddBehavior<SpecificRequestBehavior>();
-    
+
     config.AddRequestPreProcessor<AuthorizationPreProcessor>();
     config.AddRequestPostProcessor<CachingPostProcessor>();
     config.AddExceptionHandler<NotFoundExceptionHandler>();
 });
+
+// FluentValidation is registered as an IServiceCollection extension, not via AddModernMediator.
+// This single call scans validators AND registers ValidationBehavior<,> in one step.
+services.AddModernMediatorValidation(typeof(Program).Assembly);
 
 // For shared Pub/Sub subscriptions across the application, use the static singleton:
 Mediator.Instance.Subscribe<AppWideEvent>(e => HandleGlobally(e));`
@@ -2076,21 +2110,33 @@ await foreach (var user in mediator.CreateStream(new GetAllUsersRequest(100), ca
             },
             'error-code': {
                 title: 'Error Handling',
-                code: `// Set error policy
+                code: `// Set error policy (governs both DI-resolved and Subscribe-callback paths)
 mediator.ErrorPolicy = ErrorPolicy.LogAndContinue;
 
 // Available policies:
-// - ContinueAndAggregate: Execute all handlers, collect exceptions, throw as aggregate
-// - StopOnFirstError: Stop immediately when any handler throws
-// - LogAndContinue: Log exceptions, continue executing, don't throw
+// - ContinueAndAggregate: All handlers run, exceptions aggregated, AggregateException thrown after dispatch
+// - StopOnFirstError: First exception fires HandlerError, then propagates from Publish
+// - LogAndContinue: Each exception surfaced via HandlerError, dispatch continues, none propagate
 
-// Subscribe to errors for logging/monitoring
+// Subscribe to errors for logging/monitoring (fires for both dispatch paths)
 mediator.HandlerError += (sender, args) =>
 {
     logger.LogError(args.Exception,
-        "Handler error for {MessageType}",
+        "Handler {HandlerType} failed for {MessageType}",
+        args.HandlerType?.FullName,
         args.MessageType.Name);
-};`
+};
+
+// Both paths fire the same event with the same args shape:
+
+// 1. Subscribe-callback path
+mediator.Subscribe<OrderCreatedEvent>(e => throw new InvalidOperationException("from callback"));
+
+// 2. DI-resolved INotificationHandler<T> path (handlers registered via DI assembly scan)
+await publisher.Publish(new OrderCreatedNotification(123));
+
+// Cooperative cancellation: OperationCanceledException with the publish token cancelled
+// bypasses HandlerError and ErrorPolicy entirely, propagating from Publish unconditionally.`
             },
             'valuetask-code': {
                 title: 'ValueTask Pipeline',
@@ -2124,7 +2170,7 @@ var user = await sender.SendAsync(new GetCachedUserQuery(42));`
             },
             'builtin-behaviors-code': {
                 title: 'Built-in Behaviors',
-                code: `// Register all four built-in behaviors
+                code: `// Register the built-in behaviors
 services.AddModernMediator(config =>
 {
     config.RegisterServicesFromAssemblyContaining<Program>();
@@ -2135,13 +2181,16 @@ services.AddModernMediator(config =>
     // Timeout: enforces per-request timeouts via [Timeout] attribute
     config.AddTimeout();
 
-    // Validation: runs FluentValidation validators before the handler
-    // Requires: dotnet add package ModernMediator.FluentValidation
-    config.AddOpenBehavior(typeof(ValidationBehavior<,>));
-
     // Telemetry: emits OpenTelemetry traces and metrics
     config.AddTelemetry();
 });
+
+// Validation ships in a separate package and is registered as an
+// IServiceCollection extension (not a MediatorConfiguration extension).
+// It scans the assembly for AbstractValidator<T> implementations and
+// wires ValidationBehavior<TRequest, TResponse> into the pipeline.
+// Requires: dotnet add package ModernMediator.FluentValidation
+services.AddModernMediatorValidation(typeof(Program).Assembly);
 
 // Mark specific requests with a timeout
 [Timeout(5000)] // 5-second timeout
@@ -2184,13 +2233,13 @@ var name = result.Map(u => u.Name).GetValueOrDefault("Unknown");`
             'endpoints-code': {
                 title: 'Endpoint Generation',
                 code: `// Annotate request records with [Endpoint] to generate Minimal API routes
-[Endpoint(HttpMethod.Post, "/api/users")]
+[Endpoint("/api/users")]                         // method defaults to POST
 public record CreateUserCommand(string Name, string Email) : IRequest<UserDto>;
 
-[Endpoint(HttpMethod.Get, "/api/users/{UserId}")]
+[Endpoint("/api/users/{UserId}", "GET")]
 public record GetUserQuery(int UserId) : IRequest<UserDto>;
 
-[Endpoint(HttpMethod.Delete, "/api/users/{UserId}")]
+[Endpoint("/api/users/{UserId}", "DELETE")]
 public record DeleteUserCommand(int UserId) : IRequest;
 
 // Program.cs - wire all generated endpoints with one call
@@ -2267,35 +2316,45 @@ public class DashboardController
             },
             'audit-behavior-code': {
                 title: 'Audit Behavior',
-                code: `// Register audit behavior with Serilog writer (ModernMediator.Audit.Serilog)
-services.AddModernMediator(config =>
+                code: `services.AddModernMediator(config =>
 {
     config.RegisterServicesFromAssemblyContaining<Program>();
-    config.AddAudit();
+
+    // Audit pipeline: pick one writer
+    config.AddAudit<SerilogAuditWriter>();
 });
 
-// Register the drain loop (processes records from background channel)
-services.AddAuditDrainer();
-
-// Register a writer — choose one:
+// Required: register the writer's dependencies separately
 
 // Option A: Serilog (requires ModernMediator.Audit.Serilog)
-services.AddSingleton<IAuditWriter, SerilogAuditWriter>();
+// Configure Serilog as you normally would; SerilogAuditWriter resolves ILogger from DI
+// or falls back to Log.Logger if no ILogger is registered.
+builder.Host.UseSerilog((context, config) => config
+    .WriteTo.Console());
 
 // Option B: Entity Framework (requires ModernMediator.Audit.EntityFramework)
-services.AddDbContext<AuditDbContext>(opts => opts.UseSqlServer(connectionString));
-services.AddScoped<IAuditWriter, EfCoreAuditWriter>();
+// services.AddDbContext<AuditDbContext>(opts => opts.UseSqlServer(connectionString));
+// services.AddModernMediator(config =>
+// {
+//     config.AddAudit<EfCoreAuditWriter>();
+// });
 
 // Option C: Custom writer
-services.AddSingleton<IAuditWriter, MyCustomAuditWriter>();
+// public sealed class MyAuditWriter : IAuditWriter
+// {
+//     public ValueTask WriteAsync(AuditRecord record, CancellationToken ct) { /* ... */ }
+// }
+// services.AddModernMediator(config => config.AddAudit<MyAuditWriter>());
 
 // Opt out of auditing for a specific request type
 [NoAudit]
 public record HealthCheckQuery() : IRequest<string>;
 
-// Wire up ICurrentUserAccessor so UserId is populated in audit records
-// (ASP.NET Core — requires ModernMediator.AspNetCore)
-services.AddAspNetCoreCurrentUser();`
+// Wire up ICurrentUserAccessor so UserId / UserName are populated in audit records (ASP.NET Core)
+services.AddModernMediator(config =>
+{
+    config.AddAudit<SerilogAuditWriter>(o => o.UseHttpContextIdentity(services));
+});`
             },
             'idempotency-behavior-code': {
                 title: 'Idempotency Behavior',
@@ -2320,7 +2379,7 @@ services.AddDbContext<IdempotencyDbContext>(opts => opts.UseSqlServer(connection
 services.AddScoped<IIdempotencyStore, EfCoreIdempotencyStore>();
 
 // Mark request types as idempotent — specify TTL in seconds
-[Idempotent(ttlSeconds: 300)] // Cache result for 5 minutes
+[Idempotent(windowSeconds: 300)] // Cache result for 5 minutes
 public record SubmitPaymentCommand(Guid PaymentId, decimal Amount) : IRequest<PaymentResult>;
 
 // On first call: handler runs, result cached by fingerprint
@@ -2392,24 +2451,21 @@ public record CallThirdPartyApiQuery(string Endpoint) : IRequest<ApiResponse>;`
                 code: `// Register ASP.NET Core integration services (registers IHttpContextAccessor)
 services.AddModernMediatorAspNetCore();
 
-// ASP.NET Core — register HttpContextCurrentUserAccessor
-// (requires ModernMediator.AspNetCore)
-services.AddAspNetCoreCurrentUser();
-
 // The accessor exposes two properties:
 // - UserId: resolved from ClaimTypes.NameIdentifier
 // - UserName: resolved from ClaimTypes.Name
 // Both return null if the claim is absent or there is no active HttpContext
 
-// Combined with AuditBehavior, UserId is populated automatically on every audit record:
+// Combined with AuditBehavior, UserId / UserName are populated automatically on every audit record.
+// HttpContextCurrentUserAccessor is auto-registered by UseHttpContextIdentity():
 services.AddModernMediator(config =>
 {
     config.RegisterServicesFromAssemblyContaining<Program>();
-    config.AddAudit();
+    config.AddAudit<SerilogAuditWriter>(o => o.UseHttpContextIdentity(services));
 });
-services.AddAuditDrainer();
-services.AddAspNetCoreCurrentUser();
-services.AddSingleton<IAuditWriter, SerilogAuditWriter>();
+
+// For applications that do not use the audit pipeline but still want the accessor available:
+services.AddSingleton<ICurrentUserAccessor, HttpContextCurrentUserAccessor>();
 
 // Custom implementation for non-ASP.NET Core applications
 public class MyCurrentUserAccessor : ICurrentUserAccessor
