@@ -71,3 +71,19 @@ Resolution: change the two `*.Generators` csproj `<RepositoryUrl>` fields to low
 `tests/ModernMediator.Tests/ComprehensiveTests.cs:298` and `tests/ModernMediator.Tests/ConcurrencyTests.cs:248` produce xUnit1031 warnings. The rule flags synchronous blocking on tasks (`.Wait()` or `.Result`) inside test methods, which can deadlock under certain xUnit runner configurations.
 
 Both warnings are pre-existing (not introduced by recent v2.2 work) and were observed across the v2.2 test work without being addressed. Worth fixing on a future test pass: replace the blocking calls with `await` patterns and mark the test methods `async Task`.
+
+### Tutorial: dedicated FluentValidation section
+
+`docs/ModernMediator-Tutorial.html` has no first-class section on FluentValidation. The integration is mentioned only in passing: a row in the Built-in Behaviors table, a row in the Recommended Registration Order table, and a hand-rolled custom validation example inside the Pipeline Behaviors modal that demonstrates how to author a behavior rather than how to use the shipped `ModernMediator.FluentValidation` package.
+
+Readers interested in adding validation to their requests have to piece the workflow together from the satellite README rather than the tutorial. A dedicated section would walk through `services.AddModernMediatorValidation(assembly)`, validator authoring with `AbstractValidator<T>`, the `ModernValidationException` thrown on failure, and a typical ASP.NET Core `ProblemDetails` translation pattern that projects `ModernValidationException.Errors` into a per-field response.
+
+Resolution: add a new `#fluentvalidation` (or similar) section to the tutorial, positioned after the Pipeline Behaviors topic and before or alongside the other built-in-behavior topics. Estimated 30 to 50 lines of markup plus a modal entry.
+
+### Tutorial: dedicated DI-resolved INotificationHandler section
+
+The tutorial covers Pub/Sub via the runtime `Subscribe<T>` callback API in detail (the `#pub-sub` section and its modal), but the DI-resolved `INotificationHandler<T>` path used in CQRS-style codebases is mentioned only briefly in the `ISender / IPublisher / IStreamer` section. There is no walkthrough of registering a handler class, resolving `IPublisher` from DI, and dispatching notifications through the typed handler interface.
+
+This is the path the core README documents as the primary CQRS-style notification mechanism. Its absence from the tutorial means readers learn pub/sub through callbacks first and may not realize the DI-resolved path exists or is the recommended pattern for application code with long-lived handler classes.
+
+Resolution: add a new `#di-notifications` (or similar) section to the tutorial, walking through `INotificationHandler<T>` implementation, automatic registration via assembly scanning, dispatch through `IPublisher.Publish`, and the unified `ErrorPolicy` and `HandlerError` behavior across both paths. Position the section adjacent to the existing Pub/Sub with Callbacks topic. Estimated 30 to 50 lines of markup plus a modal entry.
