@@ -34,6 +34,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ModernMediator.Audit.Serilog`, `ModernMediator.Audit.EntityFramework`,
   `ModernMediator.Idempotency.EntityFramework`). Previously only the core
   `ModernMediator` package shipped a README to NuGet.
+- **`MediatorConfiguration.AddModernMediatorValidation`** extension methods
+  (`ModernMediator.FluentValidation`): two new overloads on
+  `MediatorConfiguration` that register `ValidationBehavior<,>` at the
+  configuration's current pipeline position, respecting the configured
+  `BehaviorLifetime`. Callers can interleave validation with other
+  behaviors (`AddLogging`, `AddTimeout`, etc.) inside a single
+  `AddModernMediator` lambda. The existing `IServiceCollection` overloads
+  remain supported for callers whose DI setup keeps registrations outside
+  the configuration lambda. See ADR-007.
 
 ### Changed
 
@@ -59,6 +68,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `HandlerError` subscribers that themselves throw no longer break dispatch.
   Subscriber-thrown exceptions are now contained at the dispatch site and routed
   through `ISubscriberExceptionSink`.
+- `MediatorConfiguration.Services` is now `public` (previously `private`) to
+  enable satellite package and third-party integrations that contribute
+  pipeline behaviors at caller-controlled positions. The property's
+  null-throwing contract for source-generated configurations is preserved
+  and now documented as part of the public surface. See ADR-007.
 
 ### Fixed
 

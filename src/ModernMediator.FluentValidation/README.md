@@ -12,6 +12,8 @@ The package depends on [FluentValidation](https://www.nuget.org/packages/FluentV
 
 ## Setup
 
+The recommended pattern is to register validation inside the `AddModernMediator` configuration lambda, which lets you control exactly where `ValidationBehavior<,>` runs relative to other pipeline behaviors:
+
 ```csharp
 using System.Reflection;
 using ModernMediator;
@@ -20,25 +22,32 @@ using ModernMediator.FluentValidation;
 builder.Services.AddModernMediator(config =>
 {
     config.RegisterServicesFromAssemblyContaining<Program>();
-});
 
-builder.Services.AddModernMediatorValidation(Assembly.GetExecutingAssembly());
+    config.AddLogging();
+    config.AddModernMediatorValidation(typeof(Program).Assembly);
+    config.AddTimeout();
+});
 ```
 
-`AddModernMediatorValidation` scans the supplied assembly (or assemblies) for `IValidator<TRequest>` implementations, registers them in the service container via FluentValidation's `AddValidatorsFromAssemblies`, and registers `ValidationBehavior<TRequest, TResponse>` as an open-generic `IPipelineBehavior`.
+In this example, validation runs after logging and before timeout enforcement. Pipeline behaviors execute in registration order, so the position of `AddModernMediatorValidation` in the lambda determines its position in the pipeline.
 
-Two overloads are available:
+`AddModernMediatorValidation` scans the supplied assembly (or assemblies) for `IValidator<TRequest>` implementations, registers them in the service container via FluentValidation's `AddValidatorsFromAssemblies`, and registers `ValidationBehavior<TRequest, TResponse>` as an open-generic `IPipelineBehavior` at the configuration's current `BehaviorLifetime` (defaults to transient).
+
+Four overloads are available, two on `MediatorConfiguration` and two on `IServiceCollection`:
 
 ```csharp
-// Single assembly
-services.AddModernMediatorValidation(Assembly.GetExecutingAssembly());
+// MediatorConfiguration overloads (recommended): position-aware, run inside AddModernMediator lambda
+config.AddModernMediatorValidation(typeof(Program).Assembly);
+config.AddModernMediatorValidation(assembly1, assembly2);
+config.AddModernMediatorValidation(); // defaults to calling assembly
 
-// Multiple assemblies
+// IServiceCollection overloads: registered after AddModernMediator returns, validation runs last
+services.AddModernMediatorValidation(typeof(Program).Assembly);
 services.AddModernMediatorValidation(assembly1, assembly2);
-
-// No args: defaults to the calling assembly
-services.AddModernMediatorValidation();
+services.AddModernMediatorValidation(); // defaults to calling assembly
 ```
+
+The `IServiceCollection` overloads register validation after every behavior configured inside the `AddModernMediator` lambda. Use them when pipeline position does not matter or when your DI setup keeps registrations outside the configuration lambda for architectural reasons.
 
 ## Defining validators
 
@@ -86,7 +95,7 @@ catch (ModernValidationException ex)
 
 ## Pipeline ordering
 
-`ValidationBehavior` is registered as an open-generic `IPipelineBehavior<,>`. Pipeline behaviors execute in registration order, so call `AddModernMediatorValidation` after any outer concerns (retry, circuit breaker, timeout, audit, idempotency, logging) and before the handler runs. See the recommended registration order table in the [core ModernMediator README](https://github.com/evanscoapps/ModernMediator).
+`ValidationBehavior` is registered as an open-generic `IPipelineBehavior<,>`. Pipeline behaviors execute in registration order: the first behavior registered runs outermost, the last runs innermost (closest to the handler). When using the `MediatorConfiguration` overload of `AddModernMediatorValidation`, the call's textual position inside the `AddModernMediator` lambda determines the behavior's pipeline position. When using the `IServiceCollection` overload, validation runs after every behavior registered inside the lambda. See the recommended registration order table in the [core ModernMediator README](https://github.com/evanscoapps/ModernMediator).
 
 ## See also
 
