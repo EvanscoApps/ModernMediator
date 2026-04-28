@@ -5,7 +5,7 @@ using global::Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ModernMediator.Sample.Avalonia.Basic.Requests;
-using ModernMediator.Sample.Console.Domain;
+using ModernMediator.Sample.Shared.Domain;
 
 namespace ModernMediator.Sample.Avalonia.Basic;
 

@@ -1,4 +1,4 @@
-namespace ModernMediator.Sample.Console.Domain;
+namespace ModernMediator.Sample.Shared.Domain;
 
 public abstract record Animal(string Name, int AgeYears);
 

@@ -14,6 +14,6 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\ModernMediator\ModernMediator.csproj" />
-		<ProjectReference Include="..\ModernMediator.Sample.Console.Domain\ModernMediator.Sample.Console.Domain.csproj" />
+		<ProjectReference Include="..\ModernMediator.Sample.Shared.Domain\ModernMediator.Sample.Shared.Domain.csproj" />
 	</ItemGroup>
 </Project>

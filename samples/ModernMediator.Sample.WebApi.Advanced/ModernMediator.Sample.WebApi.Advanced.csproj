@@ -17,7 +17,7 @@
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\src\ModernMediator.FluentValidation\ModernMediator.FluentValidation.csproj" />
-    <ProjectReference Include="..\ModernMediator.Sample.Console.Domain\ModernMediator.Sample.Console.Domain.csproj" />
+    <ProjectReference Include="..\ModernMediator.Sample.Shared.Domain\ModernMediator.Sample.Shared.Domain.csproj" />
   </ItemGroup>
 
 </Project>

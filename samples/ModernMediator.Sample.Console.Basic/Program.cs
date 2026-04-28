@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ModernMediator;
 using ModernMediator.Sample.Console.Basic.Requests;
-using ModernMediator.Sample.Console.Domain;
+using ModernMediator.Sample.Shared.Domain;
 
 // ──────────────────────────────────────────────────────────────
 // ModernMediator Console Sample — Basic Features

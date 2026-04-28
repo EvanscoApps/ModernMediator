@@ -1,4 +1,4 @@
-using ModernMediator.Sample.Console.Domain;
+using ModernMediator.Sample.Shared.Domain;
 
 namespace ModernMediator.Sample.Blazor.Server.Requests;
 

@@ -1,6 +1,6 @@
 using System.Reflection;
 using ModernMediator.FluentValidation;
-using ModernMediator.Sample.Console.Domain;
+using ModernMediator.Sample.Shared.Domain;
 
 namespace ModernMediator.Sample.Maui.Validation;
 

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ModernMediator;
-using ModernMediator.Sample.Console.Domain;
+using ModernMediator.Sample.Shared.Domain;
 using ModernMediator.Sample.Console.PubSub;
 
 // ──────────────────────────────────────────────────────────────

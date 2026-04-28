@@ -5,13 +5,15 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "console", "console", "{09D8FB36-4898-7C8E-B3F7-02AC6C3AAC25}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{4A9C2B3D-5E6F-7081-92A3-B4C5D6E7F8A9}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernMediator.Sample.Console.Basic", "samples\ModernMediator.Sample.Console.Basic\ModernMediator.Sample.Console.Basic.csproj", "{5C897FF7-A0CB-499F-AF48-27C00879C046}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "webapi", "webapi", "{6EDC7094-E22D-CF10-605B-B42C7FB8B0A8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernMediator.Sample.WebApi", "samples\ModernMediator.Sample.WebApi\ModernMediator.Sample.WebApi.csproj", "{3A1150DF-D558-4CD6-AE0E-4A1855CD6ADE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernMediator.Sample.Console.Domain", "samples\ModernMediator.Sample.Console.Domain\ModernMediator.Sample.Console.Domain.csproj", "{B6FC64C4-1EEF-43D9-B914-1C3DB7CEAEF1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernMediator.Sample.Shared.Domain", "samples\ModernMediator.Sample.Shared.Domain\ModernMediator.Sample.Shared.Domain.csproj", "{B6FC64C4-1EEF-43D9-B914-1C3DB7CEAEF1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernMediator.Sample.Console.PubSub", "samples\ModernMediator.Sample.Console.PubSub\ModernMediator.Sample.Console.PubSub.csproj", "{222707DC-839E-4EE7-A240-FE9B9DF3CE8A}"
 EndProject
@@ -230,7 +232,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{5C897FF7-A0CB-499F-AF48-27C00879C046} = {09D8FB36-4898-7C8E-B3F7-02AC6C3AAC25}
 		{3A1150DF-D558-4CD6-AE0E-4A1855CD6ADE} = {6EDC7094-E22D-CF10-605B-B42C7FB8B0A8}
-		{B6FC64C4-1EEF-43D9-B914-1C3DB7CEAEF1} = {09D8FB36-4898-7C8E-B3F7-02AC6C3AAC25}
+		{B6FC64C4-1EEF-43D9-B914-1C3DB7CEAEF1} = {4A9C2B3D-5E6F-7081-92A3-B4C5D6E7F8A9}
 		{222707DC-839E-4EE7-A240-FE9B9DF3CE8A} = {09D8FB36-4898-7C8E-B3F7-02AC6C3AAC25}
 		{03395508-8D93-4E82-AB53-69868EE43F1C} = {2481DD90-4409-10B6-4FAC-38EB559C7BC3}
 		{225B4193-4C53-453F-877C-D6687D85280F} = {2481DD90-4409-10B6-4FAC-38EB559C7BC3}

@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using ModernMediator.Sample.Console.Domain;
+using ModernMediator.Sample.Shared.Domain;
 using ModernMediator.Sample.Wpf.Basic.Requests;
 
 namespace ModernMediator.Sample.Wpf.Basic;

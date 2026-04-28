@@ -25,7 +25,7 @@ public partial class App : Application
                 services.AddModernMediator(config =>
                 {
                     config.RegisterServicesFromAssemblies(Assembly.GetExecutingAssembly(),
-                        typeof(global::ModernMediator.Sample.Console.Domain.Dog).Assembly);
+                        typeof(global::ModernMediator.Sample.Shared.Domain.Dog).Assembly);
                     config.AddLogging();
                 });
                 services.AddTransient<MainViewModel>();

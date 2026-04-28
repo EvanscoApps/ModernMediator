@@ -1,5 +1,5 @@
 using System.Reflection;
-using ModernMediator.Sample.Console.Domain;
+using ModernMediator.Sample.Shared.Domain;
 
 namespace ModernMediator.Sample.Maui.Basic;
 

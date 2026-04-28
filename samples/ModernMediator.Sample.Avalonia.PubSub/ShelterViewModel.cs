@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using global::Avalonia.Threading;
-using ModernMediator.Sample.Console.Domain;
+using ModernMediator.Sample.Shared.Domain;
 
 namespace ModernMediator.Sample.Avalonia.PubSub;
 
