@@ -39,10 +39,11 @@ await host.StartAsync();
 
 var mediator = host.Services.GetRequiredService<IMediator>();
 
-// Use LogAndContinue so handler exceptions surface via the HandlerError event
-// without being rethrown as AggregateException at the end of each publish. The
-// happy-path publishes below have no failures, so the policy choice is only
-// observable in the v2.2 error-handling demo further down.
+// Switch to LogAndContinue for the error-handling demo below: the demo's job is
+// to showcase the HandlerError event as the primary observation channel, so we
+// want each handler exception to surface through HandlerError without being
+// rethrown as AggregateException at the end of each Publish call. The default
+// policy is ContinueAndAggregate; see ADR-006 for the cross-policy comparison.
 mediator.ErrorPolicy = ErrorPolicy.LogAndContinue;
 
 // ──────────────────────────────────────────────────────────────
