@@ -1,5 +1,6 @@
 using System.Reflection;
 using FluentValidation;
+using ModernMediator.FluentValidation;
 using global::ModernMediator.Sample.WebApi.Advanced.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,10 +31,7 @@ builder.Services.AddModernMediator(config =>
     config.AddLogging(opts => opts.LogRequestPayload = true);
 
     // 2. ValidationBehavior (middle) — runs FluentValidation rules before the handler.
-    //    Registered via AddOpenBehavior (not AddModernMediatorValidation) to control
-    //    its exact position between Logging and Timeout in the pipeline.
-    config.AddOpenBehavior(
-        typeof(global::ModernMediator.FluentValidation.ValidationBehavior<,>));
+    config.AddModernMediatorValidation(typeof(Program).Assembly);
 
     // 3. TimeoutBehavior (innermost) — enforces [Timeout(ms)] closest to the handler
     config.AddTimeout();
@@ -41,10 +39,6 @@ builder.Services.AddModernMediator(config =>
     // Telemetry via System.Diagnostics ActivitySource + Meter
     config.AddTelemetry();
 });
-
-// Register FluentValidation validators from this assembly.
-// The behavior itself was registered above in the correct pipeline position.
-builder.Services.AddTransient<IValidator<AddAnimalCommand>, AddAnimalCommandValidator>();
 
 var app = builder.Build();
 
