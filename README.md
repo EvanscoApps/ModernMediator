@@ -550,6 +550,8 @@ mediator.Subscribe<OrderCreatedEvent>(
 mediator.Publish(new OrderCreatedEvent(123, 599.99m));
 ```
 
+ModernMediator routes notifications along two delivery paths. The `IMediator.Publish<T>(T)` and `PublishAsync<T>(T)` overloads shown above invoke `Subscribe<T>` and `SubscribeAsync<T>` callbacks; the `IPublisher.Publish<TNotification>(notification, ct)` overload, shown in the next subsection, invokes DI-resolved `INotificationHandler<TNotification>` instances. The two paths are independent: a single publish call reaches one path, not both.
+
 #### DI-Based Notifications
 
 For CQRS-style notification handlers resolved from the DI container:

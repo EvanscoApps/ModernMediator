@@ -90,8 +90,11 @@ namespace ModernMediator
         IDisposable Subscribe<T>(string key, Action<T> handler, bool weak = true, Predicate<T>? filter = null);
 
         /// <summary>
-        /// Publish a message synchronously. Returns true if at least one handler was invoked.
-        /// Null messages are allowed (returns false as no-op).
+        /// Publish a message synchronously to subscribers registered via <see cref="Subscribe{T}(System.Action{T}, bool, System.Predicate{T}?)"/>.
+        /// Returns true if at least one handler was invoked. Null messages are allowed (returns false as no-op).
+        /// This overload and the other <c>Publish</c>/<c>PublishAsync</c> overloads on <see cref="IMediator"/>
+        /// invoke runtime callbacks; to dispatch to DI-resolved <see cref="INotificationHandler{TNotification}"/>
+        /// instances, use the <see cref="IPublisher.Publish{TNotification}"/> overload inherited from <see cref="IPublisher"/>.
         /// </summary>
         bool Publish<T>(T? message);
 
@@ -175,6 +178,14 @@ namespace ModernMediator
         /// Event raised when a handler throws an exception.
         /// CRITICAL: Subscribe to this in production when using LogAndContinue policy!
         /// </summary>
+        /// <remarks>
+        /// This event fires for handler exceptions on both notification dispatch paths: DI-resolved
+        /// <see cref="INotificationHandler{TNotification}"/> instances reached via <see cref="IPublisher.Publish{TNotification}"/>,
+        /// and runtime callbacks reached via <see cref="Subscribe{T}(System.Action{T}, bool, System.Predicate{T}?)"/>
+        /// or <see cref="SubscribeAsync{T}(System.Func{T, System.Threading.Tasks.Task}, bool, System.Predicate{T}?)"/>.
+        /// The <see cref="HandlerErrorEventArgs"/> shape is identical across both paths; <see cref="HandlerErrorEventArgs.HandlerType"/>
+        /// and <see cref="HandlerErrorEventArgs.HandlerInstance"/> populate from whichever handler threw, regardless of dispatch path.
+        /// </remarks>
         event EventHandler<HandlerErrorEventArgs>? HandlerError;
 
         /// <summary>
