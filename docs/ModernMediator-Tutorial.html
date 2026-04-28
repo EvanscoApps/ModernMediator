@@ -1047,7 +1047,7 @@
                         </thead>
                         <tbody>
                             <tr><td><code>ISender</code></td><td>Request/Response</td><td><code>Send</code>, <code>SendAsync</code></td></tr>
-                            <tr><td><code>IPublisher</code></td><td>Pub/Sub</td><td><code>Publish</code>, <code>Subscribe</code></td></tr>
+                            <tr><td><code>IPublisher</code></td><td>Pub/Sub</td><td><code>Publish</code></td></tr>
                             <tr><td><code>IStreamer</code></td><td>Streaming</td><td><code>CreateStream</code></td></tr>
                             <tr><td><code>IMediator</code></td><td>All of the above</td><td>Composes ISender + IPublisher + IStreamer</td></tr>
                         </tbody>
@@ -1056,7 +1056,7 @@
 
                 <p>Injecting the narrowest interface makes dependencies explicit and prevents misuse — a service that only sends commands cannot accidentally publish notifications.</p>
 
-                <p>A single <code>IPublisher.Publish</code> call dispatches to both DI-resolved <code>INotificationHandler&lt;T&gt;</code> instances and runtime <code>Subscribe&lt;T&gt;</code> callbacks. Both delivery paths participate uniformly in the configured <code>ErrorPolicy</code> and observe the <code>HandlerError</code> event with the same <code>HandlerErrorEventArgs</code> shape.</p>
+                <p>ModernMediator routes notifications along two delivery paths: <code>IPublisher.Publish</code> invokes DI-resolved <code>INotificationHandler&lt;T&gt;</code> instances, while the sync <code>IMediator.Publish&lt;T&gt;</code> and async <code>IMediator.PublishAsync&lt;T&gt;</code> overloads invoke runtime <code>Subscribe&lt;T&gt;</code> and <code>SubscribeAsync&lt;T&gt;</code> callbacks. Both paths participate uniformly in the configured <code>ErrorPolicy</code> and observe the <code>HandlerError</code> event with the same <code>HandlerErrorEventArgs</code> shape, so choosing the narrowest interface for a given component does not cost the developer anything in the unified error-handling story.</p>
 
                 <button class="code-btn" onclick="openModal('interface-segregation-code')">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
