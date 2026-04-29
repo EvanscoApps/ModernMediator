@@ -4,7 +4,7 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
-		<ImplicitUsings>false</ImplicitUsings>
+		<ImplicitUsings>disable</ImplicitUsings>
 
 		<!-- Source Generator requirements -->
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>

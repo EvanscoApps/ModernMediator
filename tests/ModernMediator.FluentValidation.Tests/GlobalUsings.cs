@@ -1,7 +1,3 @@
-global using ModernMediator;
-global using ModernMediator.Sample.Shared.Domain;
-global using ModernMediator.Sample.Worker;
-global using ModernMediator.Sample.Worker.Requests;
 global using System;
 global using System.Collections.Generic;
 global using System.IO;
@@ -9,3 +5,4 @@ global using System.Linq;
 global using System.Net.Http;
 global using System.Threading;
 global using System.Threading.Tasks;
+global using Xunit;

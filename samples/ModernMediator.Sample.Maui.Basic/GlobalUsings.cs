@@ -1,5 +1,10 @@
 global using Microsoft.Extensions.DependencyInjection;
-global using ModernMediator;
+global using Microsoft.Maui;
+global using Microsoft.Maui.Controls;
+global using Microsoft.Maui.Controls.Hosting;
+global using Microsoft.Maui.Controls.Xaml;
+global using Microsoft.Maui.Graphics;
+global using Microsoft.Maui.Hosting;
 global using System;
 global using System.Collections.Generic;
 global using System.IO;
