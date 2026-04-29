@@ -83,6 +83,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dispatch paths. The discriminator uses the publish token's
   `IsCancellationRequested` at the time of catch, which handles linked-token
   cancellation correctly. See ADR-005.
+- Dispatcher overload mismatch now produces a helpful exception. When `Send` is
+  called for a request whose handler is registered as `IValueTaskRequestHandler`
+  (or `SendAsync` is called for a handler registered as `IRequestHandler`), the
+  exception identifies the mismatch and suggests the correct dispatch method
+  rather than reporting a generic "no handler registered" error. Surfaced as
+  `InvalidOperationException` with the bracketed runtime diagnostic code
+  `[MM200]`. Existing catch sites are unaffected; the exception type is unchanged.
+  See ADR-008 (diagnostic code numbering convention) and ADR-009 (mismatch
+  behavior).
 
 ### Behavioral changes
 

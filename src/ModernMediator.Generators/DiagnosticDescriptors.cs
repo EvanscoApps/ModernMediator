@@ -78,5 +78,19 @@ namespace ModernMediator.Generators
             category: "ModernMediator",
             defaultSeverity: DiagnosticSeverity.Info,
             isEnabledByDefault: true);
+
+        // --- Runtime diagnostic codes (MM2xx) ---
+        // Per ADR-008, MM2xx codes identify runtime conditions surfaced through exception
+        // messages rather than Roslyn diagnostics. They are defined here as constants so
+        // consumers grepping the codebase for an MM-prefix code find a single source of
+        // truth alongside the analyzer-style descriptors.
+
+        /// <summary>
+        /// MM200: A request handler is registered under one dispatch interface but the
+        /// dispatcher was called via the other (e.g. handler is IValueTaskRequestHandler
+        /// and the caller invoked Send instead of SendAsync).
+        /// Surfaced as InvalidOperationException with a guiding message; not a Roslyn diagnostic.
+        /// </summary>
+        public const string DispatcherOverloadMismatchCode = "MM200";
     }
 }

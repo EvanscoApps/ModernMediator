@@ -22,11 +22,26 @@ internal sealed class RequestHandlerWrapperImpl<TRequest, TResponse> : RequestHa
         var typedRequest = (TRequest)request;
 
         var handler = (IRequestHandler<TRequest, TResponse>?)
-            serviceProvider.GetService(typeof(IRequestHandler<TRequest, TResponse>))
-            ?? throw new InvalidOperationException(
+            serviceProvider.GetService(typeof(IRequestHandler<TRequest, TResponse>));
+        if (handler is null)
+        {
+            // MM200: secondary lookup for the alternate dispatch interface so that an
+            // overload mismatch (handler registered as IValueTaskRequestHandler but caller
+            // invoked Send) surfaces as a guiding message instead of a generic "no handler"
+            // error. Runs only on the error path; no overhead for successful dispatches.
+            var valueTaskHandler = serviceProvider.GetService(typeof(IValueTaskRequestHandler<TRequest, TResponse>));
+            if (valueTaskHandler is not null)
+            {
+                throw new InvalidOperationException(
+                    $"[MM200] No IRequestHandler<{typeof(TRequest).Name}, {typeof(TResponse).Name}> is registered, " +
+                    $"but an IValueTaskRequestHandler<{typeof(TRequest).Name}, {typeof(TResponse).Name}> is registered. " +
+                    "Did you mean to call SendAsync instead of Send?");
+            }
+            throw new InvalidOperationException(
                 $"No handler registered for request type {typeof(TRequest).Name}. " +
                 $"Register a handler implementing IRequestHandler<{typeof(TRequest).Name}, {typeof(TResponse).Name}> " +
                 "using AddModernMediator() with assembly scanning or manual registration.");
+        }
 
         var behaviors = (IEnumerable<IPipelineBehavior<TRequest, TResponse>>?)
             serviceProvider.GetService(typeof(IEnumerable<IPipelineBehavior<TRequest, TResponse>>));
