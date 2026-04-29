@@ -6,10 +6,10 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia" Version="11.2.3" />
-		<PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
-		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
-		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
+		<PackageReference Include="Avalonia" Version="11.2.7" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.2.7" />
+		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.7" />
+		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.7" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
 	</ItemGroup>
 	<ItemGroup>

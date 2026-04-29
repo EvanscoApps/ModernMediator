@@ -35,7 +35,7 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
-		<PackageReference Include="Polly.Core" Version="8.3.1" />
+		<PackageReference Include="Polly.Core" Version="8.6.0" />
 	</ItemGroup>
 	<!-- Reference the source generator -->
 	<ItemGroup>
