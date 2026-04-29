@@ -71,6 +71,15 @@ namespace ModernMediator.Generators
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
 
+        public static readonly DiagnosticDescriptor DispatcherOverloadMismatch = new(
+            id: "MM009",
+            title: "Dispatcher overload mismatch",
+            messageFormat: "{0} is registered as {1}; call {2} instead of {3}",
+            category: "ModernMediator",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            description: "Send was called for a request whose handler is registered as IValueTaskRequestHandler (or vice versa). The mismatch will throw at runtime; calling the matching dispatch method resolves it.");
+
         public static readonly DiagnosticDescriptor GeneratorSuccess = new(
             id: "MM100",
             title: "ModernMediator registration generated",

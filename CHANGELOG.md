@@ -34,6 +34,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ModernMediator.Audit.Serilog`, `ModernMediator.Audit.EntityFramework`,
   `ModernMediator.Idempotency.EntityFramework`). Previously only the core
   `ModernMediator` package shipped a README to NuGet.
+- **MM009 analyzer** (`ModernMediator.Generators`): compile-time detection of
+  dispatcher overload mismatch via new `DispatcherOverloadMismatchAnalyzer`.
+  When the consumer's code calls `Send` or `SendAsync` against a request whose
+  handler is registered under the alternate dispatch interface, the analyzer
+  surfaces the mismatch in the IDE error list before code runs (severity:
+  Warning). Companion to the runtime MM200 check (ADR-009); the runtime check
+  remains as the cross-assembly safety net. See ADR-010.
 - **`MediatorConfiguration.AddModernMediatorValidation`** extension methods
   (`ModernMediator.FluentValidation`): two new overloads on
   `MediatorConfiguration` that register `ValidationBehavior<,>` at the
