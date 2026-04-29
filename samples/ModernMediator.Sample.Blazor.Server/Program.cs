@@ -1,7 +1,7 @@
 using System.Reflection;
-using global::ModernMediator;
-using global::ModernMediator.Sample.Blazor.Server.Components;
-using global::ModernMediator.Sample.Shared.Domain;
+using ModernMediator;
+using ModernMediator.Sample.Blazor.Server.Components;
+using ModernMediator.Sample.Shared.Domain;
 
 var builder = WebApplication.CreateBuilder(args);
 

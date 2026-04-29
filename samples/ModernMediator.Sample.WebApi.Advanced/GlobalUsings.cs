@@ -1,5 +1,5 @@
-global using global::ModernMediator;
-global using global::ModernMediator.AspNetCore;
-global using global::ModernMediator.Sample.Shared.Domain;
-global using global::ModernMediator.Sample.WebApi.Advanced;
-global using global::ModernMediator.Sample.WebApi.Advanced.Requests;
+global using ModernMediator;
+global using ModernMediator.AspNetCore;
+global using ModernMediator.Sample.Shared.Domain;
+global using ModernMediator.Sample.WebApi.Advanced;
+global using ModernMediator.Sample.WebApi.Advanced.Requests;

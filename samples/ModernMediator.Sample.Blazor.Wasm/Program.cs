@@ -1,4 +1,4 @@
-using global::ModernMediator.Sample.Blazor.Wasm;
+using ModernMediator.Sample.Blazor.Wasm;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using System.Reflection;

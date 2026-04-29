@@ -1,7 +1,7 @@
 using System.Reflection;
 using FluentValidation;
 using ModernMediator.FluentValidation;
-using global::ModernMediator.Sample.WebApi.Advanced.Validators;
+using ModernMediator.Sample.WebApi.Advanced.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,7 +71,7 @@ app.MapPost("/api/animals", async (AddAnimalCommand command, IMediator mediator)
         var result = await mediator.Send(command);
         return result.ToHttpResult();
     }
-    catch (global::ModernMediator.FluentValidation.ModernValidationException ex)
+    catch (ModernMediator.FluentValidation.ModernValidationException ex)
     {
         // ValidationBehavior throws when FluentValidation rules fail.
         // Map validation errors to a 400 Bad Request with structured error details.
