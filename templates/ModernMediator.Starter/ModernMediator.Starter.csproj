@@ -5,7 +5,7 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="ModernMediator" Version="1.0.0" />
-		<PackageReference Include="ModernMediator.AspNetCore" Version="1.0.0" />
+		<PackageReference Include="ModernMediator" Version="2.2.0" />
+		<PackageReference Include="ModernMediator.AspNetCore" Version="2.2.0" />
 	</ItemGroup>
 </Project>
