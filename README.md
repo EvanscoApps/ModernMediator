@@ -850,13 +850,13 @@ For desktop developers using Prism, ModernMediator can replace EventAggregator w
 
 ## Samples
 
-ModernMediator includes 13 cross-platform samples and a `dotnet new` template:
+ModernMediator includes 14 cross-platform samples and a `dotnet new` template:
 
 ```bash
 dotnet new modernmediator -n MyProject
 ```
 
-Sample projects: Console (Basic, Domain, PubSub), WPF (Basic, PubSub), MAUI (Basic, Validation), Avalonia (Basic, PubSub), Blazor (Server, WASM), Worker Service, WebApi, and WebApi.Advanced.
+Sample projects: Console (Basic, Domain, PubSub), WPF (Basic, PubSub), WinForms (Basic), MAUI (Basic, Validation), Avalonia (Basic, PubSub), Blazor (Server, WASM), Worker Service, WebApi, and WebApi.Advanced. The WinForms sample exercises `WinFormsDispatcher` for cross-thread notification dispatch from a background task to the UI thread.
 
 ## Use Cases
 
