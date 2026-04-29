@@ -200,8 +200,7 @@ public sealed class AuditBehaviorTests
             (_, _) => Task.FromResult("ok"),
             CancellationToken.None);
 
-        // Allow the fire-and-forget Task.Run to complete
-        await Task.Delay(200);
+        await writer.WaitForWriteAsync();
 
         Assert.Single(writer.Records);
         Assert.True(writer.Records[0].Succeeded);
