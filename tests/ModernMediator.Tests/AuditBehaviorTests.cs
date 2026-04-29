@@ -23,17 +23,6 @@ public sealed class AuditBehaviorTests
 
     private sealed class AuditedUnitRequest : IRequest<Unit> { }
 
-    private sealed class CapturingAuditWriter : IAuditWriter
-    {
-        public List<AuditRecord> Records { get; } = new();
-
-        public ValueTask WriteAsync(AuditRecord record, CancellationToken cancellationToken)
-        {
-            Records.Add(record);
-            return ValueTask.CompletedTask;
-        }
-    }
-
     private sealed class FixedUserAccessor : ICurrentUserAccessor
     {
         public string? UserId { get; init; }

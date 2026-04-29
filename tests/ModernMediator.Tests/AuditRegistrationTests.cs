@@ -29,17 +29,6 @@ public sealed class AuditRegistrationTests
             => Task.FromResult("result");
     }
 
-    private sealed class CapturingAuditWriter : IAuditWriter
-    {
-        public System.Collections.Generic.List<AuditRecord> Records { get; } = new();
-
-        public ValueTask WriteAsync(AuditRecord record, CancellationToken cancellationToken)
-        {
-            Records.Add(record);
-            return ValueTask.CompletedTask;
-        }
-    }
-
     // --- Helpers ---
 
     private static (IServiceProvider Provider, CapturingAuditWriter Writer) BuildProvider()
