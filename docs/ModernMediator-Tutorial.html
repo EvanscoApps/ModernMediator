@@ -1115,6 +1115,7 @@
                             <tr><td>MM100</td><td>Compile-time (info)</td><td>Source generator success — reports counts of generated handlers, behaviors, and processors</td></tr>
                             <tr><td>MM200</td><td>Compile-time</td><td>Invalid HTTP method on <code>[Endpoint]</code> attribute (ASP.NET Core endpoint generator)</td></tr>
                             <tr><td>MM201</td><td>Runtime</td><td>Dispatcher overload mismatch — <code>InvalidOperationException</code> with <code>[MM201]</code> prefix when the dispatcher detects the mismatch at runtime (cross-assembly safety net for MM009)</td></tr>
+                            <tr><td>MM202</td><td>Runtime</td><td>Generated dispatcher could not resolve a handler — <code>InvalidOperationException</code> with <code>[MM202]</code> prefix thrown by the source-generated <code>Send</code> / <code>CreateStream</code> extensions when <code>IServiceProvider.GetService</code> returns null for the expected <code>IRequestHandler&lt;,&gt;</code> or <code>IStreamRequestHandler&lt;,&gt;</code>. The message points at <code>AddModernMediatorGenerated()</code> registration as the corrective action</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1489,6 +1490,8 @@
                 <p><strong>MM201</strong> (runtime) is an <code>InvalidOperationException</code> with a bracketed prefix, thrown by the dispatcher when no handler is registered for the requested interface but a handler exists under the alternate interface. The runtime check covers the cross-assembly case the analyzer cannot see: a handler registered in a precompiled NuGet dependency that the consumer's compilation does not contain a syntactic declaration for.</p>
 
                 <p>Both codes describe the same condition; the codes are intentionally distinct because the channels are distinct. MM009 in build output points to the source-gen detector; <code>[MM201]</code> in an exception message points to the runtime check. Consumers who want stricter enforcement can promote MM009 to error via <code>&lt;WarningsAsErrors&gt;</code> or an <code>.editorconfig</code> severity override.</p>
+
+                <p><strong>MM202</strong> (runtime) is the second occupant of the MM2xx slot established by ADR-008. It surfaces from a different path than MM201: the source-generator-emitted <code>Send</code> and <code>CreateStream</code> extension methods throw an <code>InvalidOperationException</code> with the <code>[MM202]</code> prefix when <code>IServiceProvider.GetService</code> returns null for the expected <code>IRequestHandler&lt;,&gt;</code> or <code>IStreamRequestHandler&lt;,&gt;</code>. The message points at <code>AddModernMediatorGenerated()</code> as the corrective action — typically the symptom of a missing call to the generated registration helper after assembly scanning was disabled or replaced.</p>
 
                 <h3>Example</h3>
                 <p>Given a handler registered as <code>IValueTaskRequestHandler</code>:</p>

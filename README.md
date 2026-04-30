@@ -64,7 +64,7 @@ ModernMediator ships built-in behaviors for validation (via FluentValidation), l
 ### Source Generators & AOT
 - **Source Generators** — Compile-time code generation eliminates reflection
 - **Native AOT Compatible** — Full support for ahead-of-time compilation
-- **Compile-Time Diagnostics** — 11 compile-time diagnostic rules (MM001–MM009, MM100, MM200) catch problems during build, plus the runtime MM201 prefix surfaced on dispatcher overload mismatch exceptions
+- **Compile-Time Diagnostics** — 11 compile-time diagnostic rules (MM001–MM009, MM100, MM200) catch problems during build, plus runtime MM201 and MM202 prefixes surfaced on dispatcher-overload-mismatch and source-generator-emitted handler-not-resolved exceptions
 - **Zero Reflection** — Generated `AddModernMediatorGenerated()` for maximum performance
 - **CachingMode** — Eager (default) or Lazy initialization for cold start optimization
 - **ASP.NET Core Endpoint Generation** — `[Endpoint]` attribute with `MapMediatorEndpoints()` for Minimal API integration
@@ -199,7 +199,7 @@ var user = await mediator.Send(new GetUserQuery(42)); // No reflection!
 
 ### Diagnostics
 
-Compile-time codes are emitted by the source generators and surface in the IDE error list and build output. The single runtime code (MM201) is not a Roslyn diagnostic; it is a bracketed prefix on an `InvalidOperationException` message thrown by the dispatcher.
+Compile-time codes are emitted by the source generators and surface in the IDE error list and build output. Runtime codes (MM201, MM202) are not Roslyn diagnostics; they are bracketed prefixes on `InvalidOperationException` messages thrown at dispatch time. See ADR-008 for the slot-range convention.
 
 | Code  | Channel       | Description                                                           |
 | :---- | :------------ | :-------------------------------------------------------------------- |
@@ -215,6 +215,7 @@ Compile-time codes are emitted by the source generators and surface in the IDE e
 | MM100 | Compile-time  | Source generator internal error                                       |
 | MM200 | Compile-time  | Invalid HTTP method on `[Endpoint]` attribute (ASP.NET Core endpoint generator) |
 | MM201 | Runtime       | Dispatcher overload mismatch — `InvalidOperationException` thrown with `[MM201]` prefix when the dispatcher detects a Send/SendAsync mismatch at runtime (cross-assembly safety net for MM009) |
+| MM202 | Runtime       | Generated dispatcher could not resolve a handler — `InvalidOperationException` thrown with `[MM202]` prefix by the source-generated `Send` / `CreateStream` extensions when `IServiceProvider.GetService` returns null for the expected `IRequestHandler<,>` or `IStreamRequestHandler<,>`. Points at `AddModernMediatorGenerated()` registration as the corrective action |
 
 ### CachingMode
 
