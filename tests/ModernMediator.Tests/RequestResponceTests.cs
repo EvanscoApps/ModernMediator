@@ -176,7 +176,7 @@ namespace ModernMediator.Tests
             cts.CancelAfter(50);
 
             // Act & Assert
-            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
                 await mediator.Send(new SlowRequest(1000), cts.Token));
         }
 

@@ -158,7 +158,7 @@ namespace ModernMediator.Tests
 
             cts.CancelAfter(50);
 
-            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
                 await bus.PublishAsyncTrue(new TestMessage("test"), cts.Token));
         }
     }
