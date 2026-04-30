@@ -6,7 +6,7 @@ namespace ModernMediator.Internal
     /// <summary>
     /// Default <see cref="ISubscriberExceptionSink"/> that routes contained subscriber
     /// exceptions to a Microsoft.Extensions.Logging <see cref="ILogger"/>. If the logger
-    /// is null, the sink is a no-op — exceptions are still contained, just not logged.
+    /// is null, the sink is a no-op (exceptions are still contained, just not logged).
     /// </summary>
     internal sealed class LoggerSubscriberExceptionSink : ISubscriberExceptionSink
     {
@@ -25,7 +25,7 @@ namespace ModernMediator.Internal
             }
             catch
             {
-                // If logging itself fails, swallow — there is nowhere left to escalate.
+                // If logging itself fails, swallow; there is nowhere left to escalate.
             }
         }
     }

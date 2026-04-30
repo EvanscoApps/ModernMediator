@@ -16,7 +16,7 @@ namespace ModernMediator;
 /// <remarks>
 /// Fingerprint computation requires the request to be serializable by
 /// <see cref="System.Text.Json.JsonSerializer"/>. The backing store is
-/// best-effort when cache-backed — see <see cref="IIdempotencyStore"/> and
+/// best-effort when cache-backed; see <see cref="IIdempotencyStore"/> and
 /// ADR-004 for details.
 /// </remarks>
 #pragma warning disable MM006

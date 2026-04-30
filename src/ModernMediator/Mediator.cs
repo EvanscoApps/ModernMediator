@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
@@ -157,6 +158,8 @@ namespace ModernMediator
         #region Request/Response
 
         /// <inheritdoc />
+        [RequiresDynamicCode("Send constructs handler wrappers via MakeGenericType when handlers are registered through assembly scanning. Use AddModernMediatorGenerated() for the AOT-compatible source-generated registration path.")]
+        [RequiresUnreferencedCode("Send uses reflection over handler types when handlers are registered through assembly scanning. Use AddModernMediatorGenerated() for the AOT-compatible source-generated registration path.")]
         public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
@@ -207,6 +210,8 @@ namespace ModernMediator
         }
 
         /// <inheritdoc />
+        [RequiresDynamicCode("SendAsync constructs ValueTask handler wrappers via MakeGenericType when handlers are registered through assembly scanning. Use AddModernMediatorGenerated() for the AOT-compatible source-generated registration path.")]
+        [RequiresUnreferencedCode("SendAsync uses reflection over handler types when handlers are registered through assembly scanning. Use AddModernMediatorGenerated() for the AOT-compatible source-generated registration path.")]
         public ValueTask<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
@@ -376,6 +381,8 @@ namespace ModernMediator
         #region Streaming
 
         /// <inheritdoc />
+        [RequiresDynamicCode("CreateStream constructs stream handler wrappers via MakeGenericType when handlers are registered through assembly scanning. Use AddModernMediatorGenerated() for the AOT-compatible source-generated registration path.")]
+        [RequiresUnreferencedCode("CreateStream uses reflection over handler types when handlers are registered through assembly scanning. Use AddModernMediatorGenerated() for the AOT-compatible source-generated registration path.")]
         public async IAsyncEnumerable<TResponse> CreateStream<TResponse>(
             IStreamRequest<TResponse> request,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)

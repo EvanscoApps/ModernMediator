@@ -53,7 +53,7 @@ namespace ModernMediator.FluentValidation
         /// the configuration's current registration position, allowing the caller to control where
         /// validation runs relative to other behaviors registered via the same configuration.
         /// </summary>
-        /// <param name="config">The mediator configuration.</param>
+        /// <param name="configuration">The mediator configuration.</param>
         /// <param name="assemblies">
         /// The assemblies to scan for validators. If none are provided, defaults to the calling assembly.
         /// </param>
@@ -63,19 +63,19 @@ namespace ModernMediator.FluentValidation
         /// which defaults to <see cref="ServiceLifetime.Transient"/>. This differs from the
         /// <see cref="IServiceCollection"/>-based overloads, which always register the behavior as transient.
         /// </remarks>
-        public static MediatorConfiguration AddModernMediatorValidation(this MediatorConfiguration config, params Assembly[] assemblies)
+        public static MediatorConfiguration AddModernMediatorValidation(this MediatorConfiguration configuration, params Assembly[] assemblies)
         {
             if (assemblies.Length == 0)
                 assemblies = new[] { Assembly.GetCallingAssembly() };
 
-            config.Services.AddValidatorsFromAssemblies(assemblies);
+            configuration.Services.AddValidatorsFromAssemblies(assemblies);
 
-            config.Services.Add(new ServiceDescriptor(
+            configuration.Services.Add(new ServiceDescriptor(
                 typeof(IPipelineBehavior<,>),
                 typeof(ValidationBehavior<,>),
-                config.BehaviorLifetime));
+                configuration.BehaviorLifetime));
 
-            return config;
+            return configuration;
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace ModernMediator.FluentValidation
         /// the configuration's current registration position, allowing the caller to control where
         /// validation runs relative to other behaviors registered via the same configuration.
         /// </summary>
-        /// <param name="config">The mediator configuration.</param>
+        /// <param name="configuration">The mediator configuration.</param>
         /// <param name="assembly">The assembly to scan for validators.</param>
         /// <returns>The configuration for chaining.</returns>
         /// <remarks>
@@ -93,9 +93,9 @@ namespace ModernMediator.FluentValidation
         /// which defaults to <see cref="ServiceLifetime.Transient"/>. This differs from the
         /// <see cref="IServiceCollection"/>-based overloads, which always register the behavior as transient.
         /// </remarks>
-        public static MediatorConfiguration AddModernMediatorValidation(this MediatorConfiguration config, Assembly assembly)
+        public static MediatorConfiguration AddModernMediatorValidation(this MediatorConfiguration configuration, Assembly assembly)
         {
-            return config.AddModernMediatorValidation(new[] { assembly });
+            return configuration.AddModernMediatorValidation(new[] { assembly });
         }
     }
 }

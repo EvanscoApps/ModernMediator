@@ -17,7 +17,7 @@ namespace ModernMediator.Idempotency.EntityFramework;
 /// A new <see cref="IdempotencyDbContext"/> scope is created per operation to
 /// ensure isolation from the caller's application context and from the audit
 /// write path.
-/// Concurrent duplicate requests are resolved at the database level — the second
+/// Concurrent duplicate requests are resolved at the database level: the second
 /// insert is rejected by the unique constraint and the cached response from the
 /// first execution is returned.
 /// </remarks>
@@ -98,7 +98,7 @@ public sealed class EfCoreIdempotencyStore : IIdempotencyStore
         catch (DbUpdateException)
         {
             // A concurrent request already inserted this fingerprint.
-            // The unique constraint did its job — swallow the exception.
+            // The unique constraint did its job; swallow the exception.
             // The caller will retrieve the existing entry on the next TryGetAsync.
         }
     }

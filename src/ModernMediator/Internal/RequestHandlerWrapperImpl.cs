@@ -50,7 +50,7 @@ internal sealed class RequestHandlerWrapperImpl<TRequest, TResponse> : RequestHa
             return handler.Handle(typedRequest, cancellationToken);
 
         // Materialize into array for index-based recursion (no per-behavior closures).
-        // Array is in registration order — index 0 is outermost, last is innermost.
+        // Array is in registration order: index 0 is outermost, last is innermost.
         var array = behaviors as IPipelineBehavior<TRequest, TResponse>[] ?? behaviors.ToArray();
         if (array.Length == 0)
             return handler.Handle(typedRequest, cancellationToken);

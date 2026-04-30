@@ -7,13 +7,13 @@ public enum IdempotencyStoreMode
 {
     /// <summary>
     /// Uses an in-memory cache. Suitable for development and single-instance deployments.
-    /// Best-effort only — see ADR-004.
+    /// Best-effort only; see ADR-004.
     /// </summary>
     InMemory,
 
     /// <summary>
     /// Uses a distributed cache (e.g. Redis). Suitable for multi-instance deployments.
-    /// Best-effort only — see ADR-004.
+    /// Best-effort only; see ADR-004.
     /// </summary>
     DistributedCache
 }

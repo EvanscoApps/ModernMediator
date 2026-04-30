@@ -40,6 +40,19 @@ namespace ModernMediator
         /// </summary>
         public object? HandlerInstance { get; }
 
+        /// <summary>
+        /// Initializes a new instance of <see cref="HandlerErrorEventArgs"/> with the exception,
+        /// message, and message type only.
+        /// </summary>
+        /// <param name="exception">The exception that was thrown by the handler.</param>
+        /// <param name="message">The notification message that was being handled.</param>
+        /// <param name="messageType">The runtime type of the message.</param>
+        /// <remarks>
+        /// This constructor predates the structured handler-identification properties added in v2.2.
+        /// The 5-argument constructor is preferred when the dispatch context can supply the handler
+        /// type and instance. This overload remains for callers that do not have that context available;
+        /// when used, <see cref="HandlerType"/> and <see cref="HandlerInstance"/> are null.
+        /// </remarks>
         public HandlerErrorEventArgs(Exception exception, object message, Type messageType)
         {
             Exception = exception;

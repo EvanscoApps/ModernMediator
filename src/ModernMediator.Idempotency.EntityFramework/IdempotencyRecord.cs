@@ -12,7 +12,7 @@ public sealed class IdempotencyRecord
 {
     /// <summary>
     /// Gets or sets the SHA-256 fingerprint of the request.
-    /// This column has a unique constraint — duplicate inserts are rejected
+    /// This column has a unique constraint, so duplicate inserts are rejected
     /// by the database.
     /// </summary>
     public required string Fingerprint { get; set; }

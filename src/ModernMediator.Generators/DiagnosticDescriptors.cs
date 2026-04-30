@@ -42,7 +42,7 @@ namespace ModernMediator.Generators
         public static readonly DiagnosticDescriptor NotificationHandlerReturnsValue = new(
             id: "MM005",
             title: "Notification handler has return value",
-            messageFormat: "'{0}' implements INotificationHandler but its Handle method returns a value — this is likely unintentional",
+            messageFormat: "'{0}' implements INotificationHandler but its Handle method returns a value; this is likely unintentional",
             category: "ModernMediator",
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
@@ -50,7 +50,7 @@ namespace ModernMediator.Generators
         public static readonly DiagnosticDescriptor OpenGenericBehavior = new(
             id: "MM006",
             title: "Open generic behavior may need explicit registration",
-            messageFormat: "'{0}' is an open generic IPipelineBehavior<,> — it will not be discovered by assembly scanning. Register it with AddOpenBehavior() in your configuration",
+            messageFormat: "'{0}' is an open generic IPipelineBehavior<,> and will not be discovered by assembly scanning. Register it with AddOpenBehavior() in your configuration",
             category: "ModernMediator",
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
