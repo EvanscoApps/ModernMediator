@@ -88,7 +88,7 @@ namespace ModernMediator.FluentValidation.Tests
                 config.AddTimeout();
             });
 
-            // Assert — inspect ServiceDescriptors directly so registration order is verified
+            // Assert:inspect ServiceDescriptors directly so registration order is verified
             // without requiring LoggingBehavior to be instantiable (it depends on ILogger<T>,
             // which would force a Microsoft.Extensions.Logging package reference into this test
             // project). The mediator dispatches behaviors in DI registration order, so the order
@@ -136,7 +136,7 @@ namespace ModernMediator.FluentValidation.Tests
             });
             services.AddModernMediatorValidation(typeof(ConfigOverloadValidator).Assembly);
 
-            // Assert — inspect ServiceDescriptors directly (see HonorsRegistrationOrder for rationale)
+            // Assert:inspect ServiceDescriptors directly (see HonorsRegistrationOrder for rationale)
             var openBehaviorTypes = services
                 .Where(d => d.ServiceType == typeof(IPipelineBehavior<,>))
                 .Select(d => d.ImplementationType)

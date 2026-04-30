@@ -16,7 +16,7 @@ namespace ModernMediator.Generators.Tests
     /// </summary>
     public class AnalyzerTests
     {
-        #region MM008 — WeakLambdaSubscription: Positive Tests
+        #region MM008WeakLambdaSubscription: Positive Tests
 
         [Fact]
         public async Task MM008_LambdaWithDefaultWeak_ReportsWarning()
@@ -90,7 +90,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM008 — WeakLambdaSubscription: Negative Tests
+        #region MM008WeakLambdaSubscription: Negative Tests
 
         [Fact]
         public async Task MM008_LambdaWithExplicitWeakFalse_NoDiagnostic()
@@ -251,7 +251,7 @@ namespace ModernMediator
 
         #endregion
 
-        #region MM009 — DispatcherOverloadMismatch: Test Infrastructure
+        #region MM009DispatcherOverloadMismatch: Test Infrastructure
 
         private const string DispatchInterfacesStub = @"
 #nullable enable
@@ -307,7 +307,7 @@ namespace ModernMediator
 
         #endregion
 
-        #region MM009 — DispatcherOverloadMismatch: Positive Tests
+        #region MM009DispatcherOverloadMismatch: Positive Tests
 
         [Fact]
         public async Task MM009_SendCalledOnValueTaskHandler_ReportsWarning()
@@ -383,7 +383,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM009 — DispatcherOverloadMismatch: Negative Tests
+        #region MM009DispatcherOverloadMismatch: Negative Tests
 
         [Fact]
         public async Task MM009_SendCalledOnTaskHandler_NoDiagnostic()

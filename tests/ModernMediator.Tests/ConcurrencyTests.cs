@@ -179,7 +179,7 @@ namespace ModernMediator.Tests
             var provider = services.BuildServiceProvider();
             var mediator = provider.GetRequiredService<IMediator>();
 
-            // All 20 request types dispatched concurrently — first call for each
+            // All 20 request types dispatched concurrently; first call for each
             var tasks = new Task<int>[]
             {
                 mediator.Send(new StressRequest1(1)),

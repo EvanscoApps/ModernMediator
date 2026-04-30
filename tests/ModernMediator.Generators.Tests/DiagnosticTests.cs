@@ -16,7 +16,7 @@ namespace ModernMediator.Generators.Tests
     /// </summary>
     public class DiagnosticTests
     {
-        #region MM001 — DuplicateHandler: Positive Tests
+        #region MM001DuplicateHandler: Positive Tests
 
         [Fact]
         public void MM001_TwoHandlersForSameRequest_ReportsError()
@@ -90,7 +90,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM001 — DuplicateHandler: Negative Tests
+        #region MM001DuplicateHandler: Negative Tests
 
         [Fact]
         public void MM001_OneHandlerPerRequest_NoDiagnostic()
@@ -153,7 +153,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM002 — NoHandlerFound: Positive Tests
+        #region MM002NoHandlerFound: Positive Tests
 
         [Fact]
         public void MM002_RequestWithNoHandler_ReportsWarning()
@@ -206,7 +206,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM002 — NoHandlerFound: Negative Tests
+        #region MM002NoHandlerFound: Negative Tests
 
         [Fact]
         public void MM002_AllRequestsHandled_NoDiagnostic()
@@ -276,7 +276,7 @@ namespace TestApp.Handlers
 
         #endregion
 
-        #region MM003 — HandlerMustBeNonAbstract: Positive Tests
+        #region MM003HandlerMustBeNonAbstract: Positive Tests
 
         [Fact]
         public void MM003_AbstractHandlerClass_ReportsError()
@@ -341,7 +341,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM003 — HandlerMustBeNonAbstract: Negative Tests
+        #region MM003HandlerMustBeNonAbstract: Negative Tests
 
         [Fact]
         public void MM003_ConcreteHandlers_NoDiagnostic()
@@ -382,7 +382,7 @@ namespace TestApp
 {
     public record TestRequest : IRequest<string>;
 
-    // Abstract class that does NOT implement any handler interface — must not trigger MM003
+    // Abstract class that does NOT implement any handler interfacemust not trigger MM003
     public abstract class BaseService : IDisposable
     {
         public abstract void Dispose();
@@ -404,7 +404,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM100 — GeneratorSuccess: Positive Tests
+        #region MM100GeneratorSuccess: Positive Tests
 
         [Fact]
         public void MM100_WithHandlers_ReportsInfo()
@@ -447,7 +447,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM004 — HandlerReturnTypeMismatch: Positive Tests
+        #region MM004HandlerReturnTypeMismatch: Positive Tests
 
         [Fact]
         public void MM004_MismatchedReturnType_ReportsError()
@@ -480,7 +480,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM004 — HandlerReturnTypeMismatch: Negative Tests
+        #region MM004HandlerReturnTypeMismatch: Negative Tests
 
         [Fact]
         public void MM004_CorrectReturnType_NoDiagnostic()
@@ -508,7 +508,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM005 — NotificationHandlerReturnsValue: Positive Tests
+        #region MM005NotificationHandlerReturnsValue: Positive Tests
 
         [Fact]
         public void MM005_NotificationHandlerReturningTaskOfString_ReportsWarning()
@@ -539,7 +539,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM005 — NotificationHandlerReturnsValue: Negative Tests
+        #region MM005NotificationHandlerReturnsValue: Negative Tests
 
         [Fact]
         public void MM005_NotificationHandlerReturningTask_NoDiagnostic()
@@ -567,7 +567,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM006 — OpenGenericBehavior: Positive Tests
+        #region MM006OpenGenericBehavior: Positive Tests
 
         [Fact]
         public void MM006_OpenGenericBehavior_ReportsWarning()
@@ -599,7 +599,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM006 — OpenGenericBehavior: Negative Tests
+        #region MM006OpenGenericBehavior: Negative Tests
 
         [Fact]
         public void MM006_ClosedGenericBehavior_NoDiagnostic()
@@ -653,7 +653,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM007 — HandlerNoMatchingRequestType: Positive Tests
+        #region MM007HandlerNoMatchingRequestType: Positive Tests
 
         [Fact]
         public void MM007_HandlerForNonRequestType_ReportsInfo()
@@ -686,7 +686,7 @@ namespace TestApp
 
         #endregion
 
-        #region MM007 — HandlerNoMatchingRequestType: Negative Tests
+        #region MM007HandlerNoMatchingRequestType: Negative Tests
 
         [Fact]
         public void MM007_HandlerForExistingRequestType_NoDiagnostic()
@@ -772,7 +772,7 @@ namespace TestApp
                 .Where(f => f.FieldType == typeof(DiagnosticDescriptor))
                 .ToList();
 
-            // IDs that have dedicated positive tests — MM001-MM007/MM100 in this class, MM008/MM009 in AnalyzerTests
+            // IDs that have dedicated positive testsMM001-MM007/MM100 in this class, MM008/MM009 in AnalyzerTests
             var testedIds = new HashSet<string> { "MM001", "MM002", "MM003", "MM004", "MM005", "MM006", "MM007", "MM008", "MM009", "MM100" };
 
             foreach (var field in descriptorFields)

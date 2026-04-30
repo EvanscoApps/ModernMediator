@@ -122,7 +122,7 @@ public sealed class CircuitBreakerBehaviorTests
                     CancellationToken.None));
         }
 
-        // Attempt while open — handler must not execute
+        // Attempt while open;handler must not execute
         await Assert.ThrowsAsync<CircuitBreakerOpenException>(() =>
             behavior.Handle(
                 new QuickTripRequest(),
@@ -153,7 +153,7 @@ public sealed class CircuitBreakerBehaviorTests
                     CancellationToken.None));
         }
 
-        // Circuit should still be closed — next call with a real handler should succeed
+        // Circuit should still be closed;next call with a real handler should succeed
         var result = await behavior.Handle(
             new QuickTripRequest(),
             AlwaysSucceeds<QuickTripRequest, string>("ok"),

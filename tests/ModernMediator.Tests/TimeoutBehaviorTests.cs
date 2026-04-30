@@ -98,7 +98,7 @@ namespace ModernMediator.Tests
                 return "should not reach";
             };
 
-            // External token is NOT cancelled — the 50ms timeout should still fire
+            // External token is NOT cancelled; the 50ms timeout should still fire
             var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(
                 () => behavior.Handle(
                     new ShortTimedRequest("test"), next, externalCts.Token));

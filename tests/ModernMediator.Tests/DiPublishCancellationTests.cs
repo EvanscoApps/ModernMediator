@@ -61,7 +61,7 @@ namespace ModernMediator.Tests
             Assert.Equal(1, handler2.InvocationCount);
             // handler3 was never reached
             Assert.Equal(0, handler3.InvocationCount);
-            // HandlerError did NOT fire — the OCE under cancelled token is cooperative cancellation
+            // HandlerError did NOT fire;the OCE under cancelled token is cooperative cancellation
             Assert.Equal(0, handlerErrorFireCount);
         }
 
@@ -89,12 +89,12 @@ namespace ModernMediator.Tests
 
             mediator.HandlerError += (_, args) => handlerErrorEventArgs.Add(args);
 
-            // Expect OperationCanceledException, NOT AggregateException — the cancellation
+            // Expect OperationCanceledException, NOT AggregateException;the cancellation
             // discards any partial aggregate per ADR-006.
             await Assert.ThrowsAsync<OperationCanceledException>(() =>
                 mediator.Publish(new TestNotification("p"), cts.Token));
 
-            // failingHandler ran and threw — HandlerError fired for it
+            // failingHandler ran and threw;HandlerError fired for it
             Assert.Equal(1, failingHandler.InvocationCount);
             // canceller ran and cancelled the token
             Assert.Equal(1, canceller.InvocationCount);
@@ -102,7 +102,7 @@ namespace ModernMediator.Tests
             Assert.Equal(1, handler3.InvocationCount);
             // handler4 was never reached
             Assert.Equal(0, handler4.InvocationCount);
-            // HandlerError fired exactly once — for failingHandler's InvalidOperationException, NOT for the OCE
+            // HandlerError fired exactly once;for failingHandler's InvalidOperationException, NOT for the OCE
             Assert.Single(handlerErrorEventArgs);
             Assert.IsType<InvalidOperationException>(handlerErrorEventArgs[0].Exception);
         }

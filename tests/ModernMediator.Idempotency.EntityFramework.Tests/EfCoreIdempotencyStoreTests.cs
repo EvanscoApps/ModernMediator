@@ -95,7 +95,7 @@ public sealed class EfCoreIdempotencyStoreTests
         var sp = BuildServiceProvider(Guid.NewGuid().ToString());
         var store = new EfCoreIdempotencyStore(sp);
 
-        // Store with a window of zero — expires immediately
+        // Store with a window of zero;expires immediately
         await store.SetAsync("fp-expired", "data", TimeSpan.Zero, CancellationToken.None);
 
         // Small delay to ensure expiry
@@ -134,7 +134,7 @@ public sealed class EfCoreIdempotencyStoreTests
 
         await store.SetAsync("fp-dup", "first", DefaultWindow, CancellationToken.None);
 
-        // Second insert with same fingerprint — may throw on InMemory provider
+        // Second insert with same fingerprint;may throw on InMemory provider
         // (production relies on DbUpdateException catch; InMemory throws differently).
         // The important invariant is that the original entry is preserved.
         try

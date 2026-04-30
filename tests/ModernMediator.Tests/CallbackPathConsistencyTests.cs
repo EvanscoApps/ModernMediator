@@ -94,7 +94,7 @@ namespace ModernMediator.Tests
             await Assert.ThrowsAnyAsync<OperationCanceledException>(
                 () => mediator.PublishAsyncTrue(new TestNotification("p"), cts.Token));
 
-            // OCE propagated due to cooperative cancellation — HandlerError must NOT fire.
+            // OCE propagated due to cooperative cancellation; HandlerError must NOT fire.
             Assert.Empty(capturedArgs);
         }
     }
