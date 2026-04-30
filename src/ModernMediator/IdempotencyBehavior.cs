@@ -18,6 +18,14 @@ namespace ModernMediator;
 /// <see cref="System.Text.Json.JsonSerializer"/>. The backing store is
 /// best-effort when cache-backed; see <see cref="IIdempotencyStore"/> and
 /// ADR-004 for details.
+/// <para>
+/// Recommended pipeline position: outermost or near-outermost, before
+/// <see cref="RetryBehavior{TRequest, TResponse}"/>. When a replayed response is
+/// found in the idempotency store, the entire pipeline short-circuits without
+/// invoking retries or other behaviors. Registering this behavior inside
+/// <see cref="RetryBehavior{TRequest, TResponse}"/> would cause the store lookup to
+/// repeat on each retry attempt, which is rarely the intent.
+/// </para>
 /// </remarks>
 #pragma warning disable MM006
 public sealed class IdempotencyBehavior<TRequest, TResponse>

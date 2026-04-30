@@ -488,7 +488,7 @@ namespace ModernMediator.Generators
                 sb.AppendLine();
                 sb.AppendLine($"            var handler = accessor.ServiceProvider?.GetService<{interfaceType}>();");
                 sb.AppendLine("            if (handler == null)");
-                sb.AppendLine($"                throw new InvalidOperationException(\"No handler registered for {handler.RequestType.Name}\");");
+                sb.AppendLine($"                throw new InvalidOperationException(\"[MM202] No IRequestHandler<{handler.RequestType.Name}, {handler.ResponseType!.Name}> resolved by the source-generated dispatcher. Verify the handler is registered via AddModernMediatorGenerated() and the source-generator output is up to date.\");");
                 sb.AppendLine();
                 sb.AppendLine($"            var activity = global::ModernMediator.MediatorTelemetry.ActivitySource");
                 sb.AppendLine($"                .StartActivity(typeof({requestType}).Name);");
@@ -531,7 +531,7 @@ namespace ModernMediator.Generators
                 sb.AppendLine();
                 sb.AppendLine($"            var handler = accessor.ServiceProvider.GetService<{interfaceType}>();");
                 sb.AppendLine("            if (handler == null)");
-                sb.AppendLine($"                throw new InvalidOperationException(\"No stream handler registered for {handler.RequestType.Name}\");");
+                sb.AppendLine($"                throw new InvalidOperationException(\"[MM202] No IStreamRequestHandler<{handler.RequestType.Name}, {handler.ResponseType!.Name}> resolved by the source-generated dispatcher. Verify the handler is registered via AddModernMediatorGenerated() and the source-generator output is up to date.\");");
                 sb.AppendLine();
                 sb.AppendLine("            return handler.Handle(request, cancellationToken);");
                 sb.AppendLine("        }");

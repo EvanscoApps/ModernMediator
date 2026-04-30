@@ -11,6 +11,15 @@ namespace ModernMediator.FluentValidation
     /// for the request before passing it to the next handler in the pipeline.
     /// If any validator reports failures, a <see cref="ModernValidationException"/> is thrown.
     /// </summary>
+    /// <remarks>
+    /// Recommended pipeline position: before the handler, after AuditBehavior. Placing
+    /// ValidationBehavior after audit ensures validation failures are captured in the
+    /// audit log; placing it before the handler ensures invalid inputs never reach
+    /// handler logic. The <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollection"/>-based
+    /// registration overloads always register this behavior as transient regardless of
+    /// <see cref="MediatorConfiguration.BehaviorLifetime"/>; use the
+    /// <see cref="MediatorConfiguration"/> overload to honor the configured lifetime.
+    /// </remarks>
     /// <typeparam name="TRequest">The request type. Must be a reference type.</typeparam>
     /// <typeparam name="TResponse">The response type.</typeparam>
     public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>

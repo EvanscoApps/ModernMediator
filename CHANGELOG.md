@@ -41,6 +41,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   surfaces the mismatch in the IDE error list before code runs (severity:
   Warning). Companion to the runtime MM201 check (ADR-009); the runtime check
   remains as the cross-assembly safety net. See ADR-010.
+- **MM202 runtime diagnostic prefix** on source-generator-emitted
+  handler-not-resolved exceptions. The two throw sites in `MediatorGenerator.cs`
+  (the generated `Send` and `CreateStream` extension methods) now produce
+  structured messages with the `[MM202]` prefix that name the expected
+  `IRequestHandler<,>` or `IStreamRequestHandler<,>` and direct the developer
+  to verify `AddModernMediatorGenerated()` registration. Aligns generator-
+  emitted runtime exceptions with the bracketed-prefix convention established
+  by MM201. ADR-008 amended to allocate MM202 in the MM2xx runtime slot.
 - **`MediatorConfiguration.AddModernMediatorValidation`** extension methods
   (`ModernMediator.FluentValidation`): two new overloads on
   `MediatorConfiguration` that register `ValidationBehavior<,>` at the

@@ -101,5 +101,14 @@ namespace ModernMediator.Generators
         /// Surfaced as InvalidOperationException with a guiding message; not a Roslyn diagnostic.
         /// </summary>
         public const string DispatcherOverloadMismatchCode = "MM201";
+
+        /// <summary>
+        /// MM202: The source-generated dispatcher (Send / CreateStream extensions emitted by
+        /// MediatorGenerator) could not resolve a handler for the request type at dispatch time.
+        /// Surfaced as InvalidOperationException with a guiding message that names the expected
+        /// handler interface and points at AddModernMediatorGenerated() registration; not a
+        /// Roslyn diagnostic.
+        /// </summary>
+        public const string GeneratedHandlerNotResolvedCode = "MM202";
     }
 }

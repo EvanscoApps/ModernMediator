@@ -17,6 +17,12 @@ namespace ModernMediator;
 /// Audit writes are dispatched via a background channel drainer by default, keeping
 /// write latency off the request pipeline. See ADR-001 for rationale.
 /// A failure in the audit write path never propagates to the caller.
+/// <para>
+/// Recommended pipeline position: outermost. AuditBehavior captures the full
+/// duration of the request including all retries, timeouts, validation failures,
+/// and circuit-breaker fast-fails. Registering it inside other behaviors would
+/// scope the audit record to a sub-pipeline and miss outer-layer failures.
+/// </para>
 /// </remarks>
 #pragma warning disable MM006
 public sealed class AuditBehavior<TRequest, TResponse>
