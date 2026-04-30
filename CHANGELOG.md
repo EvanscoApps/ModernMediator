@@ -24,10 +24,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instance that threw. On the DI-resolved path, the resolved DI handler instance.
   On the `Subscribe`-callback path, `Delegate.Target`. Null for static delegate
   subscriptions.
+- **`HandlerErrorEventArgs(Exception, object, Type, Type?, object?)`** new
+  five-argument constructor: the preferred form for raising `HandlerError`
+  with handler identification (`HandlerType`, `HandlerInstance`) populated.
+  The legacy three-argument constructor remains supported and now carries
+  XML doc cross-referencing the five-argument form.
 - **ADR-005** documenting `HandlerError` event semantics and the cancellation
   contract; **ADR-006** documenting the DI-resolved `INotificationHandler<T>`
-  dispatch path's participation in `ErrorPolicy` and `HandlerError`. Both ADRs in
-  `docs/decisions/`.
+  dispatch path's participation in `ErrorPolicy` and `HandlerError`;
+  **ADR-007** documenting the `MediatorConfiguration.AddModernMediatorValidation`
+  overloads and the public-`MediatorConfiguration.Services` decision;
+  **ADR-008** documenting the diagnostic code numbering convention
+  (MM0xx compile-time, MM1xx info, MM2xx runtime); **ADR-009** documenting
+  the dispatcher-overload-mismatch runtime exception (MM201) behavior;
+  **ADR-010** documenting the MM009 analyzer as the compile-time companion
+  to the MM201 runtime check. All ADRs in `docs/decisions/`.
 - README files bundled in seven satellite NuGet packages
   (`ModernMediator.Generators`, `ModernMediator.AspNetCore`,
   `ModernMediator.AspNetCore.Generators`, `ModernMediator.FluentValidation`,
@@ -94,6 +105,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pipeline behaviors at caller-controlled positions. The property's
   null-throwing contract for source-generated configurations is preserved
   and now documented as part of the public surface. See ADR-007.
+- `IdempotencyBehavior`, `AuditBehavior`, and
+  `ModernMediator.FluentValidation.ValidationBehavior` XML doc comments now
+  include a `<remarks>` block documenting the recommended pipeline position.
+  `IdempotencyBehavior` belongs outermost or near-outermost so duplicate
+  detection fires before retries (otherwise retries against an idempotent
+  request would double-charge the idempotency check). `AuditBehavior`
+  belongs outermost so the recorded duration captures every inner step.
+  `ValidationBehavior` belongs before the handler and after `AuditBehavior`.
+  The `ValidationBehavior` remarks also clarify the lifetime model split
+  between the `IServiceCollection`-based overloads (always transient) and
+  the `MediatorConfiguration`-based overloads (configuration's
+  `BehaviorLifetime`).
+- `MediatorConfiguration.AddModernMediatorValidation` overload parameter
+  renamed from `config` to `configuration` to align with the
+  `MediatorConfiguration` parameter naming used across the rest of the
+  ModernMediator surface. Source-incompatible only at named-argument call
+  sites; positional callers are unaffected.
+- `Mediator.Send`, `Mediator.SendAsync`, and `Mediator.CreateStream` now
+  carry `[RequiresDynamicCode]` and `[RequiresUnreferencedCode]` attributes
+  so trim and AOT analyzers surface the reflection-based assembly-scanning
+  fallback paths to consumers. The source-generated dispatch paths
+  registered via `AddModernMediatorGenerated()` remain Native AOT compatible
+  without warnings.
 
 ### Fixed
 
@@ -113,6 +147,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `[MM201]`. Existing catch sites are unaffected; the exception type is unchanged.
   See ADR-008 (diagnostic code numbering convention) and ADR-009 (mismatch
   behavior).
+- Runtime mismatch diagnostic code allocated as `MM201`, not the originally-
+  tentative `MM200`. `MM200` is reserved for the AspNetCore endpoint
+  generator's invalid-HTTP-method compile-time diagnostic introduced in v2.0;
+  the v2.2 audit cycle renumbered the runtime exception to `MM201` so the
+  generator and runtime diagnostic slots remain distinct. ADR-008 codifies
+  the numbering convention.
 
 ### Behavioral changes
 
@@ -308,9 +348,9 @@ unaffected.
 - Predicate filters for subscriptions
 - Covariant message dispatch
 
-[2.2.0]: https://github.com/EvanscoApps/ModernMediator/compare/v2.1.0...v2.2.0
+[2.2.0]: https://github.com/evanscoapps/ModernMediator/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/evanscoapps/ModernMediator/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/evanscoapps/ModernMediator/compare/v0.2.2-alpha...v2.0.0
-[0.2.2-alpha]: https://github.com/EvanscoApps/ModernMediator/compare/v0.2.1-alpha...v0.2.2-alpha
-[0.2.1-alpha]: https://github.com/EvanscoApps/ModernMediator/compare/v0.2.0-alpha...v0.2.1-alpha
-[0.2.0-alpha]: https://github.com/EvanscoApps/ModernMediator/releases/tag/v0.2.0-alpha
+[0.2.2-alpha]: https://github.com/evanscoapps/ModernMediator/compare/v0.2.1-alpha...v0.2.2-alpha
+[0.2.1-alpha]: https://github.com/evanscoapps/ModernMediator/compare/v0.2.0-alpha...v0.2.1-alpha
+[0.2.0-alpha]: https://github.com/evanscoapps/ModernMediator/releases/tag/v0.2.0-alpha
