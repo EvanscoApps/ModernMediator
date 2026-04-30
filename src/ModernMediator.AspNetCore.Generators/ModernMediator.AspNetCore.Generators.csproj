@@ -16,6 +16,7 @@
 		<Authors>EvanscoApps</Authors>
 		<Company>EvanscoApps LLC</Company>
 		<Copyright>Copyright © 2026 EvanscoApps LLC</Copyright>
+		<PackageTags>mediator;cqrs;aspnetcore;endpoint;minimal-api;source-generator;roslyn;modernmediator</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/evanscoapps/ModernMediator</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/evanscoapps/ModernMediator</RepositoryUrl>

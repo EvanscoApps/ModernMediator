@@ -16,9 +16,14 @@
 		<AssemblyVersion>2.2.0.0</AssemblyVersion>
 		<FileVersion>2.2.0.0</FileVersion>
 		<Description>Source generators for ModernMediator - enables AOT compilation and eliminates reflection</Description>
-		<Authors>Rob Evans</Authors>
+		<Authors>EvanscoApps</Authors>
+		<Company>EvanscoApps LLC</Company>
+		<Copyright>Copyright © 2026 EvanscoApps LLC</Copyright>
+		<PackageTags>mediator;cqrs;source-generator;roslyn;analyzer;aot;dotnet;modernmediator</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<RepositoryUrl>https://github.com/EvanscoApps/ModernMediator</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/evanscoapps/ModernMediator</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/evanscoapps/ModernMediator</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		
