@@ -561,6 +561,14 @@
         </div>
 
         <div class="nav-section">
+            <div class="nav-section-title">v2.2 Features</div>
+            <a href="#handler-error-args" class="nav-link">HandlerError Args</a>
+            <a href="#subscriber-exception-sink" class="nav-link">ISubscriberExceptionSink</a>
+            <a href="#dispatcher-overload-mismatch" class="nav-link">Dispatcher Overload Mismatch</a>
+            <a href="#validation-overloads" class="nav-link">Validation Overloads</a>
+        </div>
+
+        <div class="nav-section">
             <div class="nav-section-title">Advanced</div>
             <a href="#source-generators" class="nav-link">Source Generators</a>
             <a href="#caching-mode" class="nav-link">CachingMode</a>
@@ -985,7 +993,7 @@
                 <h2>Endpoint Generation</h2>
                 <p>The <code>[Endpoint]</code> attribute on a request record tells the ModernMediator.AspNetCore source generator to emit a Minimal API endpoint at compile time. At startup, a single call to <code>app.MapMediatorEndpoints()</code> wires all generated endpoints into the ASP.NET Core routing pipeline.</p>
 
-                <p>The generator validates your endpoint declarations at build time. The <code>MM200</code> diagnostic warns when an invalid HTTP method is specified, catching configuration errors before deployment.</p>
+                <p>The generator validates your endpoint declarations at build time. The <code>MM200</code> diagnostic warns when an invalid HTTP method is specified, catching configuration errors before deployment. (MM200 is the AspNetCore endpoint generator's compile-time code; the unrelated runtime code <code>[MM201]</code> covers dispatcher overload mismatch and is documented in <a href="#dispatcher-overload-mismatch">Dispatcher Overload Mismatch</a>.)</p>
 
                 <h3>Benefits</h3>
                 <div class="table-wrapper">
@@ -1092,12 +1100,21 @@
                 <div class="table-wrapper">
                     <table>
                         <thead>
-                            <tr><th>Diagnostic</th><th>Meaning</th><th>Severity</th></tr>
+                            <tr><th>Diagnostic</th><th>Channel</th><th>Meaning</th></tr>
                         </thead>
                         <tbody>
-                            <tr><td>MM001</td><td>Request has no handler registered</td><td>Warning</td></tr>
-                            <tr><td>MM002</td><td>Request has multiple handlers (ambiguous)</td><td>Error</td></tr>
-                            <tr><td>MM003</td><td>Handler implementation is invalid (signature issues)</td><td>Error</td></tr>
+                            <tr><td>MM001</td><td>Compile-time</td><td>Duplicate handler — multiple handlers for the same request type</td></tr>
+                            <tr><td>MM002</td><td>Compile-time</td><td>No handler found — request type has no registered handler</td></tr>
+                            <tr><td>MM003</td><td>Compile-time</td><td>Abstract handler — handler class cannot be abstract</td></tr>
+                            <tr><td>MM004</td><td>Compile-time</td><td>Handler in wrong assembly — handler not in scanned assembly</td></tr>
+                            <tr><td>MM005</td><td>Compile-time</td><td>Missing cancellation token — handler should accept <code>CancellationToken</code></td></tr>
+                            <tr><td>MM006</td><td>Compile-time</td><td>Non-public handler — handler class is not public</td></tr>
+                            <tr><td>MM007</td><td>Compile-time</td><td>Handler implements multiple handler interfaces</td></tr>
+                            <tr><td>MM008</td><td>Compile-time</td><td>Lambda subscription with weak reference</td></tr>
+                            <tr><td>MM009</td><td>Compile-time</td><td>Dispatcher overload mismatch — <code>Send</code> called for a request whose handler is registered as <code>IValueTaskRequestHandler</code>, or vice versa. Detected by the analyzer in the same compilation</td></tr>
+                            <tr><td>MM100</td><td>Compile-time (info)</td><td>Source generator success — reports counts of generated handlers, behaviors, and processors</td></tr>
+                            <tr><td>MM200</td><td>Compile-time</td><td>Invalid HTTP method on <code>[Endpoint]</code> attribute (ASP.NET Core endpoint generator)</td></tr>
+                            <tr><td>MM201</td><td>Runtime</td><td>Dispatcher overload mismatch — <code>InvalidOperationException</code> with <code>[MM201]</code> prefix when the dispatcher detects the mismatch at runtime (cross-assembly safety net for MM009)</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1430,7 +1447,7 @@
                 <h3>HandlerError Event</h3>
                 <p><code>HandlerError</code> is a universal observation channel. It fires for every handler exception under every <code>ErrorPolicy</code>, regardless of which dispatch path produced the exception. The policy governs propagation and aggregation; the event governs observation. The same subscription receives events from handlers registered as <code>INotificationHandler&lt;T&gt;</code> and resolved via DI, and from runtime callbacks registered via <code>Subscribe&lt;T&gt;</code> or <code>SubscribeAsync&lt;T&gt;</code>.</p>
 
-                <p>Subscribers receive a <code>HandlerErrorEventArgs</code> with the following properties:</p>
+                <p id="handler-error-args">Subscribers receive a <code>HandlerErrorEventArgs</code> with the following properties:</p>
 
                 <div class="table-wrapper">
                     <table>
@@ -1441,15 +1458,15 @@
                             <tr><td><code>Exception</code></td><td>The unwrapped handler exception</td></tr>
                             <tr><td><code>Message</code></td><td>The published notification</td></tr>
                             <tr><td><code>MessageType</code></td><td>The runtime type of the notification</td></tr>
-                            <tr><td><code>HandlerType</code></td><td>The concrete handler type. On the DI-resolved path, the resolved handler class. On the Subscribe-callback path, <code>Method.DeclaringType</code> with compiler-generated closure types unwrapped to the enclosing user type.</td></tr>
-                            <tr><td><code>HandlerInstance</code></td><td>The resolved DI handler instance on the DI-resolved path, or <code>Delegate.Target</code> on the Subscribe-callback path. Null for static delegate subscriptions.</td></tr>
+                            <tr><td><code>HandlerType</code></td><td>The concrete handler type. On the DI-resolved path, the resolved handler class. On the Subscribe-callback path, <code>Method.DeclaringType</code> with compiler-generated closure types unwrapped to the enclosing user type. (v2.2)</td></tr>
+                            <tr><td><code>HandlerInstance</code></td><td>The resolved DI handler instance on the DI-resolved path, or <code>Delegate.Target</code> on the Subscribe-callback path. Null for static delegate subscriptions. (v2.2)</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <p>Cooperative cancellation is treated as distinct from a handler fault. When the publish token's <code>IsCancellationRequested</code> is true and a handler throws <code>OperationCanceledException</code>, the event does not fire and the policy does not apply. The exception propagates from <code>Publish</code> unconditionally.</p>
 
-                <p>For consumers who want to route contained subscriber exceptions to a specific observability system rather than the default <code>ILogger</code> route, register an <code>ISubscriberExceptionSink</code> implementation in the service collection.</p>
+                <p id="subscriber-exception-sink">For consumers who want to route contained subscriber exceptions to a specific observability system rather than the default <code>ILogger</code> route, register an <code>ISubscriberExceptionSink</code> implementation in the service collection. The sink receives the same <code>HandlerErrorEventArgs</code> the <code>HandlerError</code> event fires with, but routes through DI rather than an event subscription, so the implementation is registered once at composition time and can take any constructor dependencies the container can resolve. (v2.2)</p>
 
                 <h3>Exception Unwrapping</h3>
                 <p>When handlers are invoked through reflection or dynamic dispatch, exceptions get wrapped in <code>TargetInvocationException</code> or <code>AggregateException</code>. Stack traces become cluttered with framework noise, making debugging harder.</p>
@@ -1460,6 +1477,54 @@
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
                     View Error Handling Example
                 </button>
+            </section>
+
+            <!-- Dispatcher Overload Mismatch -->
+            <section id="dispatcher-overload-mismatch">
+                <h2>Dispatcher Overload Mismatch (MM009 / MM201)</h2>
+                <p>A request handler implements either <code>IRequestHandler&lt;TRequest, TResponse&gt;</code> (Task-based) or <code>IValueTaskRequestHandler&lt;TRequest, TResponse&gt;</code> (ValueTask-based). The dispatcher exposes a parallel pair of methods: <code>Send</code> for Task handlers and <code>SendAsync</code> for ValueTask handlers. Calling the wrong method for a given handler is the dispatcher overload mismatch, and v2.2 surfaces it through two complementary channels.</p>
+
+                <p><strong>MM009</strong> (compile-time) is a Roslyn analyzer warning emitted by <code>ModernMediator.Generators</code>. The analyzer walks <code>Send</code> / <code>SendAsync</code> invocations, recovers the request type from the argument, and looks it up against a per-compilation registry of handler declarations. When the consumer's call site does not match the handler's interface, the analyzer surfaces the warning at the invocation in the IDE error list, before the runtime check ever fires.</p>
+
+                <p><strong>MM201</strong> (runtime) is an <code>InvalidOperationException</code> with a bracketed prefix, thrown by the dispatcher when no handler is registered for the requested interface but a handler exists under the alternate interface. The runtime check covers the cross-assembly case the analyzer cannot see: a handler registered in a precompiled NuGet dependency that the consumer's compilation does not contain a syntactic declaration for.</p>
+
+                <p>Both codes describe the same condition; the codes are intentionally distinct because the channels are distinct. MM009 in build output points to the source-gen detector; <code>[MM201]</code> in an exception message points to the runtime check. Consumers who want stricter enforcement can promote MM009 to error via <code>&lt;WarningsAsErrors&gt;</code> or an <code>.editorconfig</code> severity override.</p>
+
+                <h3>Example</h3>
+                <p>Given a handler registered as <code>IValueTaskRequestHandler</code>:</p>
+                <pre><code>public sealed record GetUserQuery(int Id) : IRequest&lt;User&gt;;
+
+public sealed class GetUserHandler : IValueTaskRequestHandler&lt;GetUserQuery, User&gt;
+{
+    public ValueTask&lt;User&gt; Handle(GetUserQuery request, CancellationToken ct) =&gt; /* ... */;
+}</code></pre>
+
+                <p>The wrong call site triggers MM009 at compile time:</p>
+                <pre><code>// MM009: GetUserQuery is registered as IValueTaskRequestHandler;
+//        call SendAsync instead of Send.
+var user = await mediator.Send(new GetUserQuery(42));</code></pre>
+
+                <p>If the same condition reaches runtime (for example, the handler lives in a precompiled assembly the analyzer cannot inspect), MM201 fires:</p>
+                <pre><code>// InvalidOperationException:
+// [MM201] No IRequestHandler&lt;GetUserQuery, User&gt; is registered, but
+// IValueTaskRequestHandler&lt;GetUserQuery, User&gt; is. Call SendAsync instead of Send.
+var user = await mediator.Send(new GetUserQuery(42));</code></pre>
+
+                <p>See ADR-009 (runtime check) and ADR-010 (source-gen analyzer) for the design rationale and the relationship between the two codes.</p>
+            </section>
+
+            <!-- Validation Overloads -->
+            <section id="validation-overloads">
+                <h2>Validation Overloads</h2>
+                <p>v2.2 expands <code>AddModernMediatorValidation</code> with overloads that accept either a single <code>Assembly</code> or a marker type via <code>typeof(T).Assembly</code>, matching the registration ergonomics of <code>RegisterServicesFromAssembly</code> / <code>RegisterServicesFromAssemblyContaining</code>. The single call scans the supplied assembly for FluentValidation validators, registers them in the container, and wires <code>ValidationBehavior&lt;TRequest, TResponse&gt;</code> into the pipeline. Validators are resolved per-request and run before the handler executes; failures short-circuit with a <code>ValidationException</code> (or, when the request returns a <code>Result&lt;T&gt;</code>, a failure result that carries the validation errors).</p>
+
+                <p>The overload set lets a consumer register validators from the executing assembly with one line:</p>
+                <pre><code>services.AddModernMediatorValidation(typeof(Program).Assembly);</code></pre>
+
+                <p>Or from a marker type when validators live in a separate project:</p>
+                <pre><code>services.AddModernMediatorValidation(typeof(MyValidatorMarker).Assembly);</code></pre>
+
+                <p>The behavior package (<code>ModernMediator.FluentValidation</code>) is a separate NuGet reference; the core <code>ModernMediator</code> package does not pull in FluentValidation by default.</p>
             </section>
 
             <!-- Audit Behavior -->

@@ -16,15 +16,15 @@ The investigation in advance of this ADR confirmed that the runtime fix is strai
 
 ## Decision
 
-When a dispatcher path's primary handler interface returns no registration, the wrapper performs a secondary `IServiceProvider.GetService` call against the alternate handler interface before throwing. If a registration is found, the thrown `InvalidOperationException` carries the bracketed prefix `[MM200]` and a guiding message that names both interfaces and suggests the correct dispatch method. If no registration is found in either place, the original "No handler registered" message is thrown unchanged, without the MM200 prefix.
+When a dispatcher path's primary handler interface returns no registration, the wrapper performs a secondary `IServiceProvider.GetService` call against the alternate handler interface before throwing. If a registration is found, the thrown `InvalidOperationException` carries the bracketed prefix `[MM201]` and a guiding message that names both interfaces and suggests the correct dispatch method. If no registration is found in either place, the original "No handler registered" message is thrown unchanged, without the MM201 prefix.
 
 Concretely, in `RequestHandlerWrapperImpl<TRequest, TResponse>.Handle`, after the primary `IRequestHandler<TRequest, TResponse>` lookup returns null, the wrapper queries `IValueTaskRequestHandler<TRequest, TResponse>`. If non-null, the exception message reads:
 
-> `[MM200] No IRequestHandler<{TRequest}, {TResponse}> is registered, but an IValueTaskRequestHandler<{TRequest}, {TResponse}> is registered. Did you mean to call SendAsync instead of Send?`
+> `[MM201] No IRequestHandler<{TRequest}, {TResponse}> is registered, but an IValueTaskRequestHandler<{TRequest}, {TResponse}> is registered. Did you mean to call SendAsync instead of Send?`
 
 `ValueTaskHandlerWrapperImpl<TRequest, TResponse>.Handle` performs the symmetric check: secondary lookup against `IRequestHandler<,>`, and if non-null, the message suggests `Send` instead of `SendAsync`.
 
-The new runtime code MM200 is declared as `public const string DispatcherOverloadMismatchCode` in `ModernMediator.Generators.DiagnosticDescriptors`, alongside the existing source-generator descriptors. Per ADR-008, MM2xx is the slot reserved for runtime codes.
+The new runtime code MM201 is declared as `public const string DispatcherOverloadMismatchCode` in `ModernMediator.Generators.DiagnosticDescriptors`, alongside the existing source-generator descriptors. Per ADR-008, MM2xx is the slot reserved for runtime codes.
 
 ## Rationale
 
@@ -34,7 +34,7 @@ The first was to change the original "No handler registered" message uncondition
 
 The second was to introduce a new exception type, `HandlerOverloadMismatchException`, distinct from `InvalidOperationException`. This would have given consumers a strongly-typed catch for the mismatch case. It was rejected for v2.2 because adding a new public exception type is API surface that warrants its own decision: subclass relationship, message contract, serializability, equality semantics, and downstream catch-block compatibility. The `InvalidOperationException` plus guiding message keeps the change additive only. Existing catch blocks for `InvalidOperationException` continue to function. If a strongly-typed exception is later determined to be valuable, it can be introduced as a subclass of `InvalidOperationException` without breaking the v2.2 contract.
 
-The MM200 prefix in brackets is chosen because the bracketed prefix pattern is visually distinct from prose, easy to grep, and consistent with the way Roslyn surfaces compile-time diagnostic codes (e.g., `error CS0123:`). A user pasting an exception message into a bug report or search engine produces a query that pinpoints the condition.
+The MM201 prefix in brackets is chosen because the bracketed prefix pattern is visually distinct from prose, easy to grep, and consistent with the way Roslyn surfaces compile-time diagnostic codes (e.g., `error CS0123:`). A user pasting an exception message into a bug report or search engine produces a query that pinpoints the condition.
 
 The secondary lookup is performed only on the error path; the cost is one additional `IServiceProvider.GetService` call when no handler is found, which is already an exceptional condition. Successful dispatches incur no overhead.
 
@@ -44,8 +44,8 @@ The decision to defer source-generator detection of the same condition is driven
 
 The two wrapper classes acquire a single conditional branch on the error path. The successful dispatch path is unchanged. No public API surface changes. No existing exception type changes; consumers catching `InvalidOperationException` continue to receive the same exception type with a more informative message in the mismatch case.
 
-The exception message is part of the debugging contract but not part of the API contract. Future revisions to the message text are expected (e.g., to mention assembly scanning, or to reference documentation). The MM200 prefix is the stable identifier; consumers who programmatically detect the mismatch should match on the prefix rather than on the prose.
+The exception message is part of the debugging contract but not part of the API contract. Future revisions to the message text are expected (e.g., to mention assembly scanning, or to reference documentation). The MM201 prefix is the stable identifier; consumers who programmatically detect the mismatch should match on the prefix rather than on the prose.
 
 A separate work item, tracked in the v3.0 backlog, will add a compile-time diagnostic in the MM0xx range for the same condition, detecting the mismatch when both the handler and the call site are visible in the same compilation. The runtime check remains in place after the compile-time check ships, because the runtime check covers cases where the call site and handler live in different assemblies and the compile-time check cannot fire.
 
-Documentation in the v2.2 release notes points users at MM200 as the searchable identifier for this category of problem.
+Documentation in the v2.2 release notes points users at MM201 as the searchable identifier for this category of problem.

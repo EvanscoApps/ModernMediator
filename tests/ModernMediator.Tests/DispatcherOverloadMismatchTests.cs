@@ -54,7 +54,7 @@ public class DispatcherOverloadMismatchTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             async () => await mediator.Send(new OmRequest("hi")));
 
-        Assert.Contains("MM200", ex.Message);
+        Assert.Contains("MM201", ex.Message);
         Assert.Contains("Did you mean to call SendAsync", ex.Message);
     }
 
@@ -88,7 +88,7 @@ public class DispatcherOverloadMismatchTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             async () => await sender.SendAsync(new OmRequest("hi")));
 
-        Assert.Contains("MM200", ex.Message);
+        Assert.Contains("MM201", ex.Message);
         Assert.Contains("Did you mean to call Send", ex.Message);
     }
 
@@ -105,7 +105,7 @@ public class DispatcherOverloadMismatchTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             async () => await mediator.Send(new OmRequest("hi")));
 
-        Assert.DoesNotContain("MM200", ex.Message);
+        Assert.DoesNotContain("MM201", ex.Message);
         Assert.Contains("No handler registered for request type", ex.Message);
     }
 }

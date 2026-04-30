@@ -95,11 +95,11 @@ namespace ModernMediator.Generators
         // truth alongside the analyzer-style descriptors.
 
         /// <summary>
-        /// MM200: A request handler is registered under one dispatch interface but the
+        /// MM201: A request handler is registered under one dispatch interface but the
         /// dispatcher was called via the other (e.g. handler is IValueTaskRequestHandler
         /// and the caller invoked Send instead of SendAsync).
         /// Surfaced as InvalidOperationException with a guiding message; not a Roslyn diagnostic.
         /// </summary>
-        public const string DispatcherOverloadMismatchCode = "MM200";
+        public const string DispatcherOverloadMismatchCode = "MM201";
     }
 }

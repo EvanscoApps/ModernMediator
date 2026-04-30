@@ -64,7 +64,7 @@ ModernMediator ships built-in behaviors for validation (via FluentValidation), l
 ### Source Generators & AOT
 - **Source Generators** — Compile-time code generation eliminates reflection
 - **Native AOT Compatible** — Full support for ahead-of-time compilation
-- **Compile-Time Diagnostics** — 10 diagnostic rules (MM001–MM008, MM100, MM200) catch problems during build
+- **Compile-Time Diagnostics** — 11 compile-time diagnostic rules (MM001–MM009, MM100, MM200) catch problems during build, plus the runtime MM201 prefix surfaced on dispatcher overload mismatch exceptions
 - **Zero Reflection** — Generated `AddModernMediatorGenerated()` for maximum performance
 - **CachingMode** — Eager (default) or Lazy initialization for cold start optimization
 - **ASP.NET Core Endpoint Generation** — `[Endpoint]` attribute with `MapMediatorEndpoints()` for Minimal API integration
@@ -199,18 +199,22 @@ var user = await mediator.Send(new GetUserQuery(42)); // No reflection!
 
 ### Diagnostics
 
-| Code  | Description                                                           |
-| :---- | :-------------------------------------------------------------------- |
-| MM001 | Duplicate handler — multiple handlers for same request                |
-| MM002 | No handler found — request type has no registered handler             |
-| MM003 | Abstract handler — handler class cannot be abstract                   |
-| MM004 | Handler in wrong assembly — handler not in scanned assembly           |
-| MM005 | Missing cancellation token — handler should accept CancellationToken  |
-| MM006 | Non-public handler — handler class is not public                      |
-| MM007 | Handler implements multiple handler interfaces                        |
-| MM008 | Lambda with weak reference subscription                               |
-| MM100 | Source generator internal error                                       |
-| MM200 | Invalid HTTP method on `[Endpoint]` attribute                         |
+Compile-time codes are emitted by the source generators and surface in the IDE error list and build output. The single runtime code (MM201) is not a Roslyn diagnostic; it is a bracketed prefix on an `InvalidOperationException` message thrown by the dispatcher.
+
+| Code  | Channel       | Description                                                           |
+| :---- | :------------ | :-------------------------------------------------------------------- |
+| MM001 | Compile-time  | Duplicate handler — multiple handlers for same request                |
+| MM002 | Compile-time  | No handler found — request type has no registered handler             |
+| MM003 | Compile-time  | Abstract handler — handler class cannot be abstract                   |
+| MM004 | Compile-time  | Handler in wrong assembly — handler not in scanned assembly           |
+| MM005 | Compile-time  | Missing cancellation token — handler should accept CancellationToken  |
+| MM006 | Compile-time  | Non-public handler — handler class is not public                      |
+| MM007 | Compile-time  | Handler implements multiple handler interfaces                        |
+| MM008 | Compile-time  | Lambda with weak reference subscription                               |
+| MM009 | Compile-time  | Dispatcher overload mismatch — `Send` called for a request whose handler is registered as `IValueTaskRequestHandler` (or vice versa). Detected by the analyzer in the same compilation; cross-assembly cases fall back to MM201 |
+| MM100 | Compile-time  | Source generator internal error                                       |
+| MM200 | Compile-time  | Invalid HTTP method on `[Endpoint]` attribute (ASP.NET Core endpoint generator) |
+| MM201 | Runtime       | Dispatcher overload mismatch — `InvalidOperationException` thrown with `[MM201]` prefix when the dispatcher detects a Send/SendAsync mismatch at runtime (cross-assembly safety net for MM009) |
 
 ### CachingMode
 
@@ -818,7 +822,7 @@ MediatR v12.x is the last open-source release under the Apache 2.0 license. Medi
 | Predicate Filters              | ✅ Yes                | ❌ No                      |
 | String Key Routing             | ✅ Yes                | ❌ No                      |
 | Parallel Notifications         | ✅ Default            | ❌ Sequential              |
-| Compile-time Diagnostics       | ✅ 10 rules           | ❌ No                      |
+| Compile-time Diagnostics       | ✅ 11 rules           | ❌ No                      |
 | License                        | ✅ MIT                | Apache 2.0 (v13+ commercial) |
 
 ### Performance vs MediatR

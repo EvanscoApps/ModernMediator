@@ -25,7 +25,7 @@ internal sealed class ValueTaskHandlerWrapperImpl<TRequest, TResponse> : ValueTa
             serviceProvider.GetService(typeof(IValueTaskRequestHandler<TRequest, TResponse>));
         if (handler is null)
         {
-            // MM200: secondary lookup for the alternate dispatch interface so that an
+            // MM201: secondary lookup for the alternate dispatch interface so that an
             // overload mismatch (handler registered as IRequestHandler but caller invoked
             // SendAsync) surfaces as a guiding message instead of a generic "no handler"
             // error. Runs only on the error path; no overhead for successful dispatches.
@@ -33,7 +33,7 @@ internal sealed class ValueTaskHandlerWrapperImpl<TRequest, TResponse> : ValueTa
             if (taskHandler is not null)
             {
                 throw new InvalidOperationException(
-                    $"[MM200] No IValueTaskRequestHandler<{typeof(TRequest).Name}, {typeof(TResponse).Name}> is registered, " +
+                    $"[MM201] No IValueTaskRequestHandler<{typeof(TRequest).Name}, {typeof(TResponse).Name}> is registered, " +
                     $"but an IRequestHandler<{typeof(TRequest).Name}, {typeof(TResponse).Name}> is registered. " +
                     "Did you mean to call Send instead of SendAsync?");
             }

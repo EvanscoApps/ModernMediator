@@ -20,7 +20,7 @@ Three slot ranges are reserved for ModernMediator diagnostic codes:
 
 - **MM0xx**: Source-generator and compile-time analyzer diagnostics that fire on handler, behavior, or processor declarations and surface in the IDE error list. Severity is typically Error or Warning. MM001 through MM008 currently occupy this range.
 - **MM1xx**: Source-generator informational diagnostics that report on the generation process itself rather than on user code. Severity is typically Info. MM100 (`GeneratorSuccess`) is the precedent and currently the only occupant.
-- **MM2xx**: Runtime diagnostic codes. Surfaced as bracketed prefixes (`[MM2xx]`) in exception messages, not as Roslyn diagnostics. The first occupant is MM200 (dispatcher overload mismatch, ADR-009).
+- **MM2xx**: Runtime diagnostic codes. Surfaced as bracketed prefixes (`[MM2xx]`) in exception messages, not as Roslyn diagnostics. The first occupant under this convention is MM201 (dispatcher overload mismatch, ADR-009). MM200 is reserved by the AspNetCore endpoint generator for a pre-existing compile-time diagnostic ("Invalid HTTP method on `[Endpoint]` attribute," introduced in v2.0); per the forward-only nature of this convention it keeps that identifier rather than being relocated. Runtime codes introduced under this convention therefore start at MM201 and increment from there (MM202, MM203, ...).
 
 The slot is not encoded in any descriptor metadata; it is a contributor convention. New codes are placed in the lowest free slot of the appropriate range. When MM099 is reached, the next compile-time diagnostic moves to MM300 or higher rather than spilling into MM1xx.
 
@@ -32,7 +32,7 @@ The first was to maintain a single sequential range across all channels, treatin
 
 The second was to use a different prefix entirely for runtime codes (e.g., `MMR200` or `MM-RT-001`). This would have made the channel distinction even more visible. It was rejected for ergonomic reasons: a single MM-prefix means users grepping their codebase or bug reports use one search term, and tools that already recognize the MM-prefix (the IDE's code-action surface, for instance) continue to work without reconfiguration. The two-digit slot range is sufficient signal without adding a second prefix.
 
-The chosen MM2xx slot for runtime codes leaves MM0xx and MM1xx undisturbed. Existing MM001 through MM008 keep their meaning, and the only currently-defined MM1xx code (MM100) keeps its position. The convention is forward-only: it constrains where new codes are placed, not where existing codes sit.
+The chosen MM2xx slot for runtime codes leaves MM0xx and MM1xx undisturbed. Existing MM001 through MM008 keep their meaning, and the only currently-defined MM1xx code (MM100) keeps its position. The convention is forward-only: it constrains where new codes are placed, not where existing codes sit. The pre-existing MM200 emitted by the AspNetCore endpoint generator (Invalid HTTP method on `[Endpoint]`, v2.0) is grandfathered under this rule, so the first runtime code introduced under the convention takes MM201 rather than colliding with the established compile-time identifier.
 
 The capacity per slot (100 codes each) is comfortable for the foreseeable lifetime of ModernMediator's diagnostic surface. If MM0xx exhausts faster than expected, the convention can be revisited; the present commitment is that contributors place new codes in the slot whose channel matches their diagnostic's emission path.
 
@@ -40,8 +40,8 @@ The capacity per slot (100 codes each) is comfortable for the foreseeable lifeti
 
 `DiagnosticDescriptors.cs` in `ModernMediator.Generators` is the source of truth for all MM-prefix codes, both compile-time (as `DiagnosticDescriptor` instances) and runtime (as `public const string` values). Runtime codes are constants because they do not flow through Roslyn's diagnostic pipeline; the constant exists so consumers grepping the codebase find a single declaration rather than searching for the bracketed string in exception throw sites.
 
-Future runtime diagnostics follow the MM200 pattern: a const string in `DiagnosticDescriptors`, surfaced via a bracketed prefix in the exception message, with a corresponding ADR documenting the runtime condition the code represents.
+Future runtime diagnostics follow the MM201 pattern: a const string in `DiagnosticDescriptors`, surfaced via a bracketed prefix in the exception message, with a corresponding ADR documenting the runtime condition the code represents.
 
 Documentation that lists ModernMediator's diagnostic codes (README, API reference, generator output) groups codes by slot and labels the channel. Code consumers reading the documentation see the channel before the code's specific meaning.
 
-The convention does not constrain severity. A future MM0xx code can be Error, Warning, or Info; a future MM1xx code is typically but not exclusively Info; a future MM2xx code is always a runtime exception, but the exception type is decided per-code (most will be `InvalidOperationException`, but a future MM2xx for a configuration error might be `ArgumentException`).
+The convention does not constrain severity. A future MM0xx code can be Error, Warning, or Info; a future MM1xx code is typically but not exclusively Info; a future MM2xx code (introduced under this convention, MM201 onward) is always a runtime exception, but the exception type is decided per-code (most will be `InvalidOperationException`, but a future MM2xx for a configuration error might be `ArgumentException`).

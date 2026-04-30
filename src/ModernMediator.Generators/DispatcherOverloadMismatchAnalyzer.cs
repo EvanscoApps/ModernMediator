@@ -12,7 +12,7 @@ namespace ModernMediator.Generators
     /// Diagnostic analyzer that surfaces dispatcher overload mismatch at compile time.
     /// When the consumer calls Send or SendAsync against a request whose handler is
     /// registered under the alternate dispatch interface, MM009 fires at the call site
-    /// before the code runs. Companion to the runtime MM200 check (ADR-009); see ADR-010.
+    /// before the code runs. Companion to the runtime MM201 check (ADR-009); see ADR-010.
     /// </summary>
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class DispatcherOverloadMismatchAnalyzer : DiagnosticAnalyzer

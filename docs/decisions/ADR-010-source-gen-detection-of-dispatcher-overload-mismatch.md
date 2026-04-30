@@ -8,7 +8,7 @@
 
 ## Context
 
-ADR-009 introduced a runtime check (MM200) for the case where a request handler is registered under one dispatch interface (`IRequestHandler` or `IValueTaskRequestHandler`) and the consumer's call site invokes the dispatcher via the other path (`Send` or `SendAsync`). The runtime check fires the first time the mismatched code path executes; the wrapper performs a secondary `IServiceProvider.GetService` against the alternate interface and, when a registration is found, throws `InvalidOperationException` with a guiding `[MM200]` message.
+ADR-009 introduced a runtime check (MM201) for the case where a request handler is registered under one dispatch interface (`IRequestHandler` or `IValueTaskRequestHandler`) and the consumer's call site invokes the dispatcher via the other path (`Send` or `SendAsync`). The runtime check fires the first time the mismatched code path executes; the wrapper performs a secondary `IServiceProvider.GetService` against the alternate interface and, when a registration is found, throws `InvalidOperationException` with a guiding `[MM201]` message.
 
 ADR-009's Consequences section noted that compile-time detection of the same condition was a separate work item, deferred from v2.2 because the existing source generator does not model dispatcher call sites. This ADR documents that follow-up work and its design.
 
@@ -20,7 +20,7 @@ The source generator's existing handler registry is in-memory state of the `IInc
 
 A new `DiagnosticAnalyzer`, `DispatcherOverloadMismatchAnalyzer`, is added to `ModernMediator.Generators`. It emits MM009 (Warning) at the call site when the consumer invokes `Send` for a request whose handler is registered as `IValueTaskRequestHandler`, or `SendAsync` for a request whose handler is registered as `IRequestHandler`. The diagnostic does not fire when no handler is registered (MM002 covers that case), nor when both interfaces are registered for the same request type (either dispatch path is valid).
 
-MM009 occupies the next available slot in the MM0xx range reserved for compile-time analyzer diagnostics per ADR-008. The runtime code MM200 (ADR-009) remains in the MM2xx slot. Both codes surface the same condition; the codes are intentionally distinct because the channels are distinct.
+MM009 occupies the next available slot in the MM0xx range reserved for compile-time analyzer diagnostics per ADR-008. The runtime code MM201 (ADR-009) remains in the MM2xx slot. Both codes surface the same condition; the codes are intentionally distinct because the channels are distinct.
 
 The analyzer's structure:
 
@@ -34,7 +34,7 @@ Two alternative shapes were considered.
 
 The first was to extend `MediatorGenerator` (the `IIncrementalGenerator`) to walk invocations as well as type declarations. This was rejected because the generator's purpose is to model handler declarations and produce registration code; adding a parallel call-site walk inflates the generator's responsibility surface. `DiagnosticAnalyzer` is the established channel for compilation-scoped analysis of consumer invocation expressions; `WeakLambdaSubscriptionAnalyzer` is the in-tree precedent. Keeping the two channels separate matches Roslyn's own architectural split.
 
-The second was to fold the diagnostic into MM200 directly: emit a Roslyn diagnostic with id `"MM200"` from the analyzer alongside the runtime exception's bracketed prefix. This was rejected because ADR-008 reserves MM2xx for runtime codes specifically; mixing a Roslyn diagnostic id into the runtime slot would invalidate the slot convention's signal value. A user who searches for `MM009` in their build output finds the source-gen detector; a user who searches for `MM200` in an exception finds the runtime check. The two codes carry the same prose meaning but distinct provenance, which is useful for users tracing how the issue surfaced.
+The second was to fold the diagnostic into MM201 directly: emit a Roslyn diagnostic with id `"MM201"` from the analyzer alongside the runtime exception's bracketed prefix. This was rejected because ADR-008 reserves MM2xx for runtime codes specifically; mixing a Roslyn diagnostic id into the runtime slot would invalidate the slot convention's signal value. A user who searches for `MM009` in their build output finds the source-gen detector; a user who searches for `MM201` in an exception finds the runtime check. The two codes carry the same prose meaning but distinct provenance, which is useful for users tracing how the issue surfaced.
 
 The Warning severity (rather than Error) matches the convention established by MM002 and MM006: the consumer's code compiles cleanly, the issue surfaces only at dispatch, and forcing an error would break consumers who upgrade and have not yet adjusted their call sites. Warnings are visible in the IDE error list and in CI build output without halting compilation. Consumers who want stricter enforcement can promote MM009 to error via `<WarningsAsErrors>` or an `.editorconfig` severity override.
 
@@ -42,7 +42,7 @@ The decision to build the registry once via `CompilationStartAction` rather than
 
 ## Consequences
 
-Consumers see overload mismatch at compile time in the IDE error list, before the runtime check ever fires. The analyzer's reach is limited to types visible to the compilation: a handler registered in the same project or in a project reference is detected; a handler registered in a precompiled NuGet dependency may not be, depending on how the consumer has structured registration. The runtime MM200 check remains in place precisely to cover the cross-assembly case.
+Consumers see overload mismatch at compile time in the IDE error list, before the runtime check ever fires. The analyzer's reach is limited to types visible to the compilation: a handler registered in the same project or in a project reference is detected; a handler registered in a precompiled NuGet dependency may not be, depending on how the consumer has structured registration. The runtime MM201 check remains in place precisely to cover the cross-assembly case.
 
 Consumers who already have well-formed dispatch code see no MM009 noise; the negative tests confirm that correct dispatch, no-handler-registered, and dual-registration cases all suppress the diagnostic.
 

@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   When the consumer's code calls `Send` or `SendAsync` against a request whose
   handler is registered under the alternate dispatch interface, the analyzer
   surfaces the mismatch in the IDE error list before code runs (severity:
-  Warning). Companion to the runtime MM200 check (ADR-009); the runtime check
+  Warning). Companion to the runtime MM201 check (ADR-009); the runtime check
   remains as the cross-assembly safety net. See ADR-010.
 - **`MediatorConfiguration.AddModernMediatorValidation`** extension methods
   (`ModernMediator.FluentValidation`): two new overloads on
@@ -50,6 +50,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `AddModernMediator` lambda. The existing `IServiceCollection` overloads
   remain supported for callers whose DI setup keeps registrations outside
   the configuration lambda. See ADR-007.
+- **WinForms.Basic sample** (`samples/ModernMediator.Sample.WinForms.Basic`):
+  new sample exercising `WinFormsDispatcher` end-to-end. A background
+  `Task.Run` worker publishes `StatusUpdatedNotification` messages to a
+  `SubscribeOnMainThread` subscriber, which updates a `Label.Text` on the
+  UI thread without throwing the cross-thread `InvalidOperationException`
+  that direct property mutation would produce. Sample count: 13 -> 14.
 
 ### Changed
 
@@ -96,7 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exception identifies the mismatch and suggests the correct dispatch method
   rather than reporting a generic "no handler registered" error. Surfaced as
   `InvalidOperationException` with the bracketed runtime diagnostic code
-  `[MM200]`. Existing catch sites are unaffected; the exception type is unchanged.
+  `[MM201]`. Existing catch sites are unaffected; the exception type is unchanged.
   See ADR-008 (diagnostic code numbering convention) and ADR-009 (mismatch
   behavior).
 

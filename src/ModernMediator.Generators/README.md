@@ -8,7 +8,7 @@ If you are building a project that explicitly opts into the source-generated dis
 
 ## Diagnostics
 
-The generators emit compile-time diagnostics with the prefix `MM` (for example, `MM001` flags duplicate handler registrations). See the [core ModernMediator README](https://github.com/evanscoapps/ModernMediator) for the full diagnostic catalog.
+The generators emit compile-time diagnostics with the prefix `MM` (for example, `MM001` flags duplicate handler registrations). MM009 detects dispatcher overload mismatch at compile time, paralleling the runtime `[MM201]` prefix surfaced by the core dispatcher when the same condition slips past the analyzer (for example, across precompiled assembly boundaries). See the [core ModernMediator README](https://github.com/evanscoapps/ModernMediator) for the full diagnostic catalog.
 
 ## License
 
