@@ -19,7 +19,7 @@ All benchmarks use `IterationCount=20, WarmupCount=5` with `MemoryDiagnoser` ena
 | [ModernMediator](https://github.com/evanscoapps/ModernMediator)                  | 2.0.0            | Source generators + DI            | MIT                                                   |
 | [martinothamar/Mediator](https://github.com/martinothamar/Mediator)              | 3.0.1            | Source generators (monomorphized) | MIT                                                   |
 
-These three libraries represent distinct architectural trade-offs. MediatR uses runtime reflection with DI container resolution. ModernMediator uses source generators for registration and diagnostics with runtime-composable pipeline behaviors. martinothamar/Mediator uses source generators to produce monomorphized dispatch methods — a concrete method per request type with no dictionary lookup or virtual dispatch at runtime.
+These three libraries represent distinct architectural trade-offs. MediatR uses runtime reflection with DI container resolution. ModernMediator uses source generators for registration and diagnostics with runtime-composable pipeline behaviors. martinothamar/Mediator uses source generators to produce monomorphized dispatch methods, a concrete method per request type with no dictionary lookup or virtual dispatch at runtime.
 
 These benchmarks use MediatR 12.4.1, the last major open-source release under the Apache 2.0 license. MediatR v13+ is dual-licensed commercial software under Lucky Penny Software and may have different performance characteristics. Results here apply only to the version tested.
 
@@ -36,7 +36,7 @@ These benchmarks use MediatR 12.4.1, the last major open-source release under th
 
 ModernMediator's `SendAsync` path uses `IValueTaskRequestHandler` and `ValueTask<T>` to eliminate the `Task` allocation that both `Send` paths pay. At 90ns and 72 bytes, it is the fastest full-featured dispatch path that supports runtime-composable pipeline behaviors, FluentValidation, logging, telemetry, and timeout enforcement.
 
-martinothamar achieves 28ns through compile-time monomorphized dispatch — there is no dictionary lookup and no virtual method call. This is the theoretical speed ceiling for in-process mediator dispatch in .NET.
+martinothamar achieves 28ns through compile-time monomorphized dispatch, there is no dictionary lookup and no virtual method call. This is the theoretical speed ceiling for in-process mediator dispatch in .NET.
 
 ### Send with Pipeline Behavior
 
@@ -73,7 +73,7 @@ Cold start measures the time from service provider build to first dispatch. Mode
 
 When evaluating a mediator library for production use, the allocation column is more important than the time column. Here's why.
 
-Every allocation in .NET lands on the managed heap. The garbage collector tracks these objects and periodically scans the heap to reclaim memory from objects that are no longer referenced. That scanning is not free — it pauses your threads.
+Every allocation in .NET lands on the managed heap. The garbage collector tracks these objects and periodically scans the heap to reclaim memory from objects that are no longer referenced. That scanning is not free, it pauses your threads.
 
 The .NET heap is divided into three generations. Gen0 is where new objects are created. It is small and collected frequently. Short-lived objects like the delegate MediatR creates per dispatch land in Gen0, get used once, and are collected almost immediately. Each collection is fast in isolation, but under sustained load the cumulative effect becomes significant.
 
@@ -91,7 +91,7 @@ Consider the concrete math at 10,000 requests per second:
 
 ModernMediator's `SendAsync` path generates 80% less garbage than MediatR at the same throughput. That is 165 MB per minute of heap pressure that never exists, never triggers Gen0 collections, and never causes latency spikes.
 
-This is why ModernMediator allocates less than MediatR on every single benchmark. The time column shows mixed results — some benchmarks faster, some slower. The allocation column is a clean sweep. For teams optimizing cloud infrastructure costs, allocations are the number that matters.
+This is why ModernMediator allocates less than MediatR on every single benchmark. The time column shows mixed results, some benchmarks faster, some slower. The allocation column is a clean sweep. For teams optimizing cloud infrastructure costs, allocations are the number that matters.
 
 ## Understanding the Three-Way Comparison
 
@@ -101,7 +101,7 @@ These three libraries occupy different positions on the speed-versus-flexibility
 
 **MediatR** is the established incumbent with the largest ecosystem. It uses runtime reflection and DI container resolution, which gives it full runtime flexibility at the cost of higher allocations per dispatch. As of version 13, MediatR requires a commercial license. The benchmarks in this document use version 12.4.1, the last major open-source release under the Apache 2.0 license.
 
-**ModernMediator** sits between these two. Source generators handle registration, diagnostics, and endpoint generation at compile time. Pipeline behaviors are runtime-composable through DI, supporting the same `AddBehavior<>()` pattern that MediatR users expect. The library ships with built-in FluentValidation integration, logging, telemetry via `ActivitySource` and `Meter`, timeout enforcement, ASP.NET Core endpoint generation, and a `Result<T>` pattern — all under the MIT license. The `SendAsync` ValueTask path offers a zero-allocation dispatch option that no other full-featured mediator provides.
+**ModernMediator** sits between these two. Source generators handle registration, diagnostics, and endpoint generation at compile time. Pipeline behaviors are runtime-composable through DI, supporting the same `AddBehavior<>()` pattern that MediatR users expect. The library ships with built-in FluentValidation integration, logging, telemetry via `ActivitySource` and `Meter`, timeout enforcement, ASP.NET Core endpoint generation, and a `Result<T>` pattern, all under the MIT license. The `SendAsync` ValueTask path offers a zero-allocation dispatch option that no other full-featured mediator provides.
 
 The developer who cares only about raw dispatch nanoseconds should evaluate martinothamar/Mediator. The developer who wants a full-featured, production-ready mediator with lower allocations than MediatR, a zero-allocation fast path, compile-time diagnostics, and an MIT license should evaluate ModernMediator.
 

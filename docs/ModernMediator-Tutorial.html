@@ -683,7 +683,7 @@
                 <h2>Streaming</h2>
                 <p>Streaming allows a handler to return results incrementally rather than all at once. Instead of waiting for an entire collection to be built and returned, the consumer receives items as they become available.</p>
                 
-                <p>In .NET, this is powered by <code>IAsyncEnumerable&lt;T&gt;</code>—a feature that lets you <code>await foreach</code> over items as they're yielded, one at a time.</p>
+                <p>In .NET, this is powered by <code>IAsyncEnumerable&lt;T&gt;</code>, a feature that lets you <code>await foreach</code> over items as they're yielded, one at a time.</p>
 
                 <h3>How It Works</h3>
                 <ol>
@@ -710,7 +710,7 @@
                 </div>
 
                 <div class="callout">
-                    <p><strong>Key characteristic:</strong> Streaming is lazy—the handler doesn't run until the consumer starts iterating, and it pauses between yields while waiting for the consumer to request the next item. This creates natural backpressure.</p>
+                    <p><strong>Key characteristic:</strong> Streaming is lazy, the handler doesn't run until the consumer starts iterating, and it pauses between yields while waiting for the consumer to request the next item. This creates natural backpressure.</p>
                 </div>
 
                 <button class="code-btn" onclick="openModal('streaming-code')">
@@ -722,7 +722,7 @@
             <!-- Pub/Sub with Callbacks -->
             <section id="pub-sub">
                 <h2>Pub/Sub with Callbacks</h2>
-                <p>In traditional Publish/Subscribe, a publisher broadcasts a message and multiple subscribers can receive it. It's fire-and-forget—the publisher doesn't know or care who handles the message, and no response comes back.</p>
+                <p>In traditional Publish/Subscribe, a publisher broadcasts a message and multiple subscribers can receive it. It's fire-and-forget, the publisher doesn't know or care who handles the message, and no response comes back.</p>
                 
                 <p>Pub/Sub with Callbacks extends this pattern by allowing subscribers to respond. The publisher still broadcasts to multiple subscribers, but now it can collect a response from each one.</p>
                 
@@ -759,7 +759,7 @@
                 </div>
 
                 <div class="callout">
-                    <p><strong>DI and Scoping:</strong> When using dependency injection, <code>IMediator</code> is scoped—Pub/Sub subscriptions are per-scope. For application-wide shared subscriptions, use <code>Mediator.Instance</code> (the static singleton).</p>
+                    <p><strong>DI and Scoping:</strong> When using dependency injection, <code>IMediator</code> is scoped, Pub/Sub subscriptions are per-scope. For application-wide shared subscriptions, use <code>Mediator.Instance</code> (the static singleton).</p>
                 </div>
 
                 <button class="code-btn" onclick="openModal('pubsub-code')">
@@ -775,7 +775,7 @@
             <!-- Pipeline Behaviors -->
             <section id="pipeline-behaviors">
                 <h2>Pipeline Behaviors</h2>
-                <p>Pipeline Behaviors are middleware for your mediator. They wrap around the entire request/response flow, allowing you to execute logic both before and after the handler runs—all within a single class.</p>
+                <p>Pipeline Behaviors are middleware for your mediator. They wrap around the entire request/response flow, allowing you to execute logic both before and after the handler runs, all within a single class.</p>
                 
                 <p>Think of them like layers of an onion: the request passes through each behavior on the way in, hits the handler at the center, then passes back through each behavior on the way out.</p>
 
@@ -789,15 +789,15 @@
 
                 <h3>Common Use Cases</h3>
                 <ul>
-                    <li><strong>Logging</strong> — log before, log result after</li>
-                    <li><strong>Validation</strong> — reject bad requests before they reach the handler</li>
-                    <li><strong>Performance timing</strong> — start stopwatch before, stop after</li>
-                    <li><strong>Transaction management</strong> — begin before, commit/rollback after</li>
-                    <li><strong>Exception handling</strong> — wrap <code>next(request, cancellationToken)</code> in try/catch</li>
+                    <li><strong>Logging</strong>: log before, log result after</li>
+                    <li><strong>Validation</strong>: reject bad requests before they reach the handler</li>
+                    <li><strong>Performance timing</strong>: start stopwatch before, stop after</li>
+                    <li><strong>Transaction management</strong>: begin before, commit/rollback after</li>
+                    <li><strong>Exception handling</strong>: wrap <code>next(request, cancellationToken)</code> in try/catch</li>
                 </ul>
 
                 <div class="callout">
-                    <p><strong>Key characteristic:</strong> Because you control when <code>next(request, cancellationToken)</code> is called, you can short-circuit the pipeline entirely—returning early without ever reaching the handler.</p>
+                    <p><strong>Key characteristic:</strong> Because you control when <code>next(request, cancellationToken)</code> is called, you can short-circuit the pipeline entirely, returning early without ever reaching the handler.</p>
                 </div>
 
                 <div class="callout">
@@ -935,21 +935,21 @@
                 </div>
 
                 <h3>Recommended Registration Order</h3>
-                <p>Behaviors execute in registration order — first registered is outermost. Register built-in behaviors in this sequence so each layer wraps the one inside it correctly:</p>
+                <p>Behaviors execute in registration order, first registered is outermost. Register built-in behaviors in this sequence so each layer wraps the one inside it correctly:</p>
                 <div class="table-wrapper">
                     <table>
                         <thead>
                             <tr><th>Order</th><th>Behavior</th><th>Registration</th><th>Reason</th></tr>
                         </thead>
                         <tbody>
-                            <tr><td>1</td><td>RetryBehavior</td><td><code>AddRetry()</code></td><td>Outermost — retries the entire inner pipeline</td></tr>
+                            <tr><td>1</td><td>RetryBehavior</td><td><code>AddRetry()</code></td><td>Outermost: retries the entire inner pipeline</td></tr>
                             <tr><td>2</td><td>CircuitBreakerBehavior</td><td><code>AddCircuitBreaker()</code></td><td>Fails fast before attempting work</td></tr>
                             <tr><td>3</td><td>TimeoutBehavior</td><td><code>AddTimeout()</code></td><td>Enforces ceiling on each attempt</td></tr>
                             <tr><td>4</td><td>AuditBehavior</td><td><code>AddAudit()</code></td><td>Records outcome of each attempt</td></tr>
                             <tr><td>5</td><td>IdempotencyBehavior</td><td><code>AddIdempotency()</code></td><td>Short-circuits before validation if already handled</td></tr>
                             <tr><td>6</td><td>LoggingBehavior</td><td><code>AddLogging()</code></td><td>Logs the request entering the inner pipeline</td></tr>
                             <tr><td>7</td><td>ValidationBehavior</td><td><code>services.AddModernMediatorValidation(assembly)</code></td><td>Rejects invalid requests before handler</td></tr>
-                            <tr><td>8</td><td>Handler</td><td>—</td><td>Executes the business logic</td></tr>
+                            <tr><td>8</td><td>Handler</td><td>(none)</td><td>Executes the business logic</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -975,7 +975,7 @@
                         </thead>
                         <tbody>
                             <tr><td>No exceptions for expected failures</td><td>Validation errors, not-found, etc. are values, not exceptions</td></tr>
-                            <tr><td>Explicit error paths</td><td>Callers must handle the error case — it cannot be accidentally ignored</td></tr>
+                            <tr><td>Explicit error paths</td><td>Callers must handle the error case: it cannot be accidentally ignored</td></tr>
                             <tr><td>Zero allocation</td><td>Readonly struct avoids heap allocation for the result wrapper itself</td></tr>
                             <tr><td>Composable</td><td>Map and Bind enable functional-style chaining</td></tr>
                         </tbody>
@@ -1005,7 +1005,7 @@
                             <tr><td>Zero boilerplate</td><td>No manual <code>app.MapPost</code> / <code>app.MapGet</code> wiring per endpoint</td></tr>
                             <tr><td>Compile-time safety</td><td>Invalid HTTP methods are caught by MM200 diagnostic during build</td></tr>
                             <tr><td>Co-located definition</td><td>Route, method, and request type defined in one place</td></tr>
-                            <tr><td>AOT compatible</td><td>Source-generated — no runtime reflection</td></tr>
+                            <tr><td>AOT compatible</td><td>Source-generated: no runtime reflection</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1062,7 +1062,7 @@
                     </table>
                 </div>
 
-                <p>Injecting the narrowest interface makes dependencies explicit and prevents misuse — a service that only sends commands cannot accidentally publish notifications.</p>
+                <p>Injecting the narrowest interface makes dependencies explicit and prevents misuse, a service that only sends commands cannot accidentally publish notifications.</p>
 
                 <p>ModernMediator routes notifications along two delivery paths: <code>IPublisher.Publish</code> invokes DI-resolved <code>INotificationHandler&lt;T&gt;</code> instances, while the sync <code>IMediator.Publish&lt;T&gt;</code> and async <code>IMediator.PublishAsync&lt;T&gt;</code> overloads invoke runtime <code>Subscribe&lt;T&gt;</code> and <code>SubscribeAsync&lt;T&gt;</code> callbacks. Both paths participate uniformly in the configured <code>ErrorPolicy</code> and observe the <code>HandlerError</code> event with the same <code>HandlerErrorEventArgs</code> shape, so choosing the narrowest interface for a given component does not cost the developer anything in the unified error-handling story.</p>
 
@@ -1095,7 +1095,7 @@
                 </div>
 
                 <h3>Compile-Time Diagnostics</h3>
-                <p>ModernMediator's source generator doesn't just wire things up—it validates your code and reports problems as compiler warnings or errors.</p>
+                <p>ModernMediator's source generator doesn't just wire things up, it validates your code and reports problems as compiler warnings or errors.</p>
 
                 <div class="table-wrapper">
                     <table>
@@ -1103,25 +1103,25 @@
                             <tr><th>Diagnostic</th><th>Channel</th><th>Meaning</th></tr>
                         </thead>
                         <tbody>
-                            <tr><td>MM001</td><td>Compile-time</td><td>Duplicate handler — multiple handlers for the same request type</td></tr>
-                            <tr><td>MM002</td><td>Compile-time</td><td>No handler found — request type has no registered handler</td></tr>
-                            <tr><td>MM003</td><td>Compile-time</td><td>Abstract handler — handler class cannot be abstract</td></tr>
-                            <tr><td>MM004</td><td>Compile-time</td><td>Handler in wrong assembly — handler not in scanned assembly</td></tr>
-                            <tr><td>MM005</td><td>Compile-time</td><td>Missing cancellation token — handler should accept <code>CancellationToken</code></td></tr>
-                            <tr><td>MM006</td><td>Compile-time</td><td>Non-public handler — handler class is not public</td></tr>
+                            <tr><td>MM001</td><td>Compile-time</td><td>Duplicate handler: multiple handlers for the same request type</td></tr>
+                            <tr><td>MM002</td><td>Compile-time</td><td>No handler found: request type has no registered handler</td></tr>
+                            <tr><td>MM003</td><td>Compile-time</td><td>Abstract handler: handler class cannot be abstract</td></tr>
+                            <tr><td>MM004</td><td>Compile-time</td><td>Handler in wrong assembly: handler not in scanned assembly</td></tr>
+                            <tr><td>MM005</td><td>Compile-time</td><td>Missing cancellation token: handler should accept <code>CancellationToken</code></td></tr>
+                            <tr><td>MM006</td><td>Compile-time</td><td>Non-public handler: handler class is not public</td></tr>
                             <tr><td>MM007</td><td>Compile-time</td><td>Handler implements multiple handler interfaces</td></tr>
                             <tr><td>MM008</td><td>Compile-time</td><td>Lambda subscription with weak reference</td></tr>
-                            <tr><td>MM009</td><td>Compile-time</td><td>Dispatcher overload mismatch — <code>Send</code> called for a request whose handler is registered as <code>IValueTaskRequestHandler</code>, or vice versa. Detected by the analyzer in the same compilation</td></tr>
-                            <tr><td>MM100</td><td>Compile-time (info)</td><td>Source generator success — reports counts of generated handlers, behaviors, and processors</td></tr>
+                            <tr><td>MM009</td><td>Compile-time</td><td>Dispatcher overload mismatch: <code>Send</code> called for a request whose handler is registered as <code>IValueTaskRequestHandler</code>, or vice versa. Detected by the analyzer in the same compilation</td></tr>
+                            <tr><td>MM100</td><td>Compile-time (info)</td><td>Source generator success: reports counts of generated handlers, behaviors, and processors</td></tr>
                             <tr><td>MM200</td><td>Compile-time</td><td>Invalid HTTP method on <code>[Endpoint]</code> attribute (ASP.NET Core endpoint generator)</td></tr>
-                            <tr><td>MM201</td><td>Runtime</td><td>Dispatcher overload mismatch — <code>InvalidOperationException</code> with <code>[MM201]</code> prefix when the dispatcher detects the mismatch at runtime (cross-assembly safety net for MM009)</td></tr>
-                            <tr><td>MM202</td><td>Runtime</td><td>Generated dispatcher could not resolve a handler — <code>InvalidOperationException</code> with <code>[MM202]</code> prefix thrown by the source-generated <code>Send</code> / <code>CreateStream</code> extensions when <code>IServiceProvider.GetService</code> returns null for the expected <code>IRequestHandler&lt;,&gt;</code> or <code>IStreamRequestHandler&lt;,&gt;</code>. The message points at <code>AddModernMediatorGenerated()</code> registration as the corrective action</td></tr>
+                            <tr><td>MM201</td><td>Runtime</td><td>Dispatcher overload mismatch: <code>InvalidOperationException</code> with <code>[MM201]</code> prefix when the dispatcher detects the mismatch at runtime (cross-assembly safety net for MM009)</td></tr>
+                            <tr><td>MM202</td><td>Runtime</td><td>Generated dispatcher could not resolve a handler: <code>InvalidOperationException</code> with <code>[MM202]</code> prefix thrown by the source-generated <code>Send</code> / <code>CreateStream</code> extensions when <code>IServiceProvider.GetService</code> returns null for the expected <code>IRequestHandler&lt;,&gt;</code> or <code>IStreamRequestHandler&lt;,&gt;</code>. The message points at <code>AddModernMediatorGenerated()</code> registration as the corrective action</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="callout">
-                    <p><strong>Key characteristic:</strong> Traditional mediator libraries fail at runtime when a handler is missing. With compile-time diagnostics, you discover these problems before you even run the application—the build itself tells you something is wrong.</p>
+                    <p><strong>Key characteristic:</strong> Traditional mediator libraries fail at runtime when a handler is missing. With compile-time diagnostics, you discover these problems before you even run the application, the build itself tells you something is wrong.</p>
                 </div>
 
                 <button class="code-btn" onclick="openModal('sourcegen-code')">
@@ -1186,7 +1186,7 @@
                     </table>
                 </div>
 
-                <p>In long-lived applications—especially UI applications—handlers are often tied to objects with shorter lifespans (views, view models, components). If the mediator holds strong references, those objects can never be garbage collected, causing memory leaks.</p>
+                <p>In long-lived applications, especially UI applications, handlers are often tied to objects with shorter lifespans (views, view models, components). If the mediator holds strong references, those objects can never be garbage collected, causing memory leaks.</p>
 
                 <h3>When to Use Each</h3>
                 <div class="table-wrapper">
@@ -1214,7 +1214,7 @@
                 <h2>Predicate Filters</h2>
                 <p>Predicate filters allow a subscriber to conditionally receive messages based on the message content. Instead of receiving every published message of a given type, the handler only receives messages that pass its filter.</p>
                 
-                <p>When subscribing, you provide a predicate function—a condition that evaluates the message and returns true or false. The handler is only invoked when the predicate returns true.</p>
+                <p>When subscribing, you provide a predicate function, a condition that evaluates the message and returns true or false. The handler is only invoked when the predicate returns true.</p>
 
                 <h3>Example Scenarios</h3>
                 <div class="table-wrapper">
@@ -1231,7 +1231,7 @@
                 </div>
 
                 <div class="callout">
-                    <p><strong>Key characteristic:</strong> Predicates are evaluated before invocation. A handler with a predicate that returns false is skipped entirely—it incurs no invocation overhead.</p>
+                    <p><strong>Key characteristic:</strong> Predicates are evaluated before invocation. A handler with a predicate that returns false is skipped entirely, it incurs no invocation overhead.</p>
                 </div>
 
                 <button class="code-btn" onclick="openModal('filter-code')">
@@ -1273,7 +1273,7 @@
             <!-- UI Dispatchers -->
             <section id="dispatchers">
                 <h2>UI Dispatchers</h2>
-                <p>UI frameworks have a fundamental rule: only the main thread (the UI thread) can update the user interface. When work happens on a background thread—as it often does with async handlers—the results must be marshaled back to the UI thread before updating any controls.</p>
+                <p>UI frameworks have a fundamental rule: only the main thread (the UI thread) can update the user interface. When work happens on a background thread, as it often does with async handlers, the results must be marshaled back to the UI thread before updating any controls.</p>
                 
                 <p>Dispatchers automatically route handler responses back to the appropriate thread. Your handlers can run on any thread, but when they complete, the dispatcher ensures the result arrives on the UI thread, ready to bind to your views.</p>
 
@@ -1340,7 +1340,7 @@
                 </div>
 
                 <h3>Manual DI Registration</h3>
-                <p>Manual registration is explicit wiring. You write code that specifically registers each handler with the dependency injection container. Nothing is automatic—every handler appears in your configuration.</p>
+                <p>Manual registration is explicit wiring. You write code that specifically registers each handler with the dependency injection container. Nothing is automatic, every handler appears in your configuration.</p>
 
                 <div class="table-wrapper">
                     <table>
@@ -1382,7 +1382,7 @@
             <!-- Async-First Design -->
             <section id="async-design">
                 <h2>Async-First Design</h2>
-                <p>ModernMediator is built from the ground up for async operations. Async isn't an afterthought or an adapter over synchronous code—it's the primary execution model.</p>
+                <p>ModernMediator is built from the ground up for async operations. Async isn't an afterthought or an adapter over synchronous code, it's the primary execution model.</p>
 
                 <h3>True Async Handlers</h3>
                 <p>When you use <code>SubscribeAsync</code>, handlers are genuinely asynchronous. When multiple handlers exist for a notification, they execute concurrently using <code>Task.WhenAll</code>. The mediator awaits all handlers together, not one after another.</p>
@@ -1491,7 +1491,7 @@
 
                 <p>Both codes describe the same condition; the codes are intentionally distinct because the channels are distinct. MM009 in build output points to the source-gen detector; <code>[MM201]</code> in an exception message points to the runtime check. Consumers who want stricter enforcement can promote MM009 to error via <code>&lt;WarningsAsErrors&gt;</code> or an <code>.editorconfig</code> severity override.</p>
 
-                <p><strong>MM202</strong> (runtime) is the second occupant of the MM2xx slot established by ADR-008. It surfaces from a different path than MM201: the source-generator-emitted <code>Send</code> and <code>CreateStream</code> extension methods throw an <code>InvalidOperationException</code> with the <code>[MM202]</code> prefix when <code>IServiceProvider.GetService</code> returns null for the expected <code>IRequestHandler&lt;,&gt;</code> or <code>IStreamRequestHandler&lt;,&gt;</code>. The message points at <code>AddModernMediatorGenerated()</code> as the corrective action — typically the symptom of a missing call to the generated registration helper after assembly scanning was disabled or replaced.</p>
+                <p><strong>MM202</strong> (runtime) is the second occupant of the MM2xx slot established by ADR-008. It surfaces from a different path than MM201: the source-generator-emitted <code>Send</code> and <code>CreateStream</code> extension methods throw an <code>InvalidOperationException</code> with the <code>[MM202]</code> prefix when <code>IServiceProvider.GetService</code> returns null for the expected <code>IRequestHandler&lt;,&gt;</code> or <code>IStreamRequestHandler&lt;,&gt;</code>. The message points at <code>AddModernMediatorGenerated()</code> as the corrective action, typically the symptom of a missing call to the generated registration helper after assembly scanning was disabled or replaced.</p>
 
                 <h3>Example</h3>
                 <p>Given a handler registered as <code>IValueTaskRequestHandler</code>:</p>
@@ -1533,7 +1533,7 @@ var user = await mediator.Send(new GetUserQuery(42));</code></pre>
             <!-- Audit Behavior -->
             <section id="audit-behavior">
                 <h2>Audit Behavior</h2>
-                <p><code>AuditBehavior</code> captures a structured record of every request that passes through the pipeline — including the request type, current user identity, correlation ID, duration, and whether the request succeeded or failed. Records are dispatched asynchronously to any <code>IAuditWriter</code> implementation, so writing to Serilog, a database, or a custom sink requires no changes to the behavior itself.</p>
+                <p><code>AuditBehavior</code> captures a structured record of every request that passes through the pipeline, including the request type, current user identity, correlation ID, duration, and whether the request succeeded or failed. Records are dispatched asynchronously to any <code>IAuditWriter</code> implementation, so writing to Serilog, a database, or a custom sink requires no changes to the behavior itself.</p>
 
                 <p>Individual request types can opt out of auditing by decorating the request record with <code>[NoAudit]</code>. Audit drain is handled by a hosted background service registered automatically by <code>AddAudit&lt;TWriter&gt;()</code>, which processes records from an in-memory channel without blocking the request pipeline.</p>
 
@@ -1581,7 +1581,7 @@ var user = await mediator.Send(new GetUserQuery(42));</code></pre>
             <!-- Idempotency Behavior -->
             <section id="idempotency-behavior">
                 <h2>Idempotency Behavior</h2>
-                <p><code>IdempotencyBehavior</code> prevents duplicate processing of requests that have already been handled. A request marked with <code>[Idempotent]</code> is identified by a fingerprint derived from the request content and type. If a matching fingerprint exists in the configured <code>IIdempotencyStore</code> and has not expired, the cached response is returned immediately — the handler never runs.</p>
+                <p><code>IdempotencyBehavior</code> prevents duplicate processing of requests that have already been handled. A request marked with <code>[Idempotent]</code> is identified by a fingerprint derived from the request content and type. If a matching fingerprint exists in the configured <code>IIdempotencyStore</code> and has not expired, the cached response is returned immediately, the handler never runs.</p>
 
                 <p>This is essential for operations that must not be applied twice: payments, order submissions, inventory adjustments, or any command where retries from network failures could cause duplicate side effects.</p>
 
@@ -1608,7 +1608,7 @@ var user = await mediator.Send(new GetUserQuery(42));</code></pre>
             <!-- Circuit Breaker Behavior -->
             <section id="circuit-breaker-behavior">
                 <h2>Circuit Breaker Behavior</h2>
-                <p><code>CircuitBreakerBehavior</code> protects your application from repeatedly calling a handler that is known to be failing. When a request type decorated with <code>[CircuitBreaker]</code> accumulates enough consecutive failures, the circuit opens. While open, subsequent requests for that type are rejected immediately with <code>CircuitBreakerOpenException</code> — no handler invocation occurs.</p>
+                <p><code>CircuitBreakerBehavior</code> protects your application from repeatedly calling a handler that is known to be failing. When a request type decorated with <code>[CircuitBreaker]</code> accumulates enough consecutive failures, the circuit opens. While open, subsequent requests for that type are rejected immediately with <code>CircuitBreakerOpenException</code>, no handler invocation occurs.</p>
 
                 <p>After a configured timeout, the circuit moves to half-open and allows a single probe request through. If it succeeds, the circuit closes and normal operation resumes. If it fails, the circuit reopens.</p>
 
@@ -1619,7 +1619,7 @@ var user = await mediator.Send(new GetUserQuery(42));</code></pre>
                             <tr><th>State</th><th>Behavior</th></tr>
                         </thead>
                         <tbody>
-                            <tr><td>Closed</td><td>Normal operation — requests pass through to the handler</td></tr>
+                            <tr><td>Closed</td><td>Normal operation: requests pass through to the handler</td></tr>
                             <tr><td>Open</td><td>Requests rejected immediately with <code>CircuitBreakerOpenException</code></td></tr>
                             <tr><td>Half-Open</td><td>One probe request allowed through; result determines next state</td></tr>
                         </tbody>
@@ -1698,32 +1698,32 @@ var user = await mediator.Send(new GetUserQuery(42));</code></pre>
 
                 <h3>Features Covered</h3>
                 <ul>
-                    <li><strong>Request/Response Pattern</strong> — The foundational one-to-one message handling pattern for commands and queries</li>
-                    <li><strong>Pipeline Behaviors</strong> — Middleware that wraps handler execution for cross-cutting concerns</li>
-                    <li><strong>Pre/Post Processors</strong> — Simpler alternatives to behaviors when you only need before or after logic</li>
-                    <li><strong>Streaming</strong> — Memory-efficient, responsive data delivery using IAsyncEnumerable</li>
-                    <li><strong>Source Generators</strong> — Compile-time handler discovery for Native AOT compatibility</li>
-                    <li><strong>Exception Handlers</strong> — Centralized exception handling without scattered try/catch blocks</li>
-                    <li><strong>CachingMode</strong> — Control over handler resolution timing with Eager and Lazy options</li>
-                    <li><strong>Pub/Sub with Callbacks</strong> — Multi-handler broadcasting with response aggregation</li>
-                    <li><strong>Weak/Strong References</strong> — Memory management control for subscription lifecycles</li>
-                    <li><strong>Predicate Filters</strong> — Conditional message reception based on content</li>
-                    <li><strong>Covariance</strong> — Inheritance-aware message routing for flexible subscriptions</li>
-                    <li><strong>UI Dispatchers</strong> — Thread-safe response delivery across WPF, WinForms, MAUI, Avalonia, and ASP.NET Core</li>
-                    <li><strong>Assembly Scanning and Manual DI Registration</strong> — Flexible handler registration strategies</li>
-                    <li><strong>Async-First Design</strong> — True parallelism with Task.WhenAll and full cancellation support</li>
-                    <li><strong>Error Handling</strong> — Configurable policies, centralized events, and clean exception unwrapping</li>
-                    <li><strong>ValueTask Pipeline</strong> — Zero-allocation fast path via IValueTaskRequestHandler and SendAsync</li>
-                    <li><strong>Built-in Behaviors</strong> — Production-ready Logging, Timeout, Validation, and Telemetry behaviors</li>
-                    <li><strong>Result&lt;T&gt; Pattern</strong> — Readonly struct for explicit success/error handling without exceptions</li>
-                    <li><strong>Endpoint Generation</strong> — Source-generated Minimal API endpoints via [Endpoint] attribute</li>
-                    <li><strong>Telemetry</strong> — OpenTelemetry traces and metrics with ActivitySource and Meter</li>
-                    <li><strong>Interface Segregation</strong> — ISender, IPublisher, and IStreamer for focused dependencies</li>
-                    <li><strong>Audit Behavior</strong> — per-request audit recording dispatched to any IAuditWriter; Serilog and EF Core writers available as separate packages</li>
-                    <li><strong>Idempotency Behavior</strong> — duplicate request prevention via [Idempotent] attribute with pluggable store; in-memory, distributed cache, and EF Core stores included</li>
-                    <li><strong>Circuit Breaker Behavior</strong> — per-request-type circuit breaker via [CircuitBreaker] attribute with closed/open/half-open state management</li>
-                    <li><strong>Retry Behavior</strong> — automatic retry with configurable count and delay strategy (None, Fixed, Linear, Exponential) via [Retry] attribute</li>
-                    <li><strong>Current User Accessor</strong> — ICurrentUserAccessor abstraction with HttpContextCurrentUserAccessor for ASP.NET Core claim resolution</li>
+                    <li><strong>Request/Response Pattern</strong>: The foundational one-to-one message handling pattern for commands and queries</li>
+                    <li><strong>Pipeline Behaviors</strong>: Middleware that wraps handler execution for cross-cutting concerns</li>
+                    <li><strong>Pre/Post Processors</strong>: Simpler alternatives to behaviors when you only need before or after logic</li>
+                    <li><strong>Streaming</strong>: Memory-efficient, responsive data delivery using IAsyncEnumerable</li>
+                    <li><strong>Source Generators</strong>: Compile-time handler discovery for Native AOT compatibility</li>
+                    <li><strong>Exception Handlers</strong>: Centralized exception handling without scattered try/catch blocks</li>
+                    <li><strong>CachingMode</strong>: Control over handler resolution timing with Eager and Lazy options</li>
+                    <li><strong>Pub/Sub with Callbacks</strong>: Multi-handler broadcasting with response aggregation</li>
+                    <li><strong>Weak/Strong References</strong>: Memory management control for subscription lifecycles</li>
+                    <li><strong>Predicate Filters</strong>: Conditional message reception based on content</li>
+                    <li><strong>Covariance</strong>: Inheritance-aware message routing for flexible subscriptions</li>
+                    <li><strong>UI Dispatchers</strong>: Thread-safe response delivery across WPF, WinForms, MAUI, Avalonia, and ASP.NET Core</li>
+                    <li><strong>Assembly Scanning and Manual DI Registration</strong>: Flexible handler registration strategies</li>
+                    <li><strong>Async-First Design</strong>: True parallelism with Task.WhenAll and full cancellation support</li>
+                    <li><strong>Error Handling</strong>: Configurable policies, centralized events, and clean exception unwrapping</li>
+                    <li><strong>ValueTask Pipeline</strong>: Zero-allocation fast path via IValueTaskRequestHandler and SendAsync</li>
+                    <li><strong>Built-in Behaviors</strong>: Production-ready Logging, Timeout, Validation, and Telemetry behaviors</li>
+                    <li><strong>Result&lt;T&gt; Pattern</strong>: Readonly struct for explicit success/error handling without exceptions</li>
+                    <li><strong>Endpoint Generation</strong>: Source-generated Minimal API endpoints via [Endpoint] attribute</li>
+                    <li><strong>Telemetry</strong>: OpenTelemetry traces and metrics with ActivitySource and Meter</li>
+                    <li><strong>Interface Segregation</strong>: ISender, IPublisher, and IStreamer for focused dependencies</li>
+                    <li><strong>Audit Behavior</strong>: per-request audit recording dispatched to any IAuditWriter; Serilog and EF Core writers available as separate packages</li>
+                    <li><strong>Idempotency Behavior</strong>: duplicate request prevention via [Idempotent] attribute with pluggable store; in-memory, distributed cache, and EF Core stores included</li>
+                    <li><strong>Circuit Breaker Behavior</strong>: per-request-type circuit breaker via [CircuitBreaker] attribute with closed/open/half-open state management</li>
+                    <li><strong>Retry Behavior</strong>: automatic retry with configurable count and delay strategy (None, Fixed, Linear, Exponential) via [Retry] attribute</li>
+                    <li><strong>Current User Accessor</strong>: ICurrentUserAccessor abstraction with HttpContextCurrentUserAccessor for ASP.NET Core claim resolution</li>
                 </ul>
 
                 <p>ModernMediator combines these features into a cohesive library that supports applications from simple desktop tools to complex distributed systems, with first-class support for modern .NET capabilities including Native AOT compilation.</p>
@@ -2374,7 +2374,7 @@ public class NotificationService
     public bool NotifyAll(OrderShippedEvent evt) => _publisher.Publish(evt);
 }
 
-// IMediator composes all three — use when you need everything
+// IMediator composes all three, use when you need everything
 public class DashboardController
 {
     private readonly IMediator _mediator;
@@ -2433,7 +2433,7 @@ services.AddModernMediator(config =>
     config.AddIdempotency();
 });
 
-// Register a store — choose one:
+// Register a store: choose one:
 
 // Option A: In-memory (single process, does not survive restarts)
 services.AddSingleton<IIdempotencyStore, InMemoryIdempotencyStore>();
@@ -2446,7 +2446,7 @@ services.AddSingleton<IIdempotencyStore, DistributedIdempotencyStore>();
 services.AddDbContext<IdempotencyDbContext>(opts => opts.UseSqlServer(connectionString));
 services.AddScoped<IIdempotencyStore, EfCoreIdempotencyStore>();
 
-// Mark request types as idempotent — specify TTL in seconds
+// Mark request types as idempotent: specify TTL in seconds
 [Idempotent(windowSeconds: 300)] // Cache result for 5 minutes
 public record SubmitPaymentCommand(Guid PaymentId, decimal Amount) : IRequest<PaymentResult>;
 
@@ -2469,7 +2469,7 @@ services.AddModernMediator(config =>
 [CircuitBreaker(failureThreshold: 5, openDurationMs: 30000)]
 public record GetExternalDataQuery(string Key) : IRequest<ExternalData>;
 
-// Normal operation — requests pass through
+// Normal operation: requests pass through
 var data = await sender.Send(new GetExternalDataQuery("key"));
 
 // After 5 consecutive failures, circuit opens
@@ -2480,12 +2480,12 @@ try
 }
 catch (CircuitBreakerOpenException ex)
 {
-    // Circuit is open — handle gracefully (return cached data, return error, etc.)
+    // Circuit is open: handle gracefully (return cached data, return error, etc.)
     logger.LogWarning("Circuit open for {RequestType}", ex.RequestType);
 }
 
 // After openDurationMs (30 seconds), circuit moves to half-open
-// One probe request is allowed through — if it succeeds, circuit closes`
+// One probe request is allowed through, if it succeeds, circuit closes`
             },
             'retry-behavior-code': {
                 title: 'Retry Behavior',
@@ -2496,20 +2496,20 @@ services.AddModernMediator(config =>
     config.AddRetry();
 });
 
-// Immediate retry — no delay between attempts
+// Immediate retry: no delay between attempts
 [Retry(maxRetries: 3, delayStrategy: RetryDelayStrategy.None)]
 public record GetInventoryQuery(int ProductId) : IRequest<InventoryDto>;
 
-// Fixed delay — same delay between every attempt
+// Fixed delay: same delay between every attempt
 [Retry(maxRetries: 3, delayMs: 500, delayStrategy: RetryDelayStrategy.Fixed)]
 public record SendEmailCommand(string To, string Subject) : IRequest;
 
-// Linear backoff — delay increases by delayMs each attempt
+// Linear backoff: delay increases by delayMs each attempt
 // Attempt 1: 500ms, Attempt 2: 1000ms, Attempt 3: 1500ms
 [Retry(maxRetries: 3, delayMs: 500, delayStrategy: RetryDelayStrategy.Linear)]
 public record SyncExternalDataCommand() : IRequest;
 
-// Exponential backoff — delay doubles each attempt
+// Exponential backoff: delay doubles each attempt
 // Attempt 1: 500ms, Attempt 2: 1000ms, Attempt 3: 2000ms
 [Retry(maxRetries: 3, delayMs: 500, delayStrategy: RetryDelayStrategy.Exponential)]
 public record CallThirdPartyApiQuery(string Endpoint) : IRequest<ApiResponse>;`

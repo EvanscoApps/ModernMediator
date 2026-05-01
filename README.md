@@ -15,13 +15,13 @@ Production-ready. Please report issues on GitHub.
 
 ## Do You Need a Mediator?
 
-Some developers argue that the mediator pattern is unnecessary indirection. They're not wrong — if all you're doing is routing a request to a single handler with no cross-cutting concerns, a mediator adds complexity without value. You can inject a service directly, call a method on it, and it works fine.
+Some developers argue that the mediator pattern is unnecessary indirection. They're not wrong, if all you're doing is routing a request to a single handler with no cross-cutting concerns, a mediator adds complexity without value. You can inject a service directly, call a method on it, and it works fine.
 
 The pattern earns its keep in two situations.
 
-The first is pipeline behaviors. When every command needs validation, logging, telemetry, timeout enforcement, and eventually caching and retry — and you want those concerns applied consistently without every handler author remembering to wire them up manually — a mediator stops being ceremony and starts being infrastructure. The alternative is decorators or hand-rolled middleware, which either requires manual wiring per handler or introduces the same registration complexity the mediator solves more cleanly.
+The first is pipeline behaviors. When every command needs validation, logging, telemetry, timeout enforcement, and eventually caching and retry, and you want those concerns applied consistently without every handler author remembering to wire them up manually, a mediator stops being ceremony and starts being infrastructure. The alternative is decorators or hand-rolled middleware, which either requires manual wiring per handler or introduces the same registration complexity the mediator solves more cleanly.
 
-The second is plugin architectures. When you need to discover and dispatch to handlers that don't exist at compile time in the host application, the mediator pattern isn't a convenience — it's the natural solution. Runtime subscribe/unsubscribe, weak references for handler lifecycle management, and string key routing all support this use case.
+The second is plugin architectures. When you need to discover and dispatch to handlers that don't exist at compile time in the host application, the mediator pattern isn't a convenience, it's the natural solution. Runtime subscribe/unsubscribe, weak references for handler lifecycle management, and string key routing all support this use case.
 
 If your project doesn't benefit from either of these, don't use a mediator. If it does, ModernMediator is designed to make that choice pay off.
 
@@ -29,11 +29,11 @@ If your project doesn't benefit from either of these, don't use a mediator. If i
 
 When you have logic that applies across many handlers and you don't want to repeat it inside each one.
 
-**Validation** is the simplest example. Every command that accepts user input needs validation. Without a pipeline behavior, every handler starts with the same boilerplate — check the input, throw if it's bad, then do the actual work. Multiply that across fifty handlers and you have fifty places to forget, fifty places to get wrong, and fifty places to update when your validation strategy changes. A `ValidationBehavior` runs before every handler automatically. The handler author writes a FluentValidation validator, registers it, and never thinks about the plumbing.
+**Validation** is the simplest example. Every command that accepts user input needs validation. Without a pipeline behavior, every handler starts with the same boilerplate, check the input, throw if it's bad, then do the actual work. Multiply that across fifty handlers and you have fifty places to forget, fifty places to get wrong, and fifty places to update when your validation strategy changes. A `ValidationBehavior` runs before every handler automatically. The handler author writes a FluentValidation validator, registers it, and never thinks about the plumbing.
 
 **Logging** is the same story. You want to know that a request entered the pipeline, how long it took, and whether it succeeded or failed. Without a behavior, you're scattering logger calls across every handler. With a `LoggingBehavior`, it's applied uniformly and the handler code stays focused on business logic.
 
-Then it cascades: **telemetry** — you want `ActivitySource` traces and duration metrics on every dispatch without instrumenting each handler individually. **Timeout enforcement** — you want a hard ceiling on handler execution time, applied via a `[Timeout]` attribute rather than each handler managing its own `CancellationTokenSource`. **Authorization** — you want policy checks before the handler even runs, not buried inside it.
+Then it cascades: **telemetry**, you want `ActivitySource` traces and duration metrics on every dispatch without instrumenting each handler individually. **Timeout enforcement**, you want a hard ceiling on handler execution time, applied via a `[Timeout]` attribute rather than each handler managing its own `CancellationTokenSource`. **Authorization**, you want policy checks before the handler even runs, not buried inside it.
 
 The pattern is always the same: a concern that is orthogonal to the handler's purpose, that applies to many or all handlers, and that you want enforced consistently rather than relying on each developer to remember to include it. One behavior class, registered once, applied everywhere.
 
@@ -42,76 +42,76 @@ ModernMediator ships built-in behaviors for validation (via FluentValidation), l
 ## Features
 
 ### Core Patterns
-- **Request/Response** — Send requests and receive typed responses
-- **Streaming** — `IAsyncEnumerable` support for large datasets
-- **Pub/Sub (Notifications)** — DI-based notification dispatch via `IPublisher`
-- **Pub/Sub with Callbacks** — Collect responses from multiple subscribers
-- **Result\<T\> Pattern** — `readonly struct` with implicit conversions, `Map`, and `GetValueOrDefault` for railway-oriented error handling
+- **Request/Response**: Send requests and receive typed responses
+- **Streaming**: `IAsyncEnumerable` support for large datasets
+- **Pub/Sub (Notifications)**: DI-based notification dispatch via `IPublisher`
+- **Pub/Sub with Callbacks**: Collect responses from multiple subscribers
+- **Result\<T\> Pattern**: `readonly struct` with implicit conversions, `Map`, and `GetValueOrDefault` for railway-oriented error handling
 
 ### Pipeline
-- **Pipeline Behaviors** — Wrap handler execution for cross-cutting concerns
-- **Pre-Processors** — Run logic before handlers execute
-- **Post-Processors** — Run logic after handlers complete
-- **Exception Handlers** — Clean, typed exception handling separate from business logic
-- **Built-in LoggingBehavior** — Request/response logging with configurable levels via `AddLogging()`
-- **Built-in TimeoutBehavior** — Per-request timeout via `[Timeout(ms)]` attribute and `AddTimeout()`
-- **Built-in ValidationBehavior** — FluentValidation integration via `ModernMediator.FluentValidation`
-- **Built-in AuditBehavior** — per-request audit recording (type, user, trace ID, duration, outcome) dispatched to any `IAuditWriter`; opt out with `[NoAudit]`; registered via `AddAudit()`
-- **Built-in IdempotencyBehavior** — deduplicates requests marked `[Idempotent]` by key and TTL using any `IIdempotencyStore`; registered via `AddIdempotency()`
-- **Built-in CircuitBreakerBehavior** — per-request-type circuit breaker via `[CircuitBreaker]` attribute; open circuit throws `CircuitBreakerOpenException`; registered via `AddCircuitBreaker()`
-- **Built-in RetryBehavior** — automatic retry with configurable count and delay strategy (None, Fixed, Linear, Exponential) via `[Retry]` attribute; registered via `AddRetry()`
+- **Pipeline Behaviors**: Wrap handler execution for cross-cutting concerns
+- **Pre-Processors**: Run logic before handlers execute
+- **Post-Processors**: Run logic after handlers complete
+- **Exception Handlers**: Clean, typed exception handling separate from business logic
+- **Built-in LoggingBehavior**: Request/response logging with configurable levels via `AddLogging()`
+- **Built-in TimeoutBehavior**: Per-request timeout via `[Timeout(ms)]` attribute and `AddTimeout()`
+- **Built-in ValidationBehavior**: FluentValidation integration via `ModernMediator.FluentValidation`
+- **Built-in AuditBehavior**: per-request audit recording (type, user, trace ID, duration, outcome) dispatched to any `IAuditWriter`; opt out with `[NoAudit]`; registered via `AddAudit()`
+- **Built-in IdempotencyBehavior**: deduplicates requests marked `[Idempotent]` by key and TTL using any `IIdempotencyStore`; registered via `AddIdempotency()`
+- **Built-in CircuitBreakerBehavior**: per-request-type circuit breaker via `[CircuitBreaker]` attribute; open circuit throws `CircuitBreakerOpenException`; registered via `AddCircuitBreaker()`
+- **Built-in RetryBehavior**: automatic retry with configurable count and delay strategy (None, Fixed, Linear, Exponential) via `[Retry]` attribute; registered via `AddRetry()`
 
 ### Source Generators & AOT
-- **Source Generators** — Compile-time code generation eliminates reflection
-- **Native AOT Compatible** — Full support for ahead-of-time compilation
-- **Compile-Time Diagnostics** — 11 compile-time diagnostic rules (MM001–MM009, MM100, MM200) catch problems during build, plus runtime MM201 and MM202 prefixes surfaced on dispatcher-overload-mismatch and source-generator-emitted handler-not-resolved exceptions
-- **Zero Reflection** — Generated `AddModernMediatorGenerated()` for maximum performance
-- **CachingMode** — Eager (default) or Lazy initialization for cold start optimization
-- **ASP.NET Core Endpoint Generation** — `[Endpoint]` attribute with `MapMediatorEndpoints()` for Minimal API integration
+- **Source Generators**: Compile-time code generation eliminates reflection
+- **Native AOT Compatible**: Full support for ahead-of-time compilation
+- **Compile-Time Diagnostics**: 11 compile-time diagnostic rules (MM001–MM009, MM100, MM200) catch problems during build, plus runtime MM201 and MM202 prefixes surfaced on dispatcher-overload-mismatch and source-generator-emitted handler-not-resolved exceptions
+- **Zero Reflection**: Generated `AddModernMediatorGenerated()` for maximum performance
+- **CachingMode**: Eager (default) or Lazy initialization for cold start optimization
+- **ASP.NET Core Endpoint Generation**: `[Endpoint]` attribute with `MapMediatorEndpoints()` for Minimal API integration
 
 ### Performance
-- **ValueTask Pipeline** — `IValueTaskRequestHandler` and `ISender.SendAsync` for zero-allocation dispatch
-- **Closure Elimination** — `RequestHandlerDelegate<TRequest, TResponse>` passes request and token explicitly
-- **Lower allocations than MediatR** on every benchmark — see 📊 [Benchmarks](https://github.com/evanscoapps/ModernMediator/blob/main/BENCHMARKS.md)
+- **ValueTask Pipeline**: `IValueTaskRequestHandler` and `ISender.SendAsync` for zero-allocation dispatch
+- **Closure Elimination**: `RequestHandlerDelegate<TRequest, TResponse>` passes request and token explicitly
+- **Lower allocations than MediatR** on every benchmark, see 📊 [Benchmarks](https://github.com/evanscoapps/ModernMediator/blob/main/BENCHMARKS.md)
 - **4x faster cold start** than MediatR via source-generated registration
 
 ### Observability
-- **OpenTelemetry Integration** — `ActivitySource` and `Meter` with `RequestCounter` and `RequestDuration` via `AddTelemetry()`
+- **OpenTelemetry Integration**: `ActivitySource` and `Meter` with `RequestCounter` and `RequestDuration` via `AddTelemetry()`
 
 ### Interface Segregation
-- **ISender** — Request/response dispatch
-- **IPublisher** — Notification publishing
-- **IStreamer** — Streaming dispatch
-- **IMediator** — Composes all three; all registered in DI as forwarding aliases
+- **ISender**: Request/response dispatch
+- **IPublisher**: Notification publishing
+- **IStreamer**: Streaming dispatch
+- **IMediator**: Composes all three; all registered in DI as forwarding aliases
 
 ### Advanced Capabilities
-- **Weak References** — Handlers can be garbage collected, preventing memory leaks
-- **Strong References** — Opt-in for handlers that must persist
-- **Runtime Subscribe/Unsubscribe** — Dynamic handler registration (perfect for plugins)
-- **Predicate Filters** — Filter messages at subscription time
-- **Covariance** — Subscribe to base types, receive derived messages
-- **String Key Routing** — Topic-based subscriptions alongside type-based
-- **ICurrentUserAccessor** — abstraction for resolving current user identity in pipeline behaviors; `HttpContextCurrentUserAccessor` (in `ModernMediator.AspNetCore`) resolves `UserId` and `UserName` from `IHttpContextAccessor`
+- **Weak References**: Handlers can be garbage collected, preventing memory leaks
+- **Strong References**: Opt-in for handlers that must persist
+- **Runtime Subscribe/Unsubscribe**: Dynamic handler registration (perfect for plugins)
+- **Predicate Filters**: Filter messages at subscription time
+- **Covariance**: Subscribe to base types, receive derived messages
+- **String Key Routing**: Topic-based subscriptions alongside type-based
+- **ICurrentUserAccessor**: abstraction for resolving current user identity in pipeline behaviors; `HttpContextCurrentUserAccessor` (in `ModernMediator.AspNetCore`) resolves `UserId` and `UserName` from `IHttpContextAccessor`
 
 ### Async-First Design
-- **True Async Handlers** — `SubscribeAsync` with proper `Task.WhenAll` aggregation
-- **Cancellation Support** — All async operations respect `CancellationToken`
-- **Parallel Execution** — Notifications execute handlers concurrently
+- **True Async Handlers**: `SubscribeAsync` with proper `Task.WhenAll` aggregation
+- **Cancellation Support**: All async operations respect `CancellationToken`
+- **Parallel Execution**: Notifications execute handlers concurrently
 
 ### Error Policies
-- **Three Policies** — `ContinueAndAggregate`, `StopOnFirstError`, `LogAndContinue`
-- **HandlerError Event** — Hook for logging and monitoring
-- **Exception Unwrapping** — Clean stack traces without reflection noise
+- **Three Policies**: `ContinueAndAggregate`, `StopOnFirstError`, `LogAndContinue`
+- **HandlerError Event**: Hook for logging and monitoring
+- **Exception Unwrapping**: Clean stack traces without reflection noise
 
 ### UI Thread Support
-- **Built-in Dispatchers** — WPF, WinForms, MAUI, ASP.NET Core, Avalonia
-- **SubscribeOnMainThread** — Automatic UI thread marshalling
+- **Built-in Dispatchers**: WPF, WinForms, MAUI, ASP.NET Core, Avalonia
+- **SubscribeOnMainThread**: Automatic UI thread marshalling
 
 ### Modern .NET Integration
-- **Dependency Injection** — `services.AddModernMediator()`
-- **Assembly Scanning** — Auto-discover handlers, behaviors, and processors
-- **Multi-target** — `net8.0` and `net8.0-windows`
-- **Interface-first** — `IMediator` for testability and mocking
+- **Dependency Injection**: `services.AddModernMediator()`
+- **Assembly Scanning**: Auto-discover handlers, behaviors, and processors
+- **Multi-target**: `net8.0` and `net8.0-windows`
+- **Interface-first**: `IMediator` for testability and mocking
 
 ## Installation
 
@@ -168,16 +168,16 @@ IMediator mediator = Mediator.Create();
 
 ModernMediator includes a source generator that discovers handlers at compile time and generates registration code. This provides:
 
-- **Zero reflection at runtime** — All handler discovery happens during compilation
-- **Native AOT support** — Works with ahead-of-time compilation
-- **Faster startup** — No assembly scanning at runtime
-- **Compile-time diagnostics** — Missing or duplicate handlers detected during build
+- **Zero reflection at runtime**: All handler discovery happens during compilation
+- **Native AOT support**: Works with ahead-of-time compilation
+- **Faster startup**: No assembly scanning at runtime
+- **Compile-time diagnostics**: Missing or duplicate handlers detected during build
 
 ### Generated Code
 
 The source generator creates two files:
 
-**`ModernMediator.Generated.g.cs`** — DI registration without reflection:
+**`ModernMediator.Generated.g.cs`**: DI registration without reflection:
 ```csharp
 // Auto-generated - use instead of assembly scanning
 services.AddModernMediatorGenerated();
@@ -191,7 +191,7 @@ services.AddModernMediatorGenerated(config =>
 });
 ```
 
-**`ModernMediator.SendExtensions.g.cs`** — Strongly-typed Send methods:
+**`ModernMediator.SendExtensions.g.cs`**: Strongly-typed Send methods:
 ```csharp
 // Generated extension methods bypass reflection entirely
 var user = await mediator.Send(new GetUserQuery(42)); // No reflection!
@@ -203,19 +203,19 @@ Compile-time codes are emitted by the source generators and surface in the IDE e
 
 | Code  | Channel       | Description                                                           |
 | :---- | :------------ | :-------------------------------------------------------------------- |
-| MM001 | Compile-time  | Duplicate handler — multiple handlers for same request                |
-| MM002 | Compile-time  | No handler found — request type has no registered handler             |
-| MM003 | Compile-time  | Abstract handler — handler class cannot be abstract                   |
-| MM004 | Compile-time  | Handler in wrong assembly — handler not in scanned assembly           |
-| MM005 | Compile-time  | Missing cancellation token — handler should accept CancellationToken  |
-| MM006 | Compile-time  | Non-public handler — handler class is not public                      |
+| MM001 | Compile-time  | Duplicate handler: multiple handlers for same request                |
+| MM002 | Compile-time  | No handler found: request type has no registered handler             |
+| MM003 | Compile-time  | Abstract handler: handler class cannot be abstract                   |
+| MM004 | Compile-time  | Handler in wrong assembly: handler not in scanned assembly           |
+| MM005 | Compile-time  | Missing cancellation token: handler should accept CancellationToken  |
+| MM006 | Compile-time  | Non-public handler: handler class is not public                      |
 | MM007 | Compile-time  | Handler implements multiple handler interfaces                        |
 | MM008 | Compile-time  | Lambda with weak reference subscription                               |
-| MM009 | Compile-time  | Dispatcher overload mismatch — `Send` called for a request whose handler is registered as `IValueTaskRequestHandler` (or vice versa). Detected by the analyzer in the same compilation; cross-assembly cases fall back to MM201 |
+| MM009 | Compile-time  | Dispatcher overload mismatch: `Send` called for a request whose handler is registered as `IValueTaskRequestHandler` (or vice versa). Detected by the analyzer in the same compilation; cross-assembly cases fall back to MM201 |
 | MM100 | Compile-time  | Source generator internal error                                       |
 | MM200 | Compile-time  | Invalid HTTP method on `[Endpoint]` attribute (ASP.NET Core endpoint generator) |
-| MM201 | Runtime       | Dispatcher overload mismatch — `InvalidOperationException` thrown with `[MM201]` prefix when the dispatcher detects a Send/SendAsync mismatch at runtime (cross-assembly safety net for MM009) |
-| MM202 | Runtime       | Generated dispatcher could not resolve a handler — `InvalidOperationException` thrown with `[MM202]` prefix by the source-generated `Send` / `CreateStream` extensions when `IServiceProvider.GetService` returns null for the expected `IRequestHandler<,>` or `IStreamRequestHandler<,>`. Points at `AddModernMediatorGenerated()` registration as the corrective action |
+| MM201 | Runtime       | Dispatcher overload mismatch: `InvalidOperationException` thrown with `[MM201]` prefix when the dispatcher detects a Send/SendAsync mismatch at runtime (cross-assembly safety net for MM009) |
+| MM202 | Runtime       | Generated dispatcher could not resolve a handler: `InvalidOperationException` thrown with `[MM202]` prefix by the source-generated `Send` / `CreateStream` extensions when `IServiceProvider.GetService` returns null for the expected `IRequestHandler<,>` or `IStreamRequestHandler<,>`. Points at `AddModernMediatorGenerated()` registration as the corrective action |
 
 ### CachingMode
 
@@ -348,10 +348,10 @@ services.AddModernMediator(config =>
     // OpenTelemetry traces and metrics
     config.AddTelemetry();
 
-    // Audit recording — pluggable IAuditWriter, opt out with [NoAudit]
+    // Audit recording: pluggable IAuditWriter, opt out with [NoAudit]
     config.AddAudit();
 
-    // Request deduplication — pluggable IIdempotencyStore, opt in with [Idempotent]
+    // Request deduplication: pluggable IIdempotencyStore, opt in with [Idempotent]
     config.AddIdempotency();
 
     // Per-request-type circuit breaker via [CircuitBreaker] attribute
@@ -401,16 +401,16 @@ behaviors, register them in this sequence so each layer wraps the one inside it 
 
 | Order | Behavior              | Registration              | Reason                                              |
 | :---: | :-------------------- | :------------------------ | :-------------------------------------------------- |
-| 1     | RetryBehavior         | `AddRetry()`              | Outermost — retries the entire inner pipeline       |
+| 1     | RetryBehavior         | `AddRetry()`              | Outermost: retries the entire inner pipeline       |
 | 2     | CircuitBreakerBehavior| `AddCircuitBreaker()`     | Fails fast before attempting work                   |
 | 3     | TimeoutBehavior       | `AddTimeout()`            | Enforces ceiling on each attempt                    |
 | 4     | AuditBehavior         | `AddAudit()`              | Records outcome of each attempt                     |
 | 5     | IdempotencyBehavior   | `AddIdempotency()`        | Short-circuits before validation if already handled |
 | 6     | LoggingBehavior       | `AddLogging()`            | Logs the request entering the inner pipeline        |
 | 7     | ValidationBehavior    | `AddOpenBehavior(typeof(ValidationBehavior<,>))` | Rejects invalid requests before handler |
-| 8     | Handler               | —                         | Executes the business logic                         |
+| 8     | Handler               | (none)                    | Executes the business logic                         |
 
-You are not required to register all behaviors — only the ones your application needs.
+You are not required to register all behaviors, only the ones your application needs.
 
 > **Note:** Assembly scanning skips open generic types. Always use `AddOpenBehavior()` for behaviors that apply to all request types.
 
@@ -614,7 +614,7 @@ await mediator.PublishAsyncTrue(new OrderCreatedEvent(123, 599.99m));
 
 ### Pub/Sub with Callbacks
 
-Collect responses from multiple subscribers — perfect for confirmation dialogs, validation, or aggregating data from multiple sources:
+Collect responses from multiple subscribers, perfect for confirmation dialogs, validation, or aggregating data from multiple sources:
 
 ```csharp
 // Define message and response types
@@ -882,20 +882,20 @@ Source generators eliminate reflection overhead. `CachingMode.Lazy` for fast col
 
 ## Known Limitations
 
-- **In-process only** — No distributed messaging. For microservices, combine with MassTransit or Wolverine for transport.
-- **One handler per request** — Request/Response expects exactly one handler per request type.
-- **No generic request handlers** — Each closed generic type needs its own handler.
-- **Exception handlers for Request/Response only** — Pub/Sub notifications use `ErrorPolicy` instead.
-- **Pipeline behaviors don't wrap streaming** — Behaviors wrap `Send()`, not `CreateStream()`.
-- **Weak references + lambdas** — Closures capture `this`, which may prevent GC. Use method references or `weak: false`.
-- **Behavior order = registration order** — First registered behavior executes first (outermost).
-- **Native AOT requires source generator** — Use `AddModernMediatorGenerated()` instead of assembly scanning.
-- **Open generics require explicit registration** — Assembly scanning skips open generic behaviors; use `AddOpenBehavior()`.
-- **Scoped IMediator for DI** — Pub/Sub subscriptions via DI are per-scope; use `Mediator.Instance` for shared subscriptions.
+- **In-process only**: No distributed messaging. For microservices, combine with MassTransit or Wolverine for transport.
+- **One handler per request**: Request/Response expects exactly one handler per request type.
+- **No generic request handlers**: Each closed generic type needs its own handler.
+- **Exception handlers for Request/Response only**: Pub/Sub notifications use `ErrorPolicy` instead.
+- **Pipeline behaviors don't wrap streaming**: Behaviors wrap `Send()`, not `CreateStream()`.
+- **Weak references + lambdas**: Closures capture `this`, which may prevent GC. Use method references or `weak: false`.
+- **Behavior order = registration order**: First registered behavior executes first (outermost).
+- **Native AOT requires source generator**: Use `AddModernMediatorGenerated()` instead of assembly scanning.
+- **Open generics require explicit registration**: Assembly scanning skips open generic behaviors; use `AddOpenBehavior()`.
+- **Scoped IMediator for DI**: Pub/Sub subscriptions via DI are per-scope; use `Mediator.Instance` for shared subscriptions.
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) file.
+MIT License, see [LICENSE](LICENSE) file.
 
 ## Contributing
 
