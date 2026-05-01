@@ -2,6 +2,12 @@
 
 [![NuGet](https://img.shields.io/nuget/v/ModernMediator.svg)](https://www.nuget.org/packages/ModernMediator)
 
+## Version Status
+
+The latest listed version on NuGet is **2.1.0**. Version 2.2.0 was unlisted and deprecated due to documented contract issues on the assembly-scan registration path. Version 2.2.1 is in development.
+
+This README describes the contract delivered by v2.1.0.
+
 A modern, feature-rich mediator library for .NET 8 that combines the best of pub/sub and request/response patterns with advanced features for real-world applications. Zero reflection in hot paths, Native AOT compatible, compile-time diagnostics, and a ValueTask pipeline for zero-allocation dispatch.
 
 ## Status: Stable
@@ -56,7 +62,7 @@ ModernMediator ships built-in behaviors for validation (via FluentValidation), l
 - **Built-in LoggingBehavior**: Request/response logging with configurable levels via `AddLogging()`
 - **Built-in TimeoutBehavior**: Per-request timeout via `[Timeout(ms)]` attribute and `AddTimeout()`
 - **Built-in ValidationBehavior**: FluentValidation integration via `ModernMediator.FluentValidation`
-- **Built-in AuditBehavior**: per-request audit recording (type, user, trace ID, duration, outcome) dispatched to any `IAuditWriter`; opt out with `[NoAudit]`; registered via `AddAudit()`
+- **Built-in AuditBehavior**: per-request audit recording (type, user, correlation ID, duration, outcome) dispatched to any `IAuditWriter`; opt out with `[NoAudit]`; registered via `AddAudit()`
 - **Built-in IdempotencyBehavior**: deduplicates requests marked `[Idempotent]` by key and TTL using any `IIdempotencyStore`; registered via `AddIdempotency()`
 - **Built-in CircuitBreakerBehavior**: per-request-type circuit breaker via `[CircuitBreaker]` attribute; open circuit throws `CircuitBreakerOpenException`; registered via `AddCircuitBreaker()`
 - **Built-in RetryBehavior**: automatic retry with configurable count and delay strategy (None, Fixed, Linear, Exponential) via `[Retry]` attribute; registered via `AddRetry()`
@@ -64,7 +70,7 @@ ModernMediator ships built-in behaviors for validation (via FluentValidation), l
 ### Source Generators & AOT
 - **Source Generators**: Compile-time code generation eliminates reflection
 - **Native AOT Compatible**: Full support for ahead-of-time compilation
-- **Compile-Time Diagnostics**: 11 compile-time diagnostic rules (MM001–MM009, MM100, MM200) catch problems during build, plus runtime MM201 and MM202 prefixes surfaced on dispatcher-overload-mismatch and source-generator-emitted handler-not-resolved exceptions
+- **Compile-Time Diagnostics**: 10 compile-time diagnostic rules (MM001-MM008, MM100, MM200) catch problems during build
 - **Zero Reflection**: Generated `AddModernMediatorGenerated()` for maximum performance
 - **CachingMode**: Eager (default) or Lazy initialization for cold start optimization
 - **ASP.NET Core Endpoint Generation**: `[Endpoint]` attribute with `MapMediatorEndpoints()` for Minimal API integration
@@ -199,23 +205,18 @@ var user = await mediator.Send(new GetUserQuery(42)); // No reflection!
 
 ### Diagnostics
 
-Compile-time codes are emitted by the source generators and surface in the IDE error list and build output. Runtime codes (MM201, MM202) are not Roslyn diagnostics; they are bracketed prefixes on `InvalidOperationException` messages thrown at dispatch time. See ADR-008 for the slot-range convention.
-
-| Code  | Channel       | Description                                                           |
-| :---- | :------------ | :-------------------------------------------------------------------- |
-| MM001 | Compile-time  | Duplicate handler: multiple handlers for same request                |
-| MM002 | Compile-time  | No handler found: request type has no registered handler             |
-| MM003 | Compile-time  | Abstract handler: handler class cannot be abstract                   |
-| MM004 | Compile-time  | Handler in wrong assembly: handler not in scanned assembly           |
-| MM005 | Compile-time  | Missing cancellation token: handler should accept CancellationToken  |
-| MM006 | Compile-time  | Non-public handler: handler class is not public                      |
-| MM007 | Compile-time  | Handler implements multiple handler interfaces                        |
-| MM008 | Compile-time  | Lambda with weak reference subscription                               |
-| MM009 | Compile-time  | Dispatcher overload mismatch: `Send` called for a request whose handler is registered as `IValueTaskRequestHandler` (or vice versa). Detected by the analyzer in the same compilation; cross-assembly cases fall back to MM201 |
-| MM100 | Compile-time  | Source generator internal error                                       |
-| MM200 | Compile-time  | Invalid HTTP method on `[Endpoint]` attribute (ASP.NET Core endpoint generator) |
-| MM201 | Runtime       | Dispatcher overload mismatch: `InvalidOperationException` thrown with `[MM201]` prefix when the dispatcher detects a Send/SendAsync mismatch at runtime (cross-assembly safety net for MM009) |
-| MM202 | Runtime       | Generated dispatcher could not resolve a handler: `InvalidOperationException` thrown with `[MM202]` prefix by the source-generated `Send` / `CreateStream` extensions when `IServiceProvider.GetService` returns null for the expected `IRequestHandler<,>` or `IStreamRequestHandler<,>`. Points at `AddModernMediatorGenerated()` registration as the corrective action |
+| Code  | Description                                                           |
+| :---- | :-------------------------------------------------------------------- |
+| MM001 | Duplicate handler: multiple handlers for same request                 |
+| MM002 | No handler found: request type has no registered handler              |
+| MM003 | Abstract handler: handler class cannot be abstract                    |
+| MM004 | Handler in wrong assembly: handler not in scanned assembly            |
+| MM005 | Missing cancellation token: handler should accept CancellationToken   |
+| MM006 | Non-public handler: handler class is not public                       |
+| MM007 | Handler implements multiple handler interfaces                        |
+| MM008 | Lambda with weak reference subscription                               |
+| MM100 | Source generator success: reports counts of generated handlers, behaviors, and processors |
+| MM200 | Invalid HTTP method on `[Endpoint]` attribute                         |
 
 ### CachingMode
 
@@ -349,7 +350,7 @@ services.AddModernMediator(config =>
     config.AddTelemetry();
 
     // Audit recording: pluggable IAuditWriter, opt out with [NoAudit]
-    config.AddAudit();
+    config.AddAudit<SerilogAuditWriter>();
 
     // Request deduplication: pluggable IIdempotencyStore, opt in with [Idempotent]
     config.AddIdempotency();
@@ -577,8 +578,6 @@ public class SendOrderEmailHandler : INotificationHandler<OrderCreatedNotificati
 await publisher.Publish(new OrderCreatedNotification(123), ct);
 ```
 
-Errors thrown by DI-resolved notification handlers participate in the unified `ErrorPolicy` and `HandlerError` story. See [Error Handling](#error-handling) below for the policy semantics, the event args properties, and the cancellation contract.
-
 #### Pub/Sub and DI Scoping
 
 When using dependency injection, `IMediator` is registered as Scoped. This means Pub/Sub subscriptions are per-scope:
@@ -750,41 +749,18 @@ mediator.SetDispatcher(new AvaloniaDispatcher());
 
 ### Error Handling
 
-`ErrorPolicy` and the `HandlerError` event govern notification dispatch error handling on both paths uniformly: handlers registered as `INotificationHandler<T>` and resolved via DI, and runtime callbacks registered via `Subscribe<T>` or `SubscribeAsync<T>`. Configuring the policy or subscribing to the event affects both kinds of handler invocations identically.
-
-`ErrorPolicy` is a property on `Mediator` (or set via the `MediatorConfiguration` callback in `AddModernMediator`) that takes one of three values:
-
-- `ContinueAndAggregate` (default): all handlers run, exceptions are collected, and an `AggregateException` is thrown after dispatch completes.
-- `LogAndContinue`: each handler exception is surfaced via `HandlerError` and dispatch continues to the remaining handlers without propagating.
-- `StopOnFirstError`: the first handler exception fires `HandlerError` and then propagates from `Publish`. Remaining handlers are not invoked.
-
-The `HandlerError` event is a universal observation channel. It fires for every handler exception under every policy, regardless of which dispatch path produced the exception. The policy governs propagation and aggregation; the event governs observation. Subscribers receive a `HandlerErrorEventArgs` with these properties:
-
-- `Exception`: the unwrapped handler exception.
-- `Message`: the published notification.
-- `MessageType`: the runtime type of the notification.
-- `HandlerType`: the concrete handler type. On the DI-resolved path, this is the resolved handler class (for example, `typeof(SendOrderEmailHandler)`). On the Subscribe-callback path, this is `Method.DeclaringType` with compiler-generated closure types unwrapped to the enclosing user type.
-- `HandlerInstance`: the resolved DI handler instance on the DI-resolved path, or `Delegate.Target` on the Subscribe-callback path. Null for static delegate subscriptions.
-
 ```csharp
+// Set error policy
 mediator.ErrorPolicy = ErrorPolicy.LogAndContinue;
 
+// Subscribe to errors
 mediator.HandlerError += (sender, args) =>
 {
     logger.LogError(args.Exception,
-        "Handler {HandlerType} failed for {MessageType}",
-        args.HandlerType?.FullName,
+        "Handler error for {MessageType}",
         args.MessageType.Name);
 };
-
-// Both paths fire the same event with the same args shape:
-mediator.Subscribe<OrderCreatedEvent>(e => throw new InvalidOperationException("from callback"));
-await publisher.Publish(new OrderCreatedNotification(123)); // DI-resolved handlers also covered
 ```
-
-Cooperative cancellation is treated as distinct from a handler fault. When the publish token's `IsCancellationRequested` is true and a handler throws `OperationCanceledException`, the event does not fire and the policy does not apply. The exception propagates from `Publish` unconditionally. This matches .NET conventions for cooperative cancellation across async APIs.
-
-For consumers who want to route contained subscriber exceptions to a specific observability system rather than the default `ILogger` route, register an `ISubscriberExceptionSink` implementation in the service collection. ModernMediator uses the registered sink in preference to the built-in logging fallback. See ADR-005 in `docs/decisions/` for the full event semantics specification, and ADR-006 for the dispatch-path participation contract.
 
 ## Comparisons
 
@@ -823,7 +799,7 @@ MediatR v12.x is the last open-source release under the Apache 2.0 license. Medi
 | Predicate Filters              | ✅ Yes                | ❌ No                      |
 | String Key Routing             | ✅ Yes                | ❌ No                      |
 | Parallel Notifications         | ✅ Default            | ❌ Sequential              |
-| Compile-time Diagnostics       | ✅ 11 rules           | ❌ No                      |
+| Compile-time Diagnostics       | ✅ 10 rules           | ❌ No                      |
 | License                        | ✅ MIT                | Apache 2.0 (v13+ commercial) |
 
 ### Performance vs MediatR
@@ -872,7 +848,7 @@ ModernMediator excels at plugin architectures where plugins load/unload at runti
 Built-in UI thread dispatchers, memory-efficient weak references, easy decoupling of components. Replaces both EventAggregator and MediatR.
 
 ### ASP.NET Core
-Full DI integration with proper scoped service support. Request/response for CQRS patterns. Built-in pipeline behaviors for validation, logging, telemetry, and timeout. `[Endpoint]` attribute for Minimal API generation. Handlers can inject scoped services like `DbContext`. Call `services.AddModernMediatorAspNetCore()` to register `IHttpContextAccessor` and other ASP.NET Core integration services in one step.
+Full DI integration with proper scoped service support. Request/response for CQRS patterns. Built-in pipeline behaviors for validation, logging, telemetry, and timeout. `[Endpoint]` attribute for Minimal API generation. Handlers can inject scoped services like `DbContext`.
 
 ### Large Dataset Processing
 Streaming with `IAsyncEnumerable` for memory efficiency. Cancellation support for long-running operations. Backpressure-friendly enumeration.
