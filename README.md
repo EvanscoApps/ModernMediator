@@ -135,6 +135,69 @@ dotnet add package ModernMediator.Audit.EntityFramework
 dotnet add package ModernMediator.Idempotency.EntityFramework
 ```
 
+## Types Used in Examples
+
+The examples throughout this README share a small set of domain types: a `User` entity, a `UserDto` projection, a `GetUserQuery` request, an `OrderCreatedEvent`, a generic `Event`, an `IUserCache` cache abstraction, an `AppDbContext`, and an `AvaloniaDispatcher` placeholder. They are collected here so each example can stay focused on the feature it illustrates. Skip ahead and refer back as needed.
+
+<!-- compile-sweep:shared-setup -->
+```csharp
+// Domain entities
+public class User
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public string Email { get; set; } = "";
+
+    public User() { }
+    public User(string name, string email) { Name = name; Email = email; }
+}
+
+public record Order(int Id, decimal Total);
+
+// Request/response DTOs
+public record GetUserQuery(int UserId) : IRequest<UserDto>;
+public record UserDto(int Id, string Name, string Email);
+
+// Pub/sub events
+public record OrderCreatedEvent(int OrderId, decimal Total);
+public record Event(int Id);
+
+// Cache abstraction used by handler and behavior examples
+public interface IUserCache
+{
+    bool TryGet(int userId, out UserDto cached);
+    void Set(int userId, UserDto user);
+}
+
+public sealed class UserCache : IUserCache
+{
+    private readonly Dictionary<int, UserDto> _store = new();
+    public bool TryGet(int userId, out UserDto cached) => _store.TryGetValue(userId, out cached!);
+    public void Set(int userId, UserDto user) => _store[userId] = user;
+}
+
+// EF Core context used by handler examples
+public class AppDbContext : DbContext
+{
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Order> Orders => Set<Order>();
+
+    public AppDbContext()
+        : base(new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase("readme-examples").Options) { }
+}
+
+// Avalonia dispatcher placeholder. Avalonia is not a runtime dependency
+// of ModernMediator. Copy the real implementation from
+// docs/AvaloniaDispatcher.cs into your Avalonia project when wiring it up.
+public sealed class AvaloniaDispatcher : IDispatcher
+{
+    public bool CheckAccess() => true;
+    public void Invoke(Action action) => action();
+    public Task InvokeAsync(Func<Task> func) => func();
+}
+```
+
 ## Quick Start
 
 ### Setup with Dependency Injection (Recommended)
@@ -164,10 +227,10 @@ services.AddModernMediator(config =>
 
 ```csharp
 // Singleton (shared instance) - ideal for Pub/Sub across the application
-IMediator mediator = Mediator.Instance;
+IMediator mediatorInstance = Mediator.Instance;
 
 // Or create isolated instance
-IMediator mediator = Mediator.Create();
+IMediator mediatorIsolated = Mediator.Create();
 ```
 
 ## Source Generators
@@ -240,17 +303,15 @@ services.AddModernMediator(config =>
 ### Request/Response
 
 ```csharp
-// Define request and response
-public record GetUserQuery(int UserId) : IRequest<UserDto>;
-public record UserDto(int Id, string Name, string Email);
+// GetUserQuery and UserDto are defined in "Types Used in Examples" above.
 
 // Define handler
-public class GetUserHandler : IRequestHandler<GetUserQuery, UserDto>
+public class GetUserHandler(AppDbContext db) : IRequestHandler<GetUserQuery, UserDto>
 {
     public async Task<UserDto> Handle(GetUserQuery request, CancellationToken ct = default)
     {
-        var user = await _db.Users.FindAsync(request.UserId, ct);
-        return new UserDto(user.Id, user.Name, user.Email);
+        var user = await db.Users.FindAsync(new object?[] { request.UserId }, ct);
+        return new UserDto(user!.Id, user.Name, user.Email);
     }
 }
 
@@ -264,14 +325,23 @@ For performance-critical paths, use `IValueTaskRequestHandler` with `SendAsync` 
 
 ```csharp
 // Define a ValueTask handler
-public class GetCachedUserHandler : IValueTaskRequestHandler<GetUserQuery, UserDto>
+public class GetCachedUserHandler(IUserCache cache, AppDbContext db)
+    : IValueTaskRequestHandler<GetUserQuery, UserDto>
 {
     public ValueTask<UserDto> Handle(GetUserQuery request, CancellationToken ct = default)
     {
-        if (_cache.TryGet(request.UserId, out var cached))
+        if (cache.TryGet(request.UserId, out var cached))
             return ValueTask.FromResult(cached);  // Zero allocation
 
         return new ValueTask<UserDto>(LoadFromDbAsync(request, ct));
+    }
+
+    private async Task<UserDto> LoadFromDbAsync(GetUserQuery request, CancellationToken ct)
+    {
+        var user = await db.Users.FindAsync(new object?[] { request.UserId }, ct);
+        var dto = new UserDto(user!.Id, user.Name, user.Email);
+        cache.Set(request.UserId, dto);
+        return dto;
     }
 }
 
@@ -286,12 +356,12 @@ var user = await sender.SendAsync<UserDto>(new GetUserQuery(42));
 public record CreateUserCommand(string Name, string Email) : IRequest;
 
 // Define handler
-public class CreateUserHandler : IRequestHandler<CreateUserCommand, Unit>
+public class CreateUserHandler(AppDbContext db) : IRequestHandler<CreateUserCommand, Unit>
 {
     public async Task<Unit> Handle(CreateUserCommand request, CancellationToken ct = default)
     {
-        await _db.Users.AddAsync(new User(request.Name, request.Email), ct);
-        await _db.SaveChangesAsync(ct);
+        await db.Users.AddAsync(new User(request.Name, request.Email), ct);
+        await db.SaveChangesAsync(ct);
         return Unit.Value;
     }
 }
@@ -307,13 +377,14 @@ await mediator.Send(new CreateUserCommand("John", "john@example.com"));
 public record GetAllUsersRequest(int PageSize) : IStreamRequest<UserDto>;
 
 // Define stream handler
-public class GetAllUsersHandler : IStreamRequestHandler<GetAllUsersRequest, UserDto>
+public class GetAllUsersHandler(AppDbContext db)
+    : IStreamRequestHandler<GetAllUsersRequest, UserDto>
 {
     public async IAsyncEnumerable<UserDto> Handle(
         GetAllUsersRequest request,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        await foreach (var user in _db.Users.AsAsyncEnumerable().WithCancellation(ct))
+        await foreach (var user in db.Users.AsAsyncEnumerable().WithCancellation(ct))
         {
             yield return new UserDto(user.Id, user.Name, user.Email);
         }
@@ -372,15 +443,16 @@ Open generic behaviors must be registered explicitly with `AddOpenBehavior()`:
 
 ```csharp
 // Transaction behavior that wraps all requests
-public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+public class TransactionBehavior<TRequest, TResponse>(AppDbContext db)
+    : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
     public async Task<TResponse> Handle(
-        TRequest request, 
-        RequestHandlerDelegate<TRequest, TResponse> next, 
+        TRequest request,
+        RequestHandlerDelegate<TRequest, TResponse> next,
         CancellationToken ct)
     {
-        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
         var response = await next(request, ct);
         await tx.CommitAsync(ct);
         return response;
@@ -421,18 +493,19 @@ Behaviors for specific request types are discovered by assembly scanning:
 
 ```csharp
 // Behavior for a specific request type
-public class GetUserCachingBehavior : IPipelineBehavior<GetUserQuery, UserDto>
+public class GetUserCachingBehavior(IUserCache cache)
+    : IPipelineBehavior<GetUserQuery, UserDto>
 {
     public async Task<UserDto> Handle(
-        GetUserQuery request, 
-        RequestHandlerDelegate<GetUserQuery, UserDto> next, 
+        GetUserQuery request,
+        RequestHandlerDelegate<GetUserQuery, UserDto> next,
         CancellationToken ct)
     {
-        if (_cache.TryGet(request.UserId, out var cached))
+        if (cache.TryGet(request.UserId, out var cached))
             return cached;
-        
+
         var result = await next(request, ct);
-        _cache.Set(request.UserId, result);
+        cache.Set(request.UserId, result);
         return result;
     }
 }
@@ -443,19 +516,27 @@ public class GetUserCachingBehavior : IPipelineBehavior<GetUserQuery, UserDto>
 For operations that can fail without exceptions:
 
 ```csharp
-public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<OrderDto>>
+public record CreateOrderCommand(IReadOnlyList<int> Items) : IRequest<Result<OrderDto>>;
+public record OrderDto(int Id, decimal Total);
+
+public class CreateOrderHandler(AppDbContext db)
+    : IRequestHandler<CreateOrderCommand, Result<OrderDto>>
 {
     public async Task<Result<OrderDto>> Handle(CreateOrderCommand request, CancellationToken ct)
     {
         if (request.Items.Count == 0)
-            return new ResultError("Order must have at least one item");
+            return new ResultError("ORDER_EMPTY", "Order must have at least one item");
 
-        var order = await _db.CreateOrder(request, ct);
+        var order = new Order(0, request.Items.Count * 9.99m);
+        await db.Orders.AddAsync(order, ct);
+        await db.SaveChangesAsync(ct);
         return new OrderDto(order.Id, order.Total);  // Implicit conversion
     }
 }
 
 // Consuming results
+var items = new[] { 1, 2, 3 };
+var fallback = new OrderDto(0, 0m);
 var result = await mediator.Send(new CreateOrderCommand(items));
 var dto = result.GetValueOrDefault(fallback);
 var mapped = result.Map(order => order.Total);
@@ -466,7 +547,7 @@ var mapped = result.Map(order => order.Total);
 Generate Minimal API endpoints directly from request handlers:
 
 ```csharp
-[Endpoint(HttpMethod.Post, "/api/users")]
+[Endpoint("/api/users", "POST")]
 public record CreateUserCommand(string Name, string Email) : IRequest<UserDto>;
 
 // In Program.cs
@@ -476,23 +557,28 @@ app.MapMediatorEndpoints();
 ### Pre/Post Processors
 
 ```csharp
-// Pre-processor runs before handler
-public class AuthorizationPreProcessor<TRequest> : IRequestPreProcessor<TRequest>
+public interface IAuthorizationService { bool IsAuthorized(object request); }
+public class UnauthorizedException : Exception { }
+
+// Pre-processor runs before handler (closed-generic over a request type)
+public class AuthorizationPreProcessor(IAuthorizationService auth)
+    : IRequestPreProcessor<GetUserQuery>
 {
-    public Task Process(TRequest request, CancellationToken ct)
+    public Task Process(GetUserQuery request, CancellationToken ct)
     {
-        if (!_auth.IsAuthorized(request))
+        if (!auth.IsAuthorized(request))
             throw new UnauthorizedException();
         return Task.CompletedTask;
     }
 }
 
-// Post-processor runs after handler
-public class CachingPostProcessor<TRequest, TResponse> : IRequestPostProcessor<TRequest, TResponse>
+// Post-processor runs after handler (closed-generic over request and response types)
+public class CachingPostProcessor(IUserCache cache)
+    : IRequestPostProcessor<GetUserQuery, UserDto>
 {
-    public Task Process(TRequest request, TResponse response, CancellationToken ct)
+    public Task Process(GetUserQuery request, UserDto response, CancellationToken ct)
     {
-        _cache.Set(request, response);
+        cache.Set(request.UserId, response);
         return Task.CompletedTask;
     }
 }
@@ -511,8 +597,11 @@ services.AddModernMediator(config =>
 Exception handlers provide clean, typed exception handling separate from your business logic. They can return an alternate response or let the exception bubble up.
 
 ```csharp
+public class NotFoundException : Exception { }
+
 // Define an exception handler for a specific exception type
-public class NotFoundExceptionHandler : RequestExceptionHandler<GetUserQuery, UserDto, NotFoundException>
+public class NotFoundExceptionHandler
+    : RequestExceptionHandler<GetUserQuery, UserDto, NotFoundException>
 {
     protected override Task<ExceptionHandlingResult<UserDto>> Handle(
         GetUserQuery request,
@@ -520,8 +609,8 @@ public class NotFoundExceptionHandler : RequestExceptionHandler<GetUserQuery, Us
         CancellationToken ct)
     {
         // Return an alternate response
-        return Handled(new UserDto(0, "Unknown User"));
-        
+        return Handled(new UserDto(0, "Unknown User", ""));
+
         // Or let the exception bubble up
         // return NotHandled;
     }
@@ -540,16 +629,15 @@ Exception handlers walk the exception type hierarchy, so a handler for `Exceptio
 ### Pub/Sub (Notifications)
 
 ```csharp
-// Define a message
-public record OrderCreatedEvent(int OrderId, decimal Total);
+// OrderCreatedEvent is defined in "Types Used in Examples" above.
 
 // Subscribe
-mediator.Subscribe<OrderCreatedEvent>(e => 
+mediator.Subscribe<OrderCreatedEvent>(e =>
     Console.WriteLine($"Order {e.OrderId} created: ${e.Total}"));
 
 // Subscribe with filter
 mediator.Subscribe<OrderCreatedEvent>(
-    e => NotifyVipTeam(e),
+    e => Console.WriteLine($"VIP order: {e.OrderId}"),
     filter: e => e.Total > 10000);
 
 // Publish
@@ -563,14 +651,20 @@ ModernMediator routes notifications along two delivery paths. The `IMediator.Pub
 For CQRS-style notification handlers resolved from the DI container:
 
 ```csharp
+public interface IEmailService
+{
+    Task SendOrderConfirmation(int orderId, CancellationToken ct);
+}
+
 public record OrderCreatedNotification(int OrderId) : INotification;
 
-public class SendOrderEmailHandler : INotificationHandler<OrderCreatedNotification>
+public class SendOrderEmailHandler(IEmailService emailService)
+    : INotificationHandler<OrderCreatedNotification>
 {
     public Task Handle(OrderCreatedNotification notification, CancellationToken ct)
     {
         // Send confirmation email
-        return _emailService.SendOrderConfirmation(notification.OrderId, ct);
+        return emailService.SendOrderConfirmation(notification.OrderId, ct);
     }
 }
 
@@ -583,18 +677,24 @@ await publisher.Publish(new OrderCreatedNotification(123), ct);
 When using dependency injection, `IMediator` is registered as Scoped. This means Pub/Sub subscriptions are per-scope:
 
 ```csharp
+public record SomeEvent(int Id);
+
 // Subscriptions on DI-injected IMediator are scoped to that request/scope
 public class MyService
 {
     public MyService(IMediator mediator)
     {
         // This subscription lives only as long as this scope
-        mediator.Subscribe<SomeEvent>(HandleEvent);
+        mediator.Subscribe<SomeEvent>(e => HandleEvent(e));
     }
+
+    private void HandleEvent(SomeEvent e) { /* handle event */ }
 }
 
 // For application-wide shared subscriptions, use the static singleton:
 Mediator.Instance.Subscribe<OrderCreatedEvent>(e => GlobalHandler(e));
+
+static void GlobalHandler(OrderCreatedEvent e) { /* handle globally */ }
 ```
 
 ### Async Handlers
@@ -609,6 +709,9 @@ mediator.SubscribeAsync<OrderCreatedEvent>(async e =>
 
 // Publish and await all handlers
 await mediator.PublishAsyncTrue(new OrderCreatedEvent(123, 599.99m));
+
+static Task SaveToDatabase(OrderCreatedEvent e) => Task.CompletedTask;
+static Task SendEmailNotification(OrderCreatedEvent e) => Task.CompletedTask;
 ```
 
 ### Pub/Sub with Callbacks
@@ -635,11 +738,17 @@ if (responses.Any(r => r.Confirmed))
 {
     DeleteItem();
 }
+
+static bool ShowDialog(string message) => true;
+static void DeleteItem() { /* delete the selected item */ }
 ```
 
 #### Async Callbacks
 
 ```csharp
+public record ValidateRequest(string Input);
+public record ValidationResult(bool IsValid, string? Error = null);
+
 // Multiple async validators
 mediator.SubscribeAsync<ValidateRequest, ValidationResult>(
     async request => await ValidateLengthAsync(request));
@@ -652,6 +761,11 @@ var results = await mediator.PublishAsync<ValidateRequest, ValidationResult>(
     new ValidateRequest("user input"));
 
 var errors = results.Where(r => !r.IsValid).ToList();
+
+static Task<ValidationResult> ValidateLengthAsync(ValidateRequest request) =>
+    Task.FromResult(new ValidationResult(request.Input.Length > 0));
+static Task<ValidationResult> ValidateFormatAsync(ValidateRequest request) =>
+    Task.FromResult(new ValidationResult(true));
 ```
 
 #### Key Differences from Request/Response
@@ -679,23 +793,37 @@ mediator.Publish(new CatEvent("Whiskers", 9));
 ### String Key Routing
 
 ```csharp
+public record OrderEvent(int OrderId, string Status);
+
 // Subscribe to specific topics
 mediator.Subscribe<OrderEvent>("orders.created", e => HandleNewOrder(e));
 mediator.Subscribe<OrderEvent>("orders.shipped", e => HandleShippedOrder(e));
 mediator.Subscribe<OrderEvent>("orders.cancelled", e => HandleCancelledOrder(e));
 
 // Publish to specific topic
-mediator.Publish("orders.created", new OrderEvent(...));
+mediator.Publish("orders.created", new OrderEvent(123, "created"));
+
+static void HandleNewOrder(OrderEvent e) { /* handle new order */ }
+static void HandleShippedOrder(OrderEvent e) { /* handle shipped */ }
+static void HandleCancelledOrder(OrderEvent e) { /* handle cancelled */ }
 ```
 
 ### Weak vs Strong References
 
 ```csharp
+// 'handler' is any object that defines void OnEvent(Event e)
+var handler = new EventHandlerExample();
+
 // Weak reference (default) - handler can be GC'd
 mediator.Subscribe<Event>(handler.OnEvent, weak: true);
 
 // Strong reference - handler persists until unsubscribed
 mediator.Subscribe<Event>(handler.OnEvent, weak: false);
+
+class EventHandlerExample
+{
+    public void OnEvent(Event e) { /* handle event */ }
+}
 ```
 
 ### Unsubscribing
@@ -713,19 +841,26 @@ using (mediator.Subscribe<Event>(OnEvent))
     // Handler is active here
 }
 // Handler is automatically unsubscribed
+
+static void OnEvent(Event e) { /* handle event */ }
 ```
 
 ### UI Thread Dispatching
 
 ```csharp
+public record DataChangedEvent(int Id);
+
 // Set dispatcher once at startup
-mediator.SetDispatcher(new WpfDispatcher());      // WPF
-mediator.SetDispatcher(new WinFormsDispatcher()); // WinForms
-mediator.SetDispatcher(new MauiDispatcher());     // MAUI
-mediator.SetDispatcher(new AvaloniaDispatcher()); // Avalonia (see below)
+mediator.SetDispatcher(new WpfDispatcher());                 // WPF
+
+// WinForms requires a Control for UI-thread marshalling
+var formControl = new System.Windows.Forms.Form();
+mediator.SetDispatcher(new WinFormsDispatcher(formControl)); // WinForms
+mediator.SetDispatcher(new MauiDispatcher());                // MAUI
+mediator.SetDispatcher(new AvaloniaDispatcher());            // Avalonia (see below)
 
 // Subscribe to receive on UI thread
-mediator.SubscribeOnMainThread<DataChangedEvent>(e => 
+mediator.SubscribeOnMainThread<DataChangedEvent>(e =>
     UpdateUI(e)); // Safe to update UI here
 
 // Async version
@@ -734,6 +869,9 @@ mediator.SubscribeAsyncOnMainThread<DataChangedEvent>(async e =>
     await ProcessData(e);
     UpdateUI(e); // Safe to update UI
 });
+
+static void UpdateUI(DataChangedEvent e) { /* update UI */ }
+static Task ProcessData(DataChangedEvent e) => Task.CompletedTask;
 ```
 
 #### Avalonia Support
@@ -752,6 +890,9 @@ mediator.SetDispatcher(new AvaloniaDispatcher());
 ```csharp
 // Set error policy
 mediator.ErrorPolicy = ErrorPolicy.LogAndContinue;
+
+// 'logger' here is any Microsoft.Extensions.Logging.ILogger instance
+ILogger logger = NullLogger.Instance;
 
 // Subscribe to errors
 mediator.HandlerError += (sender, args) =>
