@@ -117,15 +117,53 @@ foreach ($id in $ungatedPackageIds) {
 
 # 5. Cache-clear loop. NuGet may serve a previously cached copy of the same
 # version string from the global-packages folder; the gate would then be a lie.
+# This includes ungated packages (the source generators) because consumer
+# projects pull them via PackageReference and a cached old DLL produces stale
+# generator output that does not reflect current source.
 $cacheRoot = Join-Path $HOME '.nuget/packages'
-foreach ($pkg in $gatedPackages) {
-    $cacheTarget = Join-Path $cacheRoot ($pkg.Id.ToLowerInvariant() + '/' + $version.ToLowerInvariant())
+$cacheIds = @($gatedPackages | ForEach-Object { $_.Id }) + $ungatedPackageIds
+foreach ($id in $cacheIds) {
+    $cacheTarget = Join-Path $cacheRoot ($id.ToLowerInvariant() + '/' + $version.ToLowerInvariant())
     if (Test-Path $cacheTarget) {
         Remove-Item -Recurse -Force $cacheTarget
         Write-Host "Cache cleared: $cacheTarget"
     } else {
         Write-Host "Cache clear: no cached copy at $cacheTarget"
     }
+}
+
+# 5b. HTTP cache clear, scoped to ModernMediator entries only. NuGet stores raw
+# downloaded nupkgs and source list responses in the http-cache. If a previous
+# restore pulled ModernMediator.Generators 2.2.0 from nuget.org (the original
+# broken build, never republished), that nupkg sits in the http-cache and gets
+# replayed into global-packages on the next restore, even after global-packages
+# was cleared above. Targeted deletion of nupkg_modernmediator*.dat and
+# list_modernmediator*.dat forces the next restore to re-fetch from the now
+# correctly mapped local-packed feed.
+try {
+    $httpCacheRaw = (& dotnet nuget locals http-cache -l) 2>&1 | Out-String
+    $httpCache = ($httpCacheRaw -replace '^http-cache:\s*', '').Trim()
+    if ([string]::IsNullOrWhiteSpace($httpCache) -or -not (Test-Path $httpCache)) {
+        Write-Host "HTTP cache: path not resolved ($httpCache); skipping targeted clear"
+    } else {
+        $httpEntries = @()
+        $httpEntries += Get-ChildItem -Path $httpCache -Recurse -File -Filter 'nupkg_modernmediator*.dat' -ErrorAction SilentlyContinue
+        $httpEntries += Get-ChildItem -Path $httpCache -Recurse -File -Filter 'list_modernmediator*.dat' -ErrorAction SilentlyContinue
+        if ($httpEntries.Count -eq 0) {
+            Write-Host "HTTP cache: no ModernMediator entries cached"
+        } else {
+            foreach ($entry in $httpEntries) {
+                try {
+                    Remove-Item -Force -LiteralPath $entry.FullName
+                    Write-Host "HTTP cache cleared: $($entry.FullName)"
+                } catch {
+                    Write-Host "HTTP cache clear failed for $($entry.FullName): $($_.Exception.Message)"
+                }
+            }
+        }
+    }
+} catch {
+    Write-Host "HTTP cache clear failed: $($_.Exception.Message)"
 }
 
 # 6. Test loop. Each smoke project runs in isolation against its own packed nupkg.

@@ -227,23 +227,10 @@ function New-BlockProject {
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ModernMediator" Version="`$(MMSmokeVersion)" />
-    <!--
-      ModernMediator.Generators is intentionally omitted from the sweep. Its
-      emitted registration code calls `internal Mediator.SetCachingMode`, which
-      is not accessible from a consumer assembly and fails with CS1061.
-      ExcludeAssets="analyzers" did not suppress emit in this MSBuild
-      configuration. The pre-compiled `AddModernMediatorGenerated` symbol is
-      baked into ModernMediator.dll, so consumer code that calls it still
-      resolves. The compile-only sweep does not exercise the runtime handler
-      registration the generator would emit.
-
-      ModernMediator.AspNetCore.Generators stays referenced because it emits
-      `MapMediatorEndpoints`, which is required by the README endpoint
-      example and is not pre-baked into the runtime DLL.
-    -->
+    <PackageReference Include="ModernMediator.Generators" Version="`$(MMSmokeVersion)" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <PackageReference Include="ModernMediator.FluentValidation" Version="`$(MMSmokeVersion)" />
     <PackageReference Include="ModernMediator.AspNetCore" Version="`$(MMSmokeVersion)" />
-    <PackageReference Include="ModernMediator.AspNetCore.Generators" Version="`$(MMSmokeVersion)" PrivateAssets="all" />
+    <PackageReference Include="ModernMediator.AspNetCore.Generators" Version="`$(MMSmokeVersion)" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <PackageReference Include="ModernMediator.Audit.Serilog" Version="`$(MMSmokeVersion)" />
     <PackageReference Include="ModernMediator.Audit.EntityFramework" Version="`$(MMSmokeVersion)" />
     <PackageReference Include="ModernMediator.Idempotency.EntityFramework" Version="`$(MMSmokeVersion)" />
@@ -262,6 +249,15 @@ function New-BlockProject {
     <add key="local-packed" value="../../../packages" />
     <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
   </packageSources>
+  <packageSourceMapping>
+    <clear />
+    <packageSource key="local-packed">
+      <package pattern="ModernMediator*" />
+    </packageSource>
+    <packageSource key="nuget.org">
+      <package pattern="*" />
+    </packageSource>
+  </packageSourceMapping>
 </configuration>
 "@
     Set-Content -LiteralPath (Join-Path $WorkDir 'NuGet.config') -Value $nuget -Encoding UTF8
