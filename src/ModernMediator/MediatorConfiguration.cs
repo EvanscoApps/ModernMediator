@@ -69,6 +69,10 @@ namespace ModernMediator
         /// <param name="mediator">The mediator instance to configure.</param>
         public void ApplyConfiguration(IMediator mediator)
         {
+            if (mediator is Mediator concrete)
+            {
+                concrete.SetCachingMode(CachingMode);
+            }
             ConfigureAction?.Invoke(mediator);
         }
 

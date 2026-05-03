@@ -282,6 +282,16 @@ namespace ModernMediator.Generators
                 }
             }
 
+            // Skip emit when running on ModernMediator's own compilation. Otherwise the
+            // registration class would be baked into ModernMediator.dll, and any consumer
+            // that also references the generator would get two definitions of
+            // AddModernMediatorGenerated (one from the baked class, one from the consumer's
+            // own generator pass), triggering CS0121 on every call site.
+            if (compilation.AssemblyName == "ModernMediator")
+            {
+                return;
+            }
+
             // Generate registration code
             var source = GenerateSource(handlers, streamHandlers, behaviors, preProcessors, postProcessors);
             context.AddSource("ModernMediator.Generated.g.cs", SourceText.From(source, Encoding.UTF8));
@@ -316,7 +326,6 @@ namespace ModernMediator.Generators
             sb.AppendLine("using System;");
             sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
             sb.AppendLine("using Microsoft.Extensions.DependencyInjection.Extensions;");
-            sb.AppendLine("using ModernMediator;");
             sb.AppendLine();
             sb.AppendLine("namespace ModernMediator.Generated");
             sb.AppendLine("{");
@@ -347,21 +356,20 @@ namespace ModernMediator.Generators
             sb.AppendLine("        /// <param name=\"configure\">Optional configuration action for ErrorPolicy, CachingMode, and Dispatcher.</param>");
             sb.AppendLine("        /// <param name=\"handlerLifetime\">Lifetime for handlers (default: Transient).</param>");
             sb.AppendLine("        /// <param name=\"behaviorLifetime\">Lifetime for behaviors and processors (default: Transient).</param>");
-            sb.AppendLine("        public static IServiceCollection AddModernMediatorGenerated(this IServiceCollection services, Action<MediatorConfiguration>? configure, ServiceLifetime handlerLifetime = ServiceLifetime.Transient, ServiceLifetime behaviorLifetime = ServiceLifetime.Transient)");
+            sb.AppendLine("        public static IServiceCollection AddModernMediatorGenerated(this IServiceCollection services, Action<global::ModernMediator.MediatorConfiguration>? configure, ServiceLifetime handlerLifetime = ServiceLifetime.Transient, ServiceLifetime behaviorLifetime = ServiceLifetime.Transient)");
             sb.AppendLine("        {");
             sb.AppendLine("            // Create and apply configuration");
-            sb.AppendLine("            var config = new MediatorConfiguration();");
+            sb.AppendLine("            var config = new global::ModernMediator.MediatorConfiguration();");
             sb.AppendLine("            configure?.Invoke(config);");
             sb.AppendLine();
             sb.AppendLine("            // Register the mediator as scoped to support scoped dependencies");
-            sb.AppendLine("            services.TryAddScoped<IMediator>(sp =>");
+            sb.AppendLine("            services.TryAddScoped<global::ModernMediator.IMediator>(sp =>");
             sb.AppendLine("            {");
-            sb.AppendLine("                var mediator = new Mediator(sp);");
+            sb.AppendLine("                var mediator = new global::ModernMediator.Mediator(sp);");
             sb.AppendLine("                if (config.ErrorPolicy.HasValue)");
             sb.AppendLine("                {");
             sb.AppendLine("                    mediator.ErrorPolicy = config.ErrorPolicy.Value;");
             sb.AppendLine("                }");
-            sb.AppendLine("                mediator.SetCachingMode(config.CachingMode);");
             sb.AppendLine("                config.ApplyConfiguration(mediator);");
             sb.AppendLine("                return mediator;");
             sb.AppendLine("            });");
@@ -459,7 +467,6 @@ namespace ModernMediator.Generators
             sb.AppendLine("using System.Threading;");
             sb.AppendLine("using System.Threading.Tasks;");
             sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
-            sb.AppendLine("using ModernMediator;");
             sb.AppendLine();
             sb.AppendLine("namespace ModernMediator.Generated");
             sb.AppendLine("{");
@@ -481,14 +488,14 @@ namespace ModernMediator.Generators
                 sb.AppendLine("        /// <summary>");
                 sb.AppendLine($"        /// Sends a {handler.RequestType.Name} request without reflection.");
                 sb.AppendLine("        /// </summary>");
-                sb.AppendLine($"        public static async Task<{responseType}> Send(this IMediator mediator, {requestType} request, CancellationToken cancellationToken = default)");
+                sb.AppendLine($"        public static async global::System.Threading.Tasks.Task<{responseType}> Send(this global::ModernMediator.IMediator mediator, {requestType} request, global::System.Threading.CancellationToken cancellationToken = default)");
                 sb.AppendLine("        {");
-                sb.AppendLine("            if (mediator is not IServiceProviderAccessor accessor)");
+                sb.AppendLine("            if (mediator is not global::ModernMediator.IServiceProviderAccessor accessor)");
                 sb.AppendLine("                return await mediator.Send<" + responseType + ">(request, cancellationToken);");
                 sb.AppendLine();
                 sb.AppendLine($"            var handler = accessor.ServiceProvider?.GetService<{interfaceType}>();");
                 sb.AppendLine("            if (handler == null)");
-                sb.AppendLine($"                throw new InvalidOperationException(\"[MM202] No IRequestHandler<{handler.RequestType.Name}, {handler.ResponseType!.Name}> resolved by the source-generated dispatcher. Verify the handler is registered via AddModernMediatorGenerated() and the source-generator output is up to date.\");");
+                sb.AppendLine($"                throw new global::System.InvalidOperationException(\"[MM202] No IRequestHandler<{handler.RequestType.Name}, {handler.ResponseType!.Name}> resolved by the source-generated dispatcher. Verify the handler is registered via AddModernMediatorGenerated() and the source-generator output is up to date.\");");
                 sb.AppendLine();
                 sb.AppendLine($"            var activity = global::ModernMediator.MediatorTelemetry.ActivitySource");
                 sb.AppendLine($"                .StartActivity(typeof({requestType}).Name);");
@@ -499,7 +506,7 @@ namespace ModernMediator.Generators
                 sb.AppendLine("                var result = await handler.Handle(request, cancellationToken);");
                 sb.AppendLine("                return result;");
                 sb.AppendLine("            }");
-                sb.AppendLine("            catch (Exception ex)");
+                sb.AppendLine("            catch (global::System.Exception ex)");
                 sb.AppendLine("            {");
                 sb.AppendLine("                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);");
                 sb.AppendLine("                throw;");
@@ -524,14 +531,14 @@ namespace ModernMediator.Generators
                 sb.AppendLine("        /// <summary>");
                 sb.AppendLine($"        /// Creates a stream for {handler.RequestType.Name} without reflection.");
                 sb.AppendLine("        /// </summary>");
-                sb.AppendLine($"        public static IAsyncEnumerable<{responseType}> CreateStream(this IMediator mediator, {requestType} request, CancellationToken cancellationToken = default)");
+                sb.AppendLine($"        public static global::System.Collections.Generic.IAsyncEnumerable<{responseType}> CreateStream(this global::ModernMediator.IMediator mediator, {requestType} request, global::System.Threading.CancellationToken cancellationToken = default)");
                 sb.AppendLine("        {");
-                sb.AppendLine("            if (mediator is not IServiceProviderAccessor accessor || accessor.ServiceProvider == null)");
+                sb.AppendLine("            if (mediator is not global::ModernMediator.IServiceProviderAccessor accessor || accessor.ServiceProvider == null)");
                 sb.AppendLine("                return mediator.CreateStream<" + responseType + ">(request, cancellationToken);");
                 sb.AppendLine();
                 sb.AppendLine($"            var handler = accessor.ServiceProvider.GetService<{interfaceType}>();");
                 sb.AppendLine("            if (handler == null)");
-                sb.AppendLine($"                throw new InvalidOperationException(\"[MM202] No IStreamRequestHandler<{handler.RequestType.Name}, {handler.ResponseType!.Name}> resolved by the source-generated dispatcher. Verify the handler is registered via AddModernMediatorGenerated() and the source-generator output is up to date.\");");
+                sb.AppendLine($"                throw new global::System.InvalidOperationException(\"[MM202] No IStreamRequestHandler<{handler.RequestType.Name}, {handler.ResponseType!.Name}> resolved by the source-generated dispatcher. Verify the handler is registered via AddModernMediatorGenerated() and the source-generator output is up to date.\");");
                 sb.AppendLine();
                 sb.AppendLine("            return handler.Handle(request, cancellationToken);");
                 sb.AppendLine("        }");
@@ -556,8 +563,7 @@ namespace ModernMediator.Generators
 
         private static string GetFullTypeName(ITypeSymbol type)
         {
-            return type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-                .Replace("global::", "");
+            return type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         }
 
         private static void FindRequestTypesInNamespace(INamespaceSymbol ns, INamedTypeSymbol requestInterface, List<INamedTypeSymbol> result)
